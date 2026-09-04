@@ -16,8 +16,9 @@ separates the theme model from the GUI.
 - **Visual styles** — a full `visualStyles` block like the
   [deldersveld / MattRudy theme templates](https://github.com/MattRudy/PowerBI-ThemeTemplates).
   Enable formatting cards (background, border, title, data labels, category
-  labels) and target **all visuals (`*`)** or specific visuals (card, slicer,
-  table, charts, …). Colours are emitted in Power BI's
+  labels) and target **all visuals (`*`)** or any of the **52 visuals** the
+  Power BI schema defines (every chart, card, slicer, table, map, AI, script
+  and navigation visual). Colours are emitted in Power BI's
   `{"solid": {"color": "#..."}}` form.
 - **Open / Save** existing `.json` themes (round-trips cleanly).
 - **Schema validation** — validate the theme against the official Power BI
@@ -95,6 +96,21 @@ versions 2.126, 2.143 and 2.157. Notably, `labelDisplayUnits` is emitted as an
 **integer** (`0`=Auto, `1`=None, `1000`=Thousands, …) as the current API
 requires — older community templates used a string here, which the current
 schema rejects.
+
+### Coverage
+
+- **Visual targets:** all **52** visuals defined by the schema are selectable
+  (guarded by a test that fails if the schema adds one we don't list).
+- **Formatting cards:** a curated set of five common cards — background,
+  border, title, data labels and category labels — is exposed per visual.
+  Power BI visuals support many more cards (legend, axes, gridlines, data
+  colours, …); the model is schema-driven, so more can be added in `CARD_SCHEMA`.
+
+Run the conformance tests with:
+
+```bash
+python -m unittest discover -s tests
+```
 
 You can validate from scripts too:
 

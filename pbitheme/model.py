@@ -222,26 +222,74 @@ for _spec in [
 
 
 # Friendly names for the visuals a style can target.  "*" means "all visuals".
+# This covers every visual defined by the Power BI report theme schema
+# (v2.157), ordered by category for usability.
 VISUAL_TARGETS: "OrderedDict[str, str]" = OrderedDict(
     [
         ("*", "All visuals (*)"),
+        # Cards & KPIs
         ("card", "Card"),
+        ("cardVisual", "Card (new)"),
         ("multiRowCard", "Multi-row card"),
-        ("slicer", "Slicer"),
-        ("tableEx", "Table"),
-        ("pivotTable", "Matrix"),
-        ("columnChart", "Column chart"),
+        ("kpi", "KPI"),
+        ("gauge", "Gauge"),
+        ("scorecard", "Scorecard (goals)"),
+        # Column / bar charts
+        ("columnChart", "Stacked column"),
         ("clusteredColumnChart", "Clustered column"),
-        ("barChart", "Bar chart"),
+        ("hundredPercentStackedColumnChart", "100% stacked column"),
+        ("barChart", "Stacked bar"),
+        ("clusteredBarChart", "Clustered bar"),
+        ("hundredPercentStackedBarChart", "100% stacked bar"),
+        ("ribbonChart", "Ribbon chart"),
+        ("waterfallChart", "Waterfall"),
+        ("funnel", "Funnel"),
+        # Line / area / combo charts
         ("lineChart", "Line chart"),
         ("areaChart", "Area chart"),
+        ("stackedAreaChart", "Stacked area"),
+        ("hundredPercentStackedAreaChart", "100% stacked area"),
+        ("lineClusteredColumnComboChart", "Line & clustered column"),
+        ("lineStackedColumnComboChart", "Line & stacked column"),
+        # Part-to-whole / distribution
         ("pieChart", "Pie chart"),
         ("donutChart", "Donut chart"),
+        ("treemap", "Treemap"),
         ("scatterChart", "Scatter chart"),
-        ("gauge", "Gauge"),
-        ("kpi", "KPI"),
+        # Tables
+        ("tableEx", "Table"),
+        ("pivotTable", "Matrix"),
+        # Maps
         ("map", "Map"),
         ("filledMap", "Filled map"),
+        ("shapeMap", "Shape map"),
+        ("azureMap", "Azure map"),
+        # Slicers & filters
+        ("slicer", "Slicer"),
+        ("advancedSlicerVisual", "Slicer (new)"),
+        ("listSlicer", "List slicer"),
+        ("textSlicer", "Text slicer"),
+        ("filter", "Filter"),
+        # AI & analytics
+        ("keyDriversVisual", "Key influencers"),
+        ("decompositionTreeVisual", "Decomposition tree"),
+        ("aiNarratives", "Smart narrative"),
+        ("qnaVisual", "Q&A"),
+        # Script visuals
+        ("pythonVisual", "Python visual"),
+        ("scriptVisual", "R visual"),
+        ("rdlVisual", "Paginated report (RDL)"),
+        # Elements & navigation
+        ("actionButton", "Button"),
+        ("textbox", "Text box"),
+        ("image", "Image"),
+        ("shape", "Shape"),
+        ("pageNavigator", "Page navigator"),
+        ("bookmarkNavigator", "Bookmark navigator"),
+        ("group", "Group"),
+        # Page & report level
+        ("page", "Page"),
+        ("report", "Report"),
     ]
 )
 
