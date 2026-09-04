@@ -13,6 +13,12 @@ separates the theme model from the GUI.
   neutral / bad.
 - **Text classes** — font face, size and colour for `title`, `header`,
   `callout` and `label`.
+- **Visual styles** — a full `visualStyles` block like the
+  [deldersveld / MattRudy theme templates](https://github.com/MattRudy/PowerBI-ThemeTemplates).
+  Enable formatting cards (background, border, title, data labels, category
+  labels) and target **all visuals (`*`)** or specific visuals (card, slicer,
+  table, charts, …). Colours are emitted in Power BI's
+  `{"solid": {"color": "#..."}}` form.
 - **Open / Save** existing `.json` themes (round-trips cleanly).
 - The theme model (`pbitheme.model`) has **no GUI dependency**, so you can
   generate themes from scripts too.
@@ -40,7 +46,23 @@ from pbitheme.model import PowerBITheme
 theme = PowerBITheme("Corporate")
 theme.data_colors = ["#118DFF", "#12239E", "#E66C37"]
 theme.background = "#FFFFFF"
+
+# Detailed visualStyles: turn on the background card for all visuals
+glob = theme.visual_styles[0]            # the "*" target
+glob.enabled["background"] = True
+glob.values["background"] = {"show": True, "color": "#0B3D91", "transparency": 0}
+
 theme.save("corporate.json")
+```
+
+This produces the same nested shape as the template repo, e.g.:
+
+```json
+"visualStyles": {
+  "*": { "*": { "background": [
+    { "show": true, "color": { "solid": { "color": "#0B3D91" } }, "transparency": 0 }
+  ] } }
+}
 ```
 
 ## Project layout

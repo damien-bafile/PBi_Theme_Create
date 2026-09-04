@@ -24,7 +24,12 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from ..model import PowerBITheme
-from .widgets import ColorButton, DataColorsEditor, TextClassEditor
+from .widgets import (
+    ColorButton,
+    DataColorsEditor,
+    TextClassEditor,
+    VisualStyleEditor,
+)
 
 
 class MainWindow(QMainWindow):
@@ -115,6 +120,20 @@ class MainWindow(QMainWindow):
             text_layout.addRow(name.capitalize(), editor)
         form.addWidget(text_box)
 
+        # Visual styles (detailed per-visual formatting -> visualStyles)
+        visual_box = QGroupBox("Visual styles")
+        visual_layout = QVBoxLayout(visual_box)
+        visual_layout.addWidget(
+            QLabel(
+                "Enable a card to include it in visualStyles. Add tabs to target "
+                "specific visuals; \"All visuals (*)\" applies to everything."
+            )
+        )
+        self._visual_editor = VisualStyleEditor(self._theme.visual_styles)
+        self._visual_editor.changed.connect(self._refresh_preview)
+        visual_layout.addWidget(self._visual_editor)
+        form.addWidget(visual_box)
+
         form.addStretch(1)
 
         scroll = QScrollArea()
@@ -157,6 +176,7 @@ class MainWindow(QMainWindow):
                 editor._font.setCurrentText(tc.font_face)
                 editor._size.setValue(tc.font_size)
                 editor._color.set_color(tc.color)
+        self._visual_editor.set_styles(theme.visual_styles)
 
     def _collect_theme(self) -> PowerBITheme:
         """Build a fresh :class:`PowerBITheme` from the current widget state."""
@@ -167,6 +187,7 @@ class MainWindow(QMainWindow):
         theme.text_classes = {
             name: editor.value() for name, editor in self._text_editors.items()
         }
+        theme.visual_styles = self._visual_editor.styles()
         return theme
 
     def _refresh_preview(self) -> None:

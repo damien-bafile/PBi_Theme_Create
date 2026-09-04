@@ -11,17 +11,30 @@ from typing import List
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
+    QCheckBox,
     QColorDialog,
+    QComboBox,
+    QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QSpinBox,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
     QFontComboBox,
 )
 
-from ..model import TextClass, is_valid_hex, normalise_hex
+from ..model import (
+    CARD_SCHEMA,
+    VISUAL_TARGETS,
+    PropSpec,
+    TextClass,
+    VisualStyle,
+    is_valid_hex,
+    normalise_hex,
+)
 
 
 class ColorButton(QPushButton):
@@ -165,3 +178,197 @@ class TextClassEditor(QWidget):
             font_size=self._size.value(),
             color=self._color.color(),
         )
+
+
+class _PropWidget(QWidget):
+    """A single labelled editor for one :class:`PropSpec` value."""
+
+    changed = Signal()
+
+    def __init__(self, spec: PropSpec, value, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._spec = spec
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self._editor = self._build_editor(spec, value)
+        layout.addWidget(self._editor)
+
+    def _build_editor(self, spec: PropSpec, value):
+        if spec.kind == "bool":
+            w = QCheckBox()
+            w.setChecked(bool(value))
+            w.toggled.connect(lambda _v: self.changed.emit())
+            return w
+        if spec.kind == "color":
+            w = ColorButton(value if is_valid_hex(value) else spec.default)
+            w.colorChanged.connect(lambda _c: self.changed.emit())
+            return w
+        if spec.kind == "int":
+            w = QSpinBox()
+            w.setRange(-1000000, 1000000)
+            w.setValue(int(value))
+            w.valueChanged.connect(lambda _v: self.changed.emit())
+            return w
+        if spec.kind == "font":
+            w = QFontComboBox()
+            w.setCurrentText(str(value))
+            w.currentFontChanged.connect(lambda _f: self.changed.emit())
+            return w
+        if spec.kind == "choice":
+            w = QComboBox()
+            for opt_value, opt_label in (spec.choices or []):
+                w.addItem(opt_label, opt_value)
+            idx = w.findData(value)
+            w.setCurrentIndex(idx if idx >= 0 else 0)
+            w.currentIndexChanged.connect(lambda _i: self.changed.emit())
+            return w
+        # fallback: read-only label
+        return QLabel(str(value))
+
+    def value(self):
+        w = self._editor
+        if self._spec.kind == "bool":
+            return w.isChecked()
+        if self._spec.kind == "color":
+            return w.color()
+        if self._spec.kind == "int":
+            return w.value()
+        if self._spec.kind == "font":
+            return w.currentFont().family()
+        if self._spec.kind == "choice":
+            return w.currentData()
+        return self._spec.default
+
+
+class CardEditor(QGroupBox):
+    """A checkable group box editing one formatting card of a visual."""
+
+    changed = Signal()
+
+    def __init__(self, card_key: str, enabled: bool, values: dict,
+                 parent: QWidget | None = None) -> None:
+        spec = CARD_SCHEMA[card_key]
+        super().__init__(spec.label, parent)
+        self._card_key = card_key
+        self._prop_widgets = {}
+
+        self.setCheckable(True)
+        self.setChecked(bool(enabled))
+        self.toggled.connect(lambda _v: self.changed.emit())
+
+        form = QFormLayout(self)
+        for prop in spec.props:
+            widget = _PropWidget(prop, values.get(prop.key, prop.default))
+            widget.changed.connect(self.changed.emit)
+            self._prop_widgets[prop.key] = widget
+            form.addRow(prop.label, widget)
+
+    def card_key(self) -> str:
+        return self._card_key
+
+    def is_enabled(self) -> bool:
+        return self.isChecked()
+
+    def values(self) -> dict:
+        return {key: w.value() for key, w in self._prop_widgets.items()}
+
+
+class VisualTargetEditor(QWidget):
+    """All formatting cards for a single visual target (e.g. "*" or "card")."""
+
+    changed = Signal()
+
+    def __init__(self, style: VisualStyle, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._visual = style.visual
+        self._cards = {}
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(6, 6, 6, 6)
+        for card_key in CARD_SCHEMA:
+            editor = CardEditor(card_key, style.enabled.get(card_key, False),
+                                style.values.get(card_key, {}))
+            editor.changed.connect(self.changed.emit)
+            self._cards[card_key] = editor
+            layout.addWidget(editor)
+        layout.addStretch(1)
+
+    def visual(self) -> str:
+        return self._visual
+
+    def to_style(self) -> VisualStyle:
+        style = VisualStyle(self._visual)
+        for card_key, editor in self._cards.items():
+            style.enabled[card_key] = editor.is_enabled()
+            style.values[card_key] = editor.values()
+        return style
+
+
+class VisualStyleEditor(QWidget):
+    """Tabbed editor managing one :class:`VisualTargetEditor` per visual."""
+
+    changed = Signal()
+
+    def __init__(self, styles, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+
+        controls = QHBoxLayout()
+        controls.addWidget(QLabel("Add visual:"))
+        self._picker = QComboBox()
+        for visual, label in VISUAL_TARGETS.items():
+            self._picker.addItem(label, visual)
+        controls.addWidget(self._picker, 1)
+        add_btn = QPushButton("Add")
+        add_btn.clicked.connect(self._add_from_picker)
+        controls.addWidget(add_btn)
+        remove_btn = QPushButton("Remove current")
+        remove_btn.clicked.connect(self._remove_current)
+        controls.addWidget(remove_btn)
+
+        self._tabs = QTabWidget()
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addLayout(controls)
+        outer.addWidget(self._tabs)
+
+        self.set_styles(styles)
+
+    # -- public API -------------------------------------------------------- #
+    def set_styles(self, styles) -> None:
+        self._tabs.clear()
+        styles = list(styles) or [VisualStyle("*")]
+        for style in styles:
+            self._add_tab(style)
+        self.changed.emit()
+
+    def styles(self):
+        return [self._tabs.widget(i).to_style() for i in range(self._tabs.count())]
+
+    # -- helpers ----------------------------------------------------------- #
+    def _add_tab(self, style: VisualStyle) -> None:
+        editor = VisualTargetEditor(style)
+        editor.changed.connect(self.changed.emit)
+        label = VISUAL_TARGETS.get(style.visual, style.visual)
+        self._tabs.addTab(editor, label)
+
+    def _existing_visuals(self):
+        return {self._tabs.widget(i).visual() for i in range(self._tabs.count())}
+
+    def _add_from_picker(self) -> None:
+        visual = self._picker.currentData()
+        if visual in self._existing_visuals():
+            # focus the existing tab instead of duplicating it
+            for i in range(self._tabs.count()):
+                if self._tabs.widget(i).visual() == visual:
+                    self._tabs.setCurrentIndex(i)
+                    return
+        self._add_tab(VisualStyle(visual))
+        self._tabs.setCurrentIndex(self._tabs.count() - 1)
+        self.changed.emit()
+
+    def _remove_current(self) -> None:
+        if self._tabs.count() <= 1:
+            return  # always keep at least one target
+        self._tabs.removeTab(self._tabs.currentIndex())
+        self.changed.emit()
