@@ -140,12 +140,14 @@ class PropSpec:
         return value
 
 
+# Power BI requires labelDisplayUnits as an integer (schema oneOf enum).
 _DISPLAY_UNITS = [
-    ("0", "Auto / None"),
-    ("1000", "Thousands"),
-    ("1000000", "Millions"),
-    ("1000000000", "Billions"),
-    ("1000000000000", "Trillions"),
+    (0, "Auto"),
+    (1, "None"),
+    (1000, "Thousands"),
+    (1000000, "Millions"),
+    (1000000000, "Billions"),
+    (1000000000000, "Trillions"),
 ]
 
 _ALIGNMENTS = [("left", "Left"), ("center", "Center"), ("right", "Right")]
@@ -199,7 +201,7 @@ for _spec in [
         "Data labels",
         [
             PropSpec("color", "Colour", "color", "#000000"),
-            PropSpec("labelDisplayUnits", "Display units", "choice", "0", _DISPLAY_UNITS),
+            PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
             PropSpec("labelPrecision", "Decimal places", "int", 0),
             PropSpec("fontSize", "Font size", "int", 10),
             PropSpec("fontFamily", "Font", "font", "Segoe UI"),

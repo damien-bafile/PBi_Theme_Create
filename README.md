@@ -20,6 +20,10 @@ separates the theme model from the GUI.
   table, charts, …). Colours are emitted in Power BI's
   `{"solid": {"color": "#..."}}` form.
 - **Open / Save** existing `.json` themes (round-trips cleanly).
+- **Schema validation** — validate the theme against the official Power BI
+  report theme JSON schema (bundled from Microsoft's
+  `powerbi-desktop-samples`, currently **v2.157**) via **File → Validate** or
+  the **Validate** button. Output is verified to conform.
 - The theme model (`pbitheme.model`) has **no GUI dependency**, so you can
   generate themes from scripts too.
 
@@ -72,11 +76,34 @@ main.py                     # GUI entry point
 pbitheme/
     __init__.py
     model.py                # PowerBITheme, TextClass — the GUI-free model
+    validate.py             # validate a theme against the bundled PBI schema
+    schema/                 # official Power BI report theme JSON schema
     gui/
         __init__.py
         main_window.py       # MainWindow: editor form + live JSON preview
-        widgets.py           # ColorButton, DataColorsEditor, TextClassEditor
+        widgets.py           # ColorButton, DataColorsEditor, TextClassEditor,
+                             #   VisualStyleEditor, ...
 requirements.txt
+```
+
+## Conformance
+
+The generated JSON is validated against the official
+[Power BI report theme JSON schema](https://github.com/microsoft/powerbi-desktop-samples/tree/main/Report%20Theme%20JSON%20Schema)
+(Draft 7). A full-feature theme validates with zero errors against schema
+versions 2.126, 2.143 and 2.157. Notably, `labelDisplayUnits` is emitted as an
+**integer** (`0`=Auto, `1`=None, `1000`=Thousands, …) as the current API
+requires — older community templates used a string here, which the current
+schema rejects.
+
+You can validate from scripts too:
+
+```python
+from pbitheme.model import PowerBITheme
+from pbitheme.validate import validate_theme
+
+errors = validate_theme(PowerBITheme("Demo").to_dict())
+assert errors == []
 ```
 
 ## Architecture
