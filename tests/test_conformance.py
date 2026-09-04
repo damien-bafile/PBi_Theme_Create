@@ -8,20 +8,21 @@ import unittest
 
 from jsonschema import Draft7Validator
 
-from pbitheme.model import CARD_SCHEMA, VISUAL_TARGETS, PowerBITheme, VisualStyle
+from pbitheme.model import VISUAL_TARGETS, PowerBITheme, VisualStyle, cards_for
 from pbitheme.validate import bundled_schema_path, validate_theme
 
 
 def _full_feature_theme() -> PowerBITheme:
+    """A theme enabling every card of every visual's own schema."""
     theme = PowerBITheme("Full Feature")
     glob = theme.visual_styles[0]
-    for card in CARD_SCHEMA:
+    for card in glob.schema:
         glob.enabled[card] = True
     for visual in VISUAL_TARGETS:
         if visual == "*":
             continue
         style = VisualStyle(visual)
-        for card in CARD_SCHEMA:
+        for card in style.schema:
             style.enabled[card] = True
         theme.visual_styles.append(style)
     return theme
@@ -54,6 +55,32 @@ class ConformanceTests(unittest.TestCase):
         theme.visual_styles[0].enabled["labels"] = True
         labels = theme.to_dict()["visualStyles"]["*"]["*"]["labels"][0]
         self.assertIsInstance(labels["labelDisplayUnits"], int)
+
+    def test_detailed_visuals_have_dedicated_cards(self):
+        # Matrix, Table and Slicer expose more than the generic card set.
+        expected = {
+            "pivotTable": {"grid", "columnHeaders", "rowHeaders", "subTotals"},
+            "tableEx": {"grid", "columnHeaders", "values", "stylePreset"},
+            "slicer": {"general", "header", "items", "selection", "slider"},
+        }
+        for visual, cards in expected.items():
+            self.assertTrue(cards.issubset(set(cards_for(visual))), visual)
+
+    def test_matrix_detailed_theme_validates(self):
+        theme = PowerBITheme("Matrix")
+        style = VisualStyle("pivotTable")
+        for card in style.schema:
+            style.enabled[card] = True
+        theme.visual_styles = [style]
+        self.assertEqual(validate_theme(theme.to_dict()), [])
+
+    def test_slicer_orientation_is_integer(self):
+        style = VisualStyle("slicer")
+        style.enabled["general"] = True
+        theme = PowerBITheme("S")
+        theme.visual_styles = [style]
+        general = theme.to_dict()["visualStyles"]["slicer"]["*"]["general"][0]
+        self.assertIsInstance(general["orientation"], int)
 
 
 if __name__ == "__main__":

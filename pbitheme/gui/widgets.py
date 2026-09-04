@@ -27,11 +27,12 @@ from PySide6.QtWidgets import (
 )
 
 from ..model import (
-    CARD_SCHEMA,
     VISUAL_TARGETS,
+    CardSpec,
     PropSpec,
     TextClass,
     VisualStyle,
+    cards_for,
     is_valid_hex,
     normalise_hex,
 )
@@ -245,11 +246,10 @@ class CardEditor(QGroupBox):
 
     changed = Signal()
 
-    def __init__(self, card_key: str, enabled: bool, values: dict,
+    def __init__(self, spec: CardSpec, enabled: bool, values: dict,
                  parent: QWidget | None = None) -> None:
-        spec = CARD_SCHEMA[card_key]
         super().__init__(spec.label, parent)
-        self._card_key = card_key
+        self._card_key = spec.key
         self._prop_widgets = {}
 
         self.setCheckable(True)
@@ -285,8 +285,8 @@ class VisualTargetEditor(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
-        for card_key in CARD_SCHEMA:
-            editor = CardEditor(card_key, style.enabled.get(card_key, False),
+        for card_key, spec in cards_for(style.visual).items():
+            editor = CardEditor(spec, style.enabled.get(card_key, False),
                                 style.values.get(card_key, {}))
             editor.changed.connect(self.changed.emit)
             self._cards[card_key] = editor

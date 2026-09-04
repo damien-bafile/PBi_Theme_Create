@@ -151,6 +151,31 @@ _DISPLAY_UNITS = [
 ]
 
 _ALIGNMENTS = [("left", "Left"), ("center", "Center"), ("right", "Right")]
+# Table / matrix headers use a capitalised alignment enum (distinct from title).
+_ALIGNMENTS_CAP = [("Left", "Left"), ("Center", "Center"), ("Right", "Right")]
+_TITLE_ALIGNMENTS = [
+    ("Auto", "Auto"),
+    ("Left", "Left"),
+    ("Center", "Center"),
+    ("Right", "Right"),
+]
+# Slicer orientation is an integer enum in the current schema.
+_ORIENTATION = [(1, "Vertical"), (2, "Horizontal"), (0, "Grid")]
+_SUBTOTAL_POSITION = [("Top", "Top"), ("Bottom", "Bottom")]
+# Built-in table / matrix style presets (internal names).
+_TABLE_PRESETS = [
+    ("None", "None"),
+    ("Default", "Default"),
+    ("Minimal", "Minimal"),
+    ("BoldHeader", "Bold header"),
+    ("AlternatingRows", "Alternating rows"),
+    ("ContrastAlternatingRows", "Contrast alternating rows"),
+    ("FlashyRows", "Flashy rows"),
+    ("BoldHeaderFlashyRows", "Bold header flashy rows"),
+    ("Sparse", "Sparse"),
+    ("Condensed", "Condensed"),
+    ("NumbersOnLeft", "Numbers on left"),
+]
 
 
 @dataclass
@@ -162,63 +187,288 @@ class CardSpec:
     props: List[PropSpec]
 
 
-# The curated set of formatting cards exposed by the editor.  Adding a card or
-# property here automatically makes it available in both the GUI and the JSON.
-CARD_SCHEMA: "OrderedDict[str, CardSpec]" = OrderedDict()
-for _spec in [
+# -- Common cards, reused across visuals -------------------------------- #
+_CARD_BACKGROUND = CardSpec(
+    "background",
+    "Background",
+    [
+        PropSpec("show", "Show", "bool", True),
+        PropSpec("color", "Colour", "color", "#FFFFFF"),
+        PropSpec("transparency", "Transparency %", "int", 0),
+    ],
+)
+_CARD_BORDER = CardSpec(
+    "border",
+    "Border",
+    [
+        PropSpec("show", "Show", "bool", True),
+        PropSpec("color", "Colour", "color", "#CCCCCC"),
+        PropSpec("radius", "Radius", "int", 0),
+    ],
+)
+_CARD_TITLE = CardSpec(
+    "title",
+    "Title",
+    [
+        PropSpec("show", "Show", "bool", True),
+        PropSpec("fontColor", "Font colour", "color", "#FFFFFF"),
+        PropSpec("background", "Background", "color", "#062B60"),
+        PropSpec("alignment", "Alignment", "choice", "left", _ALIGNMENTS),
+        PropSpec("fontSize", "Font size", "int", 12),
+        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+    ],
+)
+_CARD_LABELS = CardSpec(
+    "labels",
+    "Data labels",
+    [
+        PropSpec("color", "Colour", "color", "#000000"),
+        PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
+        PropSpec("labelPrecision", "Decimal places", "int", 0),
+        PropSpec("fontSize", "Font size", "int", 10),
+        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+    ],
+)
+_CARD_CATEGORY_LABELS = CardSpec(
+    "categoryLabels",
+    "Category labels",
+    [
+        PropSpec("show", "Show", "bool", True),
+        PropSpec("color", "Colour", "color", "#01B8AA"),
+        PropSpec("fontSize", "Font size", "int", 10),
+        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+    ],
+)
+
+
+def _schema(*cards: CardSpec) -> "OrderedDict[str, CardSpec]":
+    return OrderedDict((c.key, c) for c in cards)
+
+
+# The generic set of cards used for any visual without a specific schema.
+CARD_SCHEMA: "OrderedDict[str, CardSpec]" = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    _CARD_LABELS,
+    _CARD_CATEGORY_LABELS,
+)
+
+# -- Table / matrix shared cards ---------------------------------------- #
+_CARD_GRID = CardSpec(
+    "grid",
+    "Grid",
+    [
+        PropSpec("gridVertical", "Vertical gridlines", "bool", False),
+        PropSpec("gridVerticalColor", "Vertical colour", "color", "#CCCCCC"),
+        PropSpec("gridVerticalWeight", "Vertical thickness", "int", 1),
+        PropSpec("gridHorizontal", "Horizontal gridlines", "bool", True),
+        PropSpec("gridHorizontalColor", "Horizontal colour", "color", "#CCCCCC"),
+        PropSpec("gridHorizontalWeight", "Horizontal thickness", "int", 1),
+        PropSpec("rowPadding", "Row padding", "int", 2),
+        PropSpec("outlineColor", "Outline colour", "color", "#CCCCCC"),
+        PropSpec("outlineWeight", "Outline thickness", "int", 1),
+        PropSpec("textSize", "Text size", "int", 10),
+        PropSpec("imageHeight", "Image height", "int", 75),
+    ],
+)
+
+
+def _values_card(extra: List[PropSpec]) -> CardSpec:
+    props = [
+        PropSpec("fontColorPrimary", "Font colour", "color", "#000000"),
+        PropSpec("backColorPrimary", "Background", "color", "#FFFFFF"),
+        PropSpec("fontColorSecondary", "Alt font colour", "color", "#000000"),
+        PropSpec("backColorSecondary", "Alt background", "color", "#EEEEEE"),
+    ]
+    props += extra
+    props += [
+        PropSpec("urlIcon", "URL icon", "bool", False),
+        PropSpec("wordWrap", "Word wrap", "bool", False),
+        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        PropSpec("fontSize", "Font size", "int", 10),
+    ]
+    return CardSpec("values", "Values", props)
+
+
+# -- Table (tableEx) ---------------------------------------------------- #
+TABLE_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    _CARD_GRID,
     CardSpec(
-        "background",
-        "Background",
+        "columnHeaders",
+        "Column headers",
         [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("color", "Colour", "color", "#FFFFFF"),
-            PropSpec("transparency", "Transparency %", "int", 0),
-        ],
-    ),
-    CardSpec(
-        "border",
-        "Border",
-        [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("color", "Colour", "color", "#CCCCCC"),
-            PropSpec("radius", "Radius", "int", 0),
-        ],
-    ),
-    CardSpec(
-        "title",
-        "Title",
-        [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("fontColor", "Font colour", "color", "#FFFFFF"),
-            PropSpec("background", "Background", "color", "#062B60"),
-            PropSpec("alignment", "Alignment", "choice", "left", _ALIGNMENTS),
-            PropSpec("fontSize", "Font size", "int", 12),
+            PropSpec("fontColor", "Font colour", "color", "#000000"),
+            PropSpec("backColor", "Background", "color", "#FFFFFF"),
+            PropSpec("autoSizeColumnWidth", "Auto-size width", "bool", True),
+            PropSpec("alignment", "Alignment", "choice", "Left", _ALIGNMENTS_CAP),
+            PropSpec("wordWrap", "Word wrap", "bool", False),
             PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "labels",
-        "Data labels",
-        [
-            PropSpec("color", "Colour", "color", "#000000"),
-            PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
-            PropSpec("labelPrecision", "Decimal places", "int", 0),
             PropSpec("fontSize", "Font size", "int", 10),
+        ],
+    ),
+    _values_card([]),
+    CardSpec(
+        "total",
+        "Total",
+        [
+            PropSpec("totals", "Show totals", "bool", True),
+            PropSpec("fontColor", "Font colour", "color", "#000000"),
+            PropSpec("backColor", "Background", "color", "#FFFFFF"),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+            PropSpec("fontSize", "Font size", "int", 10),
+        ],
+    ),
+    CardSpec(
+        "stylePreset",
+        "Style preset",
+        [PropSpec("name", "Preset", "choice", "Default", _TABLE_PRESETS)],
+    ),
+)
+
+# -- Matrix (pivotTable) ------------------------------------------------ #
+MATRIX_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    _CARD_GRID,
+    CardSpec(
+        "columnHeaders",
+        "Column headers",
+        [
+            PropSpec("fontColor", "Font colour", "color", "#000000"),
+            PropSpec("backColor", "Background", "color", "#FFFFFF"),
+            PropSpec("autoSizeColumnWidth", "Auto-size width", "bool", True),
+            PropSpec("alignment", "Alignment", "choice", "Left", _ALIGNMENTS_CAP),
+            PropSpec("titleAlignment", "Title alignment", "choice", "Auto", _TITLE_ALIGNMENTS),
+            PropSpec("urlIcon", "URL icon", "bool", False),
+            PropSpec("wordWrap", "Word wrap", "bool", False),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+            PropSpec("fontSize", "Font size", "int", 10),
+        ],
+    ),
+    CardSpec(
+        "rowHeaders",
+        "Row headers",
+        [
+            PropSpec("fontColor", "Font colour", "color", "#000000"),
+            PropSpec("backColor", "Background", "color", "#FFFFFF"),
+            PropSpec("stepped", "Stepped layout", "bool", True),
+            PropSpec("steppedLayoutIndentation", "Indentation", "int", 10),
+            PropSpec("showExpandCollapseButtons", "+/- buttons", "bool", True),
+            PropSpec("urlIcon", "URL icon", "bool", False),
+            PropSpec("wordWrap", "Word wrap", "bool", False),
+            PropSpec("alignment", "Alignment", "choice", "Left", _ALIGNMENTS_CAP),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+            PropSpec("fontSize", "Font size", "int", 10),
+        ],
+    ),
+    _values_card(
+        [
+            PropSpec("bandedRowHeaders", "Banded rows", "bool", False),
+            PropSpec("valuesOnRow", "Values on rows", "bool", False),
+        ]
+    ),
+    CardSpec(
+        "subTotals",
+        "Subtotals",
+        [
+            PropSpec("rowSubtotals", "Row subtotals", "bool", True),
+            PropSpec("columnSubtotals", "Column subtotals", "bool", True),
+            PropSpec("rowSubtotalsPosition", "Row position", "choice", "Bottom", _SUBTOTAL_POSITION),
+            PropSpec("applyToHeaders", "Apply to headers", "bool", False),
+            PropSpec("perRowLevel", "Per row level", "bool", False),
+            PropSpec("perColumnLevel", "Per column level", "bool", False),
+            PropSpec("fontColor", "Font colour", "color", "#000000"),
+            PropSpec("backColor", "Background", "color", "#FFFFFF"),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+            PropSpec("fontSize", "Font size", "int", 10),
+        ],
+    ),
+    CardSpec(
+        "total",
+        "Grand total",
+        [
+            PropSpec("applyToHeaders", "Apply to headers", "bool", False),
+            PropSpec("fontColor", "Font colour", "color", "#000000"),
+            PropSpec("backColor", "Background", "color", "#FFFFFF"),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+            PropSpec("fontSize", "Font size", "int", 10),
+        ],
+    ),
+    CardSpec(
+        "stylePreset",
+        "Style preset",
+        [PropSpec("name", "Preset", "choice", "Default", _TABLE_PRESETS)],
+    ),
+)
+
+# -- Slicer ------------------------------------------------------------- #
+SLICER_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    CardSpec(
+        "general",
+        "General",
+        [
+            PropSpec("orientation", "Orientation", "choice", 1, _ORIENTATION),
+            PropSpec("outlineColor", "Outline colour", "color", "#444444"),
+            PropSpec("outlineWeight", "Outline thickness", "int", 1),
+        ],
+    ),
+    CardSpec(
+        "header",
+        "Header",
+        [
+            PropSpec("show", "Show", "bool", True),
+            PropSpec("fontColor", "Font colour", "color", "#000000"),
+            PropSpec("background", "Background", "color", "#FFFFFF"),
+            PropSpec("textSize", "Text size", "int", 10),
             PropSpec("fontFamily", "Font", "font", "Segoe UI"),
         ],
     ),
     CardSpec(
-        "categoryLabels",
-        "Category labels",
+        "items",
+        "Items",
         [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("color", "Colour", "color", "#01B8AA"),
-            PropSpec("fontSize", "Font size", "int", 10),
+            PropSpec("fontColor", "Font colour", "color", "#000000"),
+            PropSpec("background", "Background", "color", "#FFFFFF"),
+            PropSpec("textSize", "Text size", "int", 11),
             PropSpec("fontFamily", "Font", "font", "Segoe UI"),
         ],
     ),
-]:
-    CARD_SCHEMA[_spec.key] = _spec
+    CardSpec(
+        "selection",
+        "Selection controls",
+        [
+            PropSpec("selectAllCheckboxEnabled", "Show 'Select all'", "bool", False),
+            PropSpec("singleSelect", "Single select", "bool", True),
+        ],
+    ),
+    CardSpec(
+        "slider",
+        "Slider",
+        [PropSpec("color", "Colour", "color", "#118DFF")],
+    ),
+)
+
+# Visuals with a dedicated, detailed card schema; others use CARD_SCHEMA.
+VISUAL_CARD_SCHEMA: "OrderedDict[str, OrderedDict[str, CardSpec]]" = OrderedDict(
+    [
+        ("tableEx", TABLE_CARD_SCHEMA),
+        ("pivotTable", MATRIX_CARD_SCHEMA),
+        ("slicer", SLICER_CARD_SCHEMA),
+    ]
+)
+
+
+def cards_for(visual: str) -> "OrderedDict[str, CardSpec]":
+    """Return the card schema for *visual* (specific if defined, else generic)."""
+    return VISUAL_CARD_SCHEMA.get(visual, CARD_SCHEMA)
 
 
 # Friendly names for the visuals a style can target.  "*" means "all visuals".
@@ -303,16 +553,21 @@ class VisualStyle:
 
     def __init__(self, visual: str = "*") -> None:
         self.visual = visual
-        self.enabled: Dict[str, bool] = {key: False for key in CARD_SCHEMA}
+        schema = cards_for(visual)
+        self.enabled: Dict[str, bool] = {key: False for key in schema}
         self.values: Dict[str, Dict[str, Any]] = {
             key: {p.key: p.default for p in spec.props}
-            for key, spec in CARD_SCHEMA.items()
+            for key, spec in schema.items()
         }
+
+    @property
+    def schema(self) -> "OrderedDict[str, CardSpec]":
+        return cards_for(self.visual)
 
     def to_dict(self) -> Dict[str, Any]:
         """Return ``{card: [ {props...} ]}`` for the enabled cards only."""
         cards: Dict[str, Any] = OrderedDict()
-        for key, spec in CARD_SCHEMA.items():
+        for key, spec in self.schema.items():
             if not self.enabled.get(key):
                 continue
             obj: Dict[str, Any] = OrderedDict()
@@ -325,7 +580,7 @@ class VisualStyle:
     @classmethod
     def from_dict(cls, visual: str, cards: Dict[str, Any]) -> "VisualStyle":
         style = cls(visual)
-        for key, spec in CARD_SCHEMA.items():
+        for key, spec in style.schema.items():
             if key not in cards:
                 continue
             entries = cards[key]

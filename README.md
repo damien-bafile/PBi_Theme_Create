@@ -101,10 +101,19 @@ schema rejects.
 
 - **Visual targets:** all **52** visuals defined by the schema are selectable
   (guarded by a test that fails if the schema adds one we don't list).
-- **Formatting cards:** a curated set of five common cards — background,
-  border, title, data labels and category labels — is exposed per visual.
-  Power BI visuals support many more cards (legend, axes, gridlines, data
-  colours, …); the model is schema-driven, so more can be added in `CARD_SCHEMA`.
+- **Formatting cards:** most visuals expose a set of five common cards —
+  background, border, title, data labels and category labels. **Table, Matrix
+  and Slicer have detailed, dedicated card sets:**
+  - **Table** (`tableEx`): background, border, title, grid, column headers,
+    values, total, style preset.
+  - **Matrix** (`pivotTable`): background, border, title, grid, column headers,
+    row headers (stepped layout, +/- buttons), values (banded rows, values on
+    rows), subtotals, grand total, style preset.
+  - **Slicer** (`slicer`): background, border, title, general (orientation,
+    outline), header, items, selection controls, slider.
+
+  The model is schema-driven (`CARD_SCHEMA` / `VISUAL_CARD_SCHEMA`), so more
+  visuals can be given dedicated card sets the same way.
 
 Run the conformance tests with:
 
