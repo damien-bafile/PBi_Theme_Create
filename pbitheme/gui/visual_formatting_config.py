@@ -359,6 +359,95 @@ FUNNEL_SECTIONS = [
     ),
 ]
 
+# Action button -- fill / text / outline (default state).
+ACTION_BUTTON_SECTIONS = [
+    FormatSection(
+        "Button",
+        [
+            FormatField("buttonFillColor", "Fill Color", "color", default="#118DFF"),
+            FormatField("buttonTextColor", "Text Color", "color", default="#FFFFFF"),
+            FormatField("buttonOutlineColor", "Outline Color", "color", default="#118DFF"),
+            FormatField("buttonOutlineWeight", "Outline Weight (px)", "number", min_val=0, max_val=10, default=0, preview=False),
+        ],
+    ),
+]
+
+# Basic shape -- fill + outline.
+SHAPE_SECTIONS = [
+    FormatSection(
+        "Shape",
+        [
+            FormatField("shapeFillColor", "Fill Color", "color", default="#118DFF"),
+            FormatField("shapeOutlineColor", "Outline Color", "color", default="#000000"),
+            FormatField("shapeOutlineWeight", "Outline Weight (px)", "number", min_val=0, max_val=10, default=1, preview=False),
+        ],
+    ),
+]
+
+# Decomposition tree -- level headers + data labels.
+DECOMP_SECTIONS = [
+    FormatSection(
+        "Level Header",
+        [
+            FormatField("levelHeaderBg", "Background Color", "color", default="#118DFF"),
+            FormatField("levelTitleColor", "Title Color", "color", default="#FFFFFF"),
+        ],
+    ),
+    FormatSection(
+        "Data Labels",
+        [
+            FormatField("treeDataLabelColor", "Color", "color", default="#252423", preview=False),
+        ],
+    ),
+]
+
+# Map / Filled map -- data point colour + category labels.
+MAP_SECTIONS = [
+    FormatSection(
+        "Data Colors",
+        [
+            FormatField("mapDataColor", "Data Point Color", "color", default="#118DFF"),
+        ],
+    ),
+    FormatSection(
+        "Category Labels",
+        [
+            FormatField("mapLabelColor", "Label Color", "color", default="#252423", preview=False),
+        ],
+    ),
+]
+
+FILLED_MAP_SECTIONS = [
+    FormatSection(
+        "Data Colors",
+        [
+            FormatField("mapDataColor", "Region Color", "color", default="#118DFF"),
+        ],
+    ),
+]
+
+# Shape map -- default fill + border.
+SHAPE_MAP_SECTIONS = [
+    FormatSection(
+        "Shapes",
+        [
+            FormatField("shapeMapColor", "Default Color", "color", default="#118DFF"),
+            FormatField("shapeMapBorderColor", "Border Color", "color", default="#FFFFFF"),
+        ],
+    ),
+]
+
+# Image -- scaling mode (export-only).
+IMAGE_SECTIONS = [
+    FormatSection(
+        "Image",
+        [
+            FormatField("imageScaling", "Scaling", "dropdown",
+                       options=[("Normal", "Fit"), ("Fit", "Stretch"), ("Fill", "Fill")], preview=False),
+        ],
+    ),
+]
+
 # KPI -- indicator value, goal, trend line and status colours.
 KPI_SECTIONS = [
     FormatSection(
@@ -408,6 +497,12 @@ SLICER_SECTIONS = [
             FormatField("itemsBold", "Bold", "boolean", default=False),
         ],
     ),
+    FormatSection(
+        "Slider",
+        [
+            FormatField("sliderColor", "Slider Color", "color", default="#118DFF", preview=False),
+        ],
+    ),
 ]
 
 # Map visual types to their formatting sections
@@ -447,6 +542,15 @@ VISUAL_FORMATTING = {
 
     # Slicer
     "slicer": SLICER_SECTIONS,
+
+    # Other visuals (Stage 5)
+    "actionButton": ACTION_BUTTON_SECTIONS,
+    "basicShape": SHAPE_SECTIONS,
+    "decompositionTreeVisual": DECOMP_SECTIONS,
+    "map": MAP_SECTIONS,
+    "filledMap": FILLED_MAP_SECTIONS,
+    "shapeMap": SHAPE_MAP_SECTIONS,
+    "image": IMAGE_SECTIONS,
 }
 
 

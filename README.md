@@ -64,7 +64,7 @@ Most fields update the **live preview**; a few (marked *export-only* in the
 stages below) are exported as valid Power BI cards but can't be meaningfully
 shown in a simplified mockup (e.g. font family, word wrap).
 
-**Current overall card coverage: ~56%** (426 / 749 themeable cards across all visuals).
+**Current overall card coverage: ~57%** (440 / 770 themeable cards across all visuals).
 
 ### Stages
 
@@ -97,10 +97,13 @@ shown in a simplified mockup (e.g. font family, word wrap).
   radius), **scatter bubble size + marker border**, and waterfall sentiment
   colours (Stage 3). Still to do: ratio line, error bars, `plotArea` shading,
   ribbon bands, small multiples.
-- **Stage 5 — Slicer & non-chart visuals — ☐.** Slicer slider / date / date
-  range / numeric input / selection / search box / dropdown; decomposition tree
-  nodes; action-button fill / text / icon / outline + states; image scaling;
-  shapes; map controls & category labels.
+- **Stage 5 — Slicer & non-chart visuals — ◐ mostly done.** Made customizable:
+  **Action Button** (fill / text / outline), **Basic Shape** (fill / outline),
+  **Decomposition Tree** (level-header + data-label colours), **Map** & **Filled
+  Map** (data-point colour + category labels), **Shape Map** (default + border
+  colours), **Image** (scaling, export-only), plus a slicer **slider** colour.
+  Still to do: slicer date/numeric/search/dropdown, action-button icon + hover
+  states, map controls/styles, textbox & smart-narrative text.
 - **Stage 6 — Containers, tooltips & misc — ☐.** Report tooltip & visual-header
   tooltip styling, divider, spacing, subheader, `general` (alt text / responsive),
   small multiples, zoom slider.
@@ -115,20 +118,20 @@ shown in a simplified mockup (e.g. font family, word wrap).
 
 ### Coverage matrix
 
-| Visual | Frame | Axes | Legend | Labels | Colors | Table | Card/KPI/Gauge | Slicer | Refs/Analytics | % |
+| Visual | Frame | Axes | Legend | Labels | Colors | Table | Card/KPI/Gauge | Slicer | Other | % |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
-| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
-| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 56% |
-| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 56% |
-| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
-| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
-| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 57% |
-| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 57% |
-| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 57% |
-| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 58% |
-| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
-| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 55% |
+| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
+| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
+| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 58% |
+| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 58% |
+| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
+| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
+| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 60% |
+| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 60% |
+| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 60% |
+| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 60% |
+| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
+| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 57% |
 | Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 65% |
 | Pie Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ☐ | 62% |
 | Donut Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ☐ | 62% |
@@ -142,19 +145,19 @@ shown in a simplified mockup (e.g. font family, word wrap).
 | Table (Extended) | ✅ | — | — | — | — | ◐ | — | — | ☐ | 57% |
 | Matrix | ✅ | — | — | — | — | ◐ | — | — | ☐ | 54% |
 | Pivot Table | ✅ | — | — | — | — | ◐ | — | — | ☐ | 54% |
-| Slicer | ✅ | — | — | — | — | — | — | ◐ | ☐ | 37% |
-| Map | ✅ | — | ✅ | ☐ | ☐ | — | — | — | ☐ | 50% |
-| Filled Map | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 56% |
-| Shape Map | ✅ | — | ✅ | — | ☐ | — | — | — | ☐ | 53% |
-| Azure Maps | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 56% |
-| Decomposition Tree | ✅ | — | — | ☐ | — | — | — | — | ☐ | 50% |
+| Slicer | ✅ | — | — | — | — | — | — | ◐ | ☐ | 41% |
+| Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ☐ | 52% |
+| Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ☐ | 57% |
+| Shape Map | ✅ | — | ✅ | — | ◐ | — | — | — | ☐ | 52% |
+| Azure Maps | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 52% |
+| Decomposition Tree | ✅ | — | — | ◐ | — | — | — | — | ◐ | 47% |
 | Key Drivers | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
 | Q&A | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| Smart Narrative | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| Action Button | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| Basic Shape | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| Image | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| Text Box | ✅ | — | — | — | — | ☐ | — | — | ☐ | 53% |
+| Smart Narrative | ✅ | — | — | — | — | — | — | — | ☐ | 43% |
+| Action Button | ✅ | — | — | — | ✅ | — | — | — | ◐ | 52% |
+| Basic Shape | ✅ | — | — | — | ✅ | — | — | — | ◐ | 50% |
+| Image | ✅ | — | — | — | — | — | — | — | ◐ | 61% |
+| Text Box | ✅ | — | — | — | — | ☐ | — | — | ☐ | 50% |
 | Python Visual | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
 | R Visual | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
 
@@ -162,8 +165,9 @@ shown in a simplified mockup (e.g. font family, word wrap).
 padding (generic overrides on every visual). The **Card/KPI/Gauge** column tracks
 each visual's specialized cards — e.g. Card's value/label live under **Labels**;
 its `wordWrap` card is what's still ☐. **Colors** = per-series / default data
-point, sentiment, ribbon bands, pie slices. **Refs/Analytics** = reference lines,
-plot area, trend, tooltips, small multiples and other container cards (Stage 6).*
+point, sentiment, ribbon bands, pie slices, shape fills, map data points.
+**Other** = reference lines, trend, plot area, tooltips, small multiples, and the
+visual-specific cards for buttons / shapes / trees / maps / images (Stages 4-6).*
 
 ## Project layout
 

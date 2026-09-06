@@ -27,6 +27,9 @@ from .model import _solid_color, _first, _extract_solid_color, is_valid_hex
 VISUAL_NAME_MAP = {
     "matrix": "pivotTable",
     "table": "tableEx",
+    "basicShape": "shape",
+    "azureMapVisual": "azureMap",
+    "smartNarrative": "aiNarratives",
 }
 
 # Families (by app key) that share a translation.
@@ -37,6 +40,12 @@ _CARTESIAN = {
     "lineStackedColumnComboChart", "ribbonChart", "waterfallChart",
 }
 _SCATTER = {"scatterChart"}
+_ACTION_BUTTON = {"actionButton"}
+_SHAPE_VIS = {"basicShape"}
+_DECOMP = {"decompositionTreeVisual"}
+_MAP = {"map", "filledMap"}
+_SHAPE_MAP = {"shapeMap"}
+_IMAGE = {"image"}
 # Cartesian visuals that have a `trend` card (waterfall & line+stacked combo don't).
 _TREND_VISUALS = (_CARTESIAN | _SCATTER) - {"waterfallChart", "lineStackedColumnComboChart"}
 _PIE = {"pieChart", "donutChart"}
@@ -417,6 +426,48 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             it["textSize"] = fmt["itemsTextSize"]
         if "itemsBold" in fmt:
             it["bold"] = bool(fmt["itemsBold"])
+        _set(card("slider"), "color", _fill(fmt.get("sliderColor", "")))
+
+    # ---- Action button: fill / text / outline (default state) ---- #
+    elif app_key in _ACTION_BUTTON:
+        _set(card("fill"), "fillColor", _fill(fmt.get("buttonFillColor", "")))
+        _set(card("text"), "fontColor", _fill(fmt.get("buttonTextColor", "")))
+        out = card("outline")
+        _set(out, "lineColor", _fill(fmt.get("buttonOutlineColor", "")))
+        if "buttonOutlineWeight" in fmt:
+            out["weight"] = fmt["buttonOutlineWeight"]
+
+    # ---- Basic shape: fill + outline ---- #
+    elif app_key in _SHAPE_VIS:
+        _set(card("fill"), "fillColor", _fill(fmt.get("shapeFillColor", "")))
+        out = card("outline")
+        _set(out, "lineColor", _fill(fmt.get("shapeOutlineColor", "")))
+        if "shapeOutlineWeight" in fmt:
+            out["weight"] = fmt["shapeOutlineWeight"]
+
+    # ---- Decomposition tree: level header + data labels ---- #
+    elif app_key in _DECOMP:
+        lh = card("levelHeader")
+        _set(lh, "levelHeaderBackgroundColor", _fill(fmt.get("levelHeaderBg", "")))
+        _set(lh, "levelTitleFontColor", _fill(fmt.get("levelTitleColor", "")))
+        _set(card("dataLabels"), "dataLabelFontColor", _fill(fmt.get("treeDataLabelColor", "")))
+
+    # ---- Map / filled map: data point + category labels ---- #
+    elif app_key in _MAP:
+        _set(card("dataPoint"), "defaultColor", _fill(fmt.get("mapDataColor", "")))
+        if app_key == "map":  # only the base map's categoryLabels card has a colour
+            _set(card("categoryLabels"), "color", _fill(fmt.get("mapLabelColor", "")))
+
+    # ---- Shape map: default colours ---- #
+    elif app_key in _SHAPE_MAP:
+        dc = card("defaultColors")
+        _set(dc, "defaultColor", _fill(fmt.get("shapeMapColor", "")))
+        _set(dc, "borderColor", _fill(fmt.get("shapeMapBorderColor", "")))
+
+    # ---- Image: scaling mode ---- #
+    elif app_key in _IMAGE:
+        if fmt.get("imageScaling"):
+            card("imageScaling")["imageScalingType"] = fmt["imageScaling"]
 
     # Drop any card left empty.
     return {k: v for k, v in cards.items() if v}
@@ -544,7 +595,19 @@ def _consumed_cards(app_key: str) -> set:
     if app_key in _KPI:
         return {"indicator", "goals", "trendline", "status"}
     if app_key in _SLICER:
-        return {"header", "items"}
+        return {"header", "items", "slider"}
+    if app_key in _ACTION_BUTTON:
+        return {"fill", "text", "outline"}
+    if app_key in _SHAPE_VIS:
+        return {"fill", "outline"}
+    if app_key in _DECOMP:
+        return {"levelHeader", "dataLabels"}
+    if app_key in _MAP:
+        return {"dataPoint", "categoryLabels"}
+    if app_key in _SHAPE_MAP:
+        return {"defaultColors"}
+    if app_key in _IMAGE:
+        return {"imageScaling"}
     return set()
 
 
@@ -824,6 +887,42 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["itemsTextSize"] = it["textSize"]
         if "bold" in it:
             fmt["itemsBold"] = bool(it["bold"])
+        _put(fmt, "sliderColor", _hex(c("slider"), "color"))
+
+    elif app_key in _ACTION_BUTTON:
+        _put(fmt, "buttonFillColor", _hex(c("fill"), "fillColor"))
+        _put(fmt, "buttonTextColor", _hex(c("text"), "fontColor"))
+        out = c("outline")
+        _put(fmt, "buttonOutlineColor", _hex(out, "lineColor"))
+        if "weight" in out:
+            fmt["buttonOutlineWeight"] = out["weight"]
+
+    elif app_key in _SHAPE_VIS:
+        _put(fmt, "shapeFillColor", _hex(c("fill"), "fillColor"))
+        out = c("outline")
+        _put(fmt, "shapeOutlineColor", _hex(out, "lineColor"))
+        if "weight" in out:
+            fmt["shapeOutlineWeight"] = out["weight"]
+
+    elif app_key in _DECOMP:
+        lh = c("levelHeader")
+        _put(fmt, "levelHeaderBg", _hex(lh, "levelHeaderBackgroundColor"))
+        _put(fmt, "levelTitleColor", _hex(lh, "levelTitleFontColor"))
+        _put(fmt, "treeDataLabelColor", _hex(c("dataLabels"), "dataLabelFontColor"))
+
+    elif app_key in _MAP:
+        _put(fmt, "mapDataColor", _hex(c("dataPoint"), "defaultColor"))
+        _put(fmt, "mapLabelColor", _hex(c("categoryLabels"), "color"))
+
+    elif app_key in _SHAPE_MAP:
+        dc = c("defaultColors")
+        _put(fmt, "shapeMapColor", _hex(dc, "defaultColor"))
+        _put(fmt, "shapeMapBorderColor", _hex(dc, "borderColor"))
+
+    elif app_key in _IMAGE:
+        img = c("imageScaling")
+        if "imageScalingType" in img:
+            fmt["imageScaling"] = img["imageScalingType"]
 
     return fmt
 

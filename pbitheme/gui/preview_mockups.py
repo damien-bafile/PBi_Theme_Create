@@ -1284,14 +1284,17 @@ def generate_card_kpi_svg(
 # --------------------------------------------------------------------------- #
 def generate_button_svg(theme, formatting=None, generic=None, width=300, height=200):
     """Action button: a pill button with a label."""
-    generic = generic or {}
+    formatting, generic = formatting or {}, generic or {}
+    fill = _col(formatting, "buttonFillColor", theme.table_accent)
+    text_color = _col(formatting, "buttonTextColor", "#FFFFFF")
+    outline = _col(formatting, "buttonOutlineColor", fill)
     parts = _frame(width, height, generic, theme.background)
     title_svg, top = _title(width, "Action Button", theme.foreground, generic)
     bw, bh = width * 0.5, 40
     x, y = (width - bw) / 2, top + (height - top - bh) / 2
-    parts.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{bw:.0f}" height="{bh}" rx="7" fill="{theme.table_accent}"/>')
+    parts.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{bw:.0f}" height="{bh}" rx="7" fill="{fill}" stroke="{outline}" stroke-width="2"/>')
     parts.append(
-        f'<text x="{width / 2:.0f}" y="{y + bh / 2 + 5:.0f}" font-size="15" fill="#FFFFFF" '
+        f'<text x="{width / 2:.0f}" y="{y + bh / 2 + 5:.0f}" font-size="15" fill="{text_color}" '
         f'text-anchor="middle" font-weight="bold">Submit  &#8594;</text>'
     )
     parts.append(title_svg)
@@ -1300,16 +1303,18 @@ def generate_button_svg(theme, formatting=None, generic=None, width=300, height=
 
 
 def generate_shape_svg(theme, formatting=None, generic=None, width=300, height=200):
-    """Basic shape: a few primitive shapes in the theme's data colours."""
-    generic = generic or {}
-    colors = _series_colors(theme, 3)
+    """Basic shape: primitive shapes honoring a fill + outline colour."""
+    formatting, generic = formatting or {}, generic or {}
+    fill = _col(formatting, "shapeFillColor", theme.table_accent)
+    outline = _col(formatting, "shapeOutlineColor", "#000000")
     parts = _frame(width, height, generic, theme.background)
     title_svg, top = _title(width, "Basic Shape", theme.foreground, generic)
     cy = top + (height - top) / 2
-    parts.append(f'<rect x="{width * 0.12:.0f}" y="{cy - 26:.0f}" width="52" height="52" rx="8" fill="{colors[0]}"/>')
-    parts.append(f'<circle cx="{width * 0.5:.0f}" cy="{cy:.0f}" r="28" fill="{colors[1]}"/>')
+    stroke = f' stroke="{outline}" stroke-width="2"'
+    parts.append(f'<rect x="{width * 0.12:.0f}" y="{cy - 26:.0f}" width="52" height="52" rx="8" fill="{fill}"{stroke}/>')
+    parts.append(f'<circle cx="{width * 0.5:.0f}" cy="{cy:.0f}" r="28" fill="{fill}"{stroke}/>')
     tx = width * 0.82
-    parts.append(f'<polygon points="{tx:.0f},{cy - 28:.0f} {tx - 28:.0f},{cy + 24:.0f} {tx + 28:.0f},{cy + 24:.0f}" fill="{colors[2]}"/>')
+    parts.append(f'<polygon points="{tx:.0f},{cy - 28:.0f} {tx - 28:.0f},{cy + 24:.0f} {tx + 28:.0f},{cy + 24:.0f}" fill="{fill}"{stroke}/>')
     parts.append(title_svg)
     parts.append("</svg>")
     return "\n".join(parts)
@@ -1337,8 +1342,11 @@ def _map_regions(pl, pt, pr, pb):
 def generate_map_svg(theme, formatting=None, generic=None, width=300, height=200,
                      style="pins", label="Map"):
     """Map placeholder -- pins, filled regions (choropleth) or outlined shapes."""
-    generic = generic or {}
+    formatting, generic = formatting or {}, generic or {}
     colors = _series_colors(theme, 4)
+    # A single data-point / region / shape colour override.
+    data_col = _col(formatting, "mapDataColor", "") or _col(formatting, "shapeMapColor", "")
+    border_col = _col(formatting, "shapeMapBorderColor", "#FFFFFF")
     parts = _frame(width, height, generic, theme.background)
     title_svg, top = _title(width, label, theme.foreground, generic)
     pl, pt, pr, pb = 10, top + 4, width - 10, height - 10
@@ -1352,14 +1360,15 @@ def generate_map_svg(theme, formatting=None, generic=None, width=300, height=200
     regions = _map_regions(pl, pt, pr, pb)
     for i, pts in enumerate(regions):
         if style == "filled":
-            parts.append(f'<polygon points="{pts}" fill="{colors[i % len(colors)]}" opacity="0.85" stroke="#FFFFFF" stroke-width="1"/>')
+            parts.append(f'<polygon points="{pts}" fill="{data_col or colors[i % len(colors)]}" opacity="0.85" stroke="#FFFFFF" stroke-width="1"/>')
         elif style == "outline":
-            parts.append(f'<polygon points="{pts}" fill="none" stroke="{theme.foreground}" stroke-width="1.5" opacity="0.7"/>')
+            parts.append(f'<polygon points="{pts}" fill="{data_col or "none"}" stroke="{border_col if data_col else theme.foreground}" stroke-width="1.5" opacity="0.8"/>')
         else:  # land under pins
             parts.append(f'<polygon points="{pts}" fill="#C7D9C7" stroke="#FFFFFF" stroke-width="1"/>')
 
     if style in ("pins", "azure"):
-        for (fx, fy), col in (((0.3, 0.45), theme.bad), ((0.62, 0.4), theme.table_accent), ((0.5, 0.78), theme.good)):
+        pin_cols = [data_col, data_col, data_col] if data_col else [theme.bad, theme.table_accent, theme.good]
+        for (fx, fy), col in zip([(0.3, 0.45), (0.62, 0.4), (0.5, 0.78)], pin_cols):
             parts.append(_pin(pl + (pr - pl) * fx, pt + (pb - pt) * fy, col))
 
     parts.append(title_svg)
@@ -1369,8 +1378,9 @@ def generate_map_svg(theme, formatting=None, generic=None, width=300, height=200
 
 def generate_decomp_tree_svg(theme, formatting=None, generic=None, width=300, height=200):
     """Decomposition tree: a root node branching to children."""
-    generic = generic or {}
-    accent = theme.table_accent
+    formatting, generic = formatting or {}, generic or {}
+    node_fill = _col(formatting, "levelHeaderBg", theme.table_accent)
+    node_text = _col(formatting, "levelTitleColor", "#FFFFFF")
     parts = _frame(width, height, generic, theme.background)
     title_svg, top = _title(width, "Decomposition Tree", theme.foreground, generic)
     nw, nh = 58, 26
@@ -1379,7 +1389,7 @@ def generate_decomp_tree_svg(theme, formatting=None, generic=None, width=300, he
 
     def node(x, y, text, fill):
         parts.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{nw}" height="{nh}" rx="4" fill="{fill}"/>')
-        parts.append(f'<text x="{x + nw / 2:.0f}" y="{y + nh / 2 + 4:.0f}" font-size="10" fill="#FFFFFF" text-anchor="middle">{_esc(text)}</text>')
+        parts.append(f'<text x="{x + nw / 2:.0f}" y="{y + nh / 2 + 4:.0f}" font-size="10" fill="{node_text}" text-anchor="middle">{_esc(text)}</text>')
 
     child_ys = [top + (height - top) * 0.25, top + (height - top) * 0.7]
     gy = [top + (height - top) * 0.14, top + (height - top) * 0.38, top + (height - top) * 0.62, top + (height - top) * 0.86]
@@ -1389,9 +1399,9 @@ def generate_decomp_tree_svg(theme, formatting=None, generic=None, width=300, he
     for i, gyv in enumerate(gy):
         src = child_ys[0] if i < 2 else child_ys[1]
         parts.append(f'<line x1="{col_x[1] + nw:.0f}" y1="{src + nh / 2:.0f}" x2="{col_x[2]:.0f}" y2="{gyv + nh / 2:.0f}" stroke="#B3B0AD" stroke-width="1"/>')
-    node(col_x[0], mid, "Total", accent)
-    node(col_x[1], child_ys[0], "North", accent)
-    node(col_x[1], child_ys[1], "South", accent)
+    node(col_x[0], mid, "Total", node_fill)
+    node(col_x[1], child_ys[0], "North", node_fill)
+    node(col_x[1], child_ys[1], "South", node_fill)
     labels = ["A", "B", "C", "D"]
     cols = _series_colors(theme, 4)
     for i, gyv in enumerate(gy):
