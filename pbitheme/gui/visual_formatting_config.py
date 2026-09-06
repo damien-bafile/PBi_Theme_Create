@@ -253,6 +253,29 @@ FUNNEL_SECTIONS = [
     ),
 ]
 
+# Slicer -- header + selectable items.
+SLICER_SECTIONS = [
+    FormatSection(
+        "Header",
+        [
+            FormatField("headerShow", "Show Header", "boolean", default=True),
+            FormatField("headerFontColor", "Font Color", "color", default="#252423"),
+            FormatField("headerBackground", "Background", "color", default="#FFFFFF"),
+            FormatField("headerTextSize", "Font Size (pt)", "number", min_val=8, max_val=28, suffix="pt"),
+            FormatField("headerBold", "Bold", "boolean", default=False),
+        ],
+    ),
+    FormatSection(
+        "Items",
+        [
+            FormatField("itemsFontColor", "Font Color", "color", default="#252423"),
+            FormatField("itemsBackground", "Background", "color", default="#FFFFFF"),
+            FormatField("itemsTextSize", "Font Size (pt)", "number", min_val=8, max_val=28, suffix="pt"),
+            FormatField("itemsBold", "Bold", "boolean", default=False),
+        ],
+    ),
+]
+
 # Map visual types to their formatting sections
 VISUAL_FORMATTING = {
     # Matrix and Table
@@ -287,6 +310,9 @@ VISUAL_FORMATTING = {
     "card": CARD_KPI_SECTIONS,
     "kpi": CARD_KPI_SECTIONS,
     "multiRowCard": CARD_KPI_SECTIONS,
+
+    # Slicer
+    "slicer": SLICER_SECTIONS,
 }
 
 

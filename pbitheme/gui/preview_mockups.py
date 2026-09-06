@@ -865,6 +865,61 @@ def generate_multirow_card_svg(theme, formatting=None, generic=None, width=300, 
     return "\n".join(parts)
 
 
+def generate_slicer_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Slicer: a header plus a short list of selectable items."""
+    formatting, generic = formatting or {}, generic or {}
+    fg = theme.foreground
+    accent = theme.table_accent
+
+    header_show = _flag(formatting, "headerShow", True)
+    header_fg = _col(formatting, "headerFontColor", fg)
+    header_bg = _col(formatting, "headerBackground", "#FFFFFF")
+    header_size = int(_num(formatting, "headerTextSize", 12))
+    header_bold = _flag(formatting, "headerBold", False)
+
+    item_fg = _col(formatting, "itemsFontColor", fg)
+    item_bg = _col(formatting, "itemsBackground", "#FFFFFF")
+    item_size = int(_num(formatting, "itemsTextSize", 11))
+    item_bold = _flag(formatting, "itemsBold", False)
+
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Slicer", fg, generic)
+
+    pad = 10
+    y = top + 4
+    if header_show:
+        hh = header_size + 12
+        parts.append(f'<rect x="{pad}" y="{y:.1f}" width="{width - pad * 2}" height="{hh}" fill="{header_bg}" stroke="#DDDDDD" stroke-width="1"/>')
+        weight = "bold" if header_bold else "normal"
+        parts.append(
+            f'<text x="{pad + 8}" y="{y + header_size + 2:.1f}" font-size="{header_size}" fill="{header_fg}" '
+            f'font-weight="{weight}">Category</text>'
+        )
+        y += hh + 4
+
+    items = [("Alpha", True), ("Bravo", False), ("Charlie", True), ("Delta", False)]
+    ih = item_size + 12
+    box = item_size
+    weight = "bold" if item_bold else "normal"
+    for label, checked in items:
+        if y + ih > height - 6:
+            break
+        parts.append(f'<rect x="{pad}" y="{y:.1f}" width="{width - pad * 2}" height="{ih}" fill="{item_bg}"/>')
+        # checkbox
+        parts.append(f'<rect x="{pad + 4}" y="{y + (ih - box) / 2:.1f}" width="{box}" height="{box}" fill="none" stroke="{item_fg}" stroke-width="1"/>')
+        if checked:
+            parts.append(f'<rect x="{pad + 6}" y="{y + (ih - box) / 2 + 2:.1f}" width="{box - 4}" height="{box - 4}" fill="{accent}"/>')
+        parts.append(
+            f'<text x="{pad + box + 12}" y="{y + item_size + 4:.1f}" font-size="{item_size}" fill="{item_fg}" '
+            f'font-weight="{weight}">{_esc(label)}</text>'
+        )
+        y += ih + 2
+
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
 # --------------------------------------------------------------------------- #
 # Table / Matrix
 # --------------------------------------------------------------------------- #
@@ -1081,6 +1136,8 @@ def render_visual_preview(
         return generate_treemap_svg(*args)
     if visual_key == "funnel":
         return generate_funnel_svg(*args)
+    if visual_key == "slicer":
+        return generate_slicer_svg(*args)
 
     # Cartesian charts (share CHART_SECTIONS)
     if visual_key == "lineChart":

@@ -45,6 +45,7 @@ _TABLE_PLAIN = {"table", "tableEx"}
 _MATRIX = {"matrix", "pivotTable"}
 _CARD = {"card"}
 _MULTIROW = {"multiRowCard"}
+_SLICER = {"slicer"}
 
 _GRIDLINE_STYLE = {"Solid": "solid", "Dashed": "dashed", "Dotted": "dotted"}
 
@@ -256,13 +257,32 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if "backgroundBorder" in fmt:
             card("border")["show"] = bool(fmt["backgroundBorder"])
 
+    # ---- Slicer: header + items ---- #
+    elif app_key in _SLICER:
+        hdr = card("header")
+        if "headerShow" in fmt:
+            hdr["show"] = bool(fmt["headerShow"])
+        _set(hdr, "fontColor", _fill(fmt.get("headerFontColor", "")))
+        _set(hdr, "background", _fill(fmt.get("headerBackground", "")))
+        if "headerTextSize" in fmt:
+            hdr["textSize"] = fmt["headerTextSize"]
+        if "headerBold" in fmt:
+            hdr["bold"] = bool(fmt["headerBold"])
+        it = card("items")
+        _set(it, "fontColor", _fill(fmt.get("itemsFontColor", "")))
+        _set(it, "background", _fill(fmt.get("itemsBackground", "")))
+        if "itemsTextSize" in fmt:
+            it["textSize"] = fmt["itemsTextSize"]
+        if "itemsBold" in fmt:
+            it["bold"] = bool(fmt["itemsBold"])
+
     # Drop any card left empty.
     return {k: v for k, v in cards.items() if v}
 
 
 # Power BI's schema constrains card/text font sizes to this range.
 FONT_SIZE_MIN, FONT_SIZE_MAX = 8, 60
-_FONT_SIZE_KEYS = {"fontSize", "titleFontSize"}
+_FONT_SIZE_KEYS = {"fontSize", "titleFontSize", "textSize"}
 
 
 def clamp_font_size(value: Any) -> Any:
