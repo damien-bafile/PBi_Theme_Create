@@ -219,7 +219,9 @@ class VisualStylesChecklist(QWidget):
             row = idx // 2
             col = (idx % 2) * 2  # 0 or 2
 
-            name_btn = QPushButton(label)
+            # Escape '&' so Qt doesn't treat it as a mnemonic accelerator
+            # (e.g. "Q&A" -> "QA" with A underlined, "Line & Stacked..." -> "Line _Stacked...").
+            name_btn = QPushButton(label.replace("&", "&&"))
             name_btn.setFlat(True)
             name_btn.setCursor(Qt.PointingHandCursor)
             name_btn.setStyleSheet("text-align: left; border: none; padding: 2px;")
