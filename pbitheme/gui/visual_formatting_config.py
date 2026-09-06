@@ -169,6 +169,18 @@ CHART_SECTIONS = [
     ),
 ]
 
+# Waterfall = chart sections plus sentiment (increase / decrease / total) colours.
+# The shared "Default Color" acts as the increase colour.
+WATERFALL_SECTIONS = CHART_SECTIONS + [
+    FormatSection(
+        "Sentiment Colors",
+        [
+            FormatField("decreaseColor", "Decrease Color", "color", default="#D64550"),
+            FormatField("totalColor", "Total Color", "color", default="#118DFF"),
+        ],
+    ),
+]
+
 # Card and KPI formatting
 CARD_KPI_SECTIONS = [
     FormatSection(
@@ -354,7 +366,7 @@ VISUAL_FORMATTING = {
     "areaChart": CHART_SECTIONS,
     "scatterChart": CHART_SECTIONS,
     "ribbonChart": CHART_SECTIONS,
-    "waterfallChart": CHART_SECTIONS,
+    "waterfallChart": WATERFALL_SECTIONS,
 
     # Charts without cartesian axes -- their own settings sets
     "pieChart": PIE_SECTIONS,

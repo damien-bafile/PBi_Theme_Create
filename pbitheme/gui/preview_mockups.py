@@ -639,6 +639,8 @@ def generate_waterfall_chart_svg(theme, formatting=None, generic=None, width=300
     formatting, generic = formatting or {}, generic or {}
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Waterfall")
     inc_color = _col(formatting, "defaultColor", theme.good)
+    dec_color = _col(formatting, "decreaseColor", theme.bad)
+    tot_color = _col(formatting, "totalColor", theme.table_accent)
     steps = [("start", 40), ("inc", 25), ("dec", -15), ("inc", 20), ("total", None)]
     span = (pr - pl) / len(steps)
     bw = span * 0.55
@@ -649,13 +651,13 @@ def generate_waterfall_chart_svg(theme, formatting=None, generic=None, width=300
         x = pl + span * i + (span - bw) / 2
         if kind == "total":
             bottom, top = pb, pb - running * scale
-            color = theme.table_accent
+            color = tot_color
         else:
             start = running
             running += delta
             lo, hi = min(start, running), max(start, running)
             bottom, top = pb - lo * scale, pb - hi * scale
-            color = inc_color if (kind == "inc" or kind == "start") else theme.bad
+            color = inc_color if (kind == "inc" or kind == "start") else dec_color
         parts.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="{bw:.1f}" height="{max(1, bottom - top):.1f}" fill="{color}" opacity="0.9"/>')
         if prev_top is not None:
             parts.append(f'<line x1="{x - (span - bw):.1f}" y1="{prev_top:.1f}" x2="{x:.1f}" y2="{prev_top:.1f}" stroke="{theme.foreground}" stroke-width="0.7" stroke-dasharray="2,2"/>')

@@ -127,7 +127,14 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if fmt.get("legendTitleText"):
             leg["titleText"] = fmt["legendTitleText"]
 
-        _set(card("dataPoint"), "defaultColor", _fill(fmt.get("defaultColor", "")))
+        if app_key == "waterfallChart":
+            # Waterfall colours the increase / decrease / total bars via sentimentColors.
+            sc = card("sentimentColors")
+            _set(sc, "increaseFill", _fill(fmt.get("defaultColor", "")))
+            _set(sc, "decreaseFill", _fill(fmt.get("decreaseColor", "")))
+            _set(sc, "totalFill", _fill(fmt.get("totalColor", "")))
+        else:
+            _set(card("dataPoint"), "defaultColor", _fill(fmt.get("defaultColor", "")))
 
         # Scatter has no `labels` card -- data labels live on `categoryLabels`.
         label_card = "categoryLabels" if app_key in _SCATTER else "labels"
@@ -523,7 +530,13 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["dataLabelPrecision"] = lab["labelPrecision"]
         if "labelPosition" in lab:
             fmt["dataLabelPosition"] = lab["labelPosition"]
-        _put(fmt, "defaultColor", _hex(c("dataPoint"), "defaultColor"))
+        if app_key == "waterfallChart":
+            sc = c("sentimentColors")
+            _put(fmt, "defaultColor", _hex(sc, "increaseFill"))
+            _put(fmt, "decreaseColor", _hex(sc, "decreaseFill"))
+            _put(fmt, "totalColor", _hex(sc, "totalFill"))
+        else:
+            _put(fmt, "defaultColor", _hex(c("dataPoint"), "defaultColor"))
 
     elif app_key in _PIE | _TREEMAP:
         leg = c("legend")

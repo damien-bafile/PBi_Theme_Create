@@ -60,7 +60,7 @@ can still be set through the **Advanced JSON** tab and exports validly.
 
 **Legend:** ✅ done &nbsp;·&nbsp; ◐ partial &nbsp;·&nbsp; ☐ planned &nbsp;·&nbsp; — not applicable to this visual
 
-**Current overall card coverage: ~52%** (393 / 749 themeable cards across all visuals).
+**Current overall card coverage: ~53%** (394 / 749 themeable cards across all visuals).
 
 ### Stages
 
@@ -110,7 +110,7 @@ can still be set through the **Advanced JSON** tab and exports validly.
 | Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 50% |
 | Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
 | Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 41% |
-| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ☐ | — | — | — | ☐ | 55% |
+| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 61% |
 | Pie Chart | ✅ | — | ✅ | ✅ | ☐ | — | — | — | ☐ | 56% |
 | Donut Chart | ✅ | — | ✅ | ✅ | ☐ | — | — | — | ☐ | 56% |
 | Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 56% |
