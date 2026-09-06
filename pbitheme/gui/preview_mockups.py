@@ -680,17 +680,23 @@ def generate_gauge_svg(theme, formatting=None, generic=None, width=300, height=2
     def frac_to_deg(f):
         return 180 - 180 * f  # 180deg (left) -> 0deg (right)
 
-    # Track (background arc) then value arc, drawn as thick stroked paths.
+    # Track (background arc) then value arc. Sampled as a polyline so the shape
+    # and direction are always correct regardless of span (arc-flags are fiddly
+    # near 180deg, and a gauge span is never more than 180deg anyway).
     def arc(f_start, f_end, color, w):
-        x1, y1 = _pt(cx, cy, r, frac_to_deg(f_start))
-        x2, y2 = _pt(cx, cy, r, frac_to_deg(f_end))
-        large = 1 if abs(f_end - f_start) > 0.5 else 0
-        return (f'<path d="M{x1:.1f},{y1:.1f} A{r:.1f},{r:.1f} 0 {large} 1 {x2:.1f},{y2:.1f}" '
-                f'fill="none" stroke="{color}" stroke-width="{w:.1f}" stroke-linecap="butt"/>')
+        n = max(2, int(48 * abs(f_end - f_start)))
+        pts = []
+        for i in range(n + 1):
+            f = f_start + (f_end - f_start) * (i / n)
+            x, y = _pt(cx, cy, r, frac_to_deg(f))
+            pts.append(f"{x:.1f},{y:.1f}")
+        return (f'<polyline points="{" ".join(pts)}" fill="none" stroke="{color}" '
+                f'stroke-width="{w:.1f}" stroke-linecap="round"/>')
 
     parts.append(arc(0.0, 1.0, "#E0E0E0", thick))
     vfrac = max(0.0, min(1.0, (value - vmin) / (vmax - vmin)))
-    parts.append(arc(0.0, vfrac, fill, thick))
+    if vfrac > 0:
+        parts.append(arc(0.0, vfrac, fill, thick))
 
     # Target tick
     tfrac = max(0.0, min(1.0, (target - vmin) / (vmax - vmin)))
