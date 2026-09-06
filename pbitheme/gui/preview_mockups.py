@@ -26,9 +26,12 @@ from ..model import (
     unpack_background_object,
     unpack_border_object,
     unpack_drop_shadow_object,
+    unpack_visual_header_object,
+    unpack_padding_object,
     unpack_title_object,
     unpack_data_labels_object,
     unpack_legend_object,
+    is_valid_hex,
 )
 
 
@@ -108,6 +111,14 @@ def extract_generic(style_obj: Dict[str, Any] | None) -> Dict[str, Any]:
         if legend_show:
             generic["legend"] = {"position": legend_pos, "color": legend_color}
 
+    if "visualHeader" in style_obj:
+        vh_show, vh_bg, vh_fg = unpack_visual_header_object(style_obj)
+        if vh_show:
+            generic["visualHeader"] = {"background": vh_bg, "foreground": vh_fg}
+
+    if "padding" in style_obj:
+        generic["padding"] = unpack_padding_object(style_obj)
+
     return generic
 
 
@@ -141,6 +152,21 @@ def _frame(width: int, height: int, generic: Dict[str, Any], theme_bg: str) -> L
             f'<rect x="{off:.1f}" y="{off:.1f}" width="{width - off * 2:.1f}" height="{height - off * 2:.1f}"{rx} '
             f'fill="none" stroke="{gborder["color"]}" stroke-width="{w}"/>'
         )
+
+    # Padding guide: a faint dashed inset showing the content area.
+    pad = generic.get("padding")
+    if pad:
+        parts.append(
+            f'<rect x="{pad}" y="{pad}" width="{width - pad * 2}" height="{height - pad * 2}" '
+            f'fill="none" stroke="#B3B0AD" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>'
+        )
+
+    # Visual header: a strip with icon dots at the top-right of the container.
+    vh = generic.get("visualHeader")
+    if vh:
+        parts.append(f'<rect x="0" y="0" width="{width}" height="12" fill="{vh["background"]}" opacity="0.9"/>')
+        for i in range(3):
+            parts.append(f'<circle cx="{width - 10 - i * 10}" cy="6" r="2" fill="{vh["foreground"]}"/>')
     return parts
 
 
@@ -186,12 +212,17 @@ def _legend_position(formatting: Dict[str, Any], generic: Dict[str, Any]) -> str
     return _txt(formatting, "legendPosition", "Top")
 
 
-def _series_colors(theme: PowerBITheme, n: int = 3) -> List[str]:
+def _series_colors(theme: PowerBITheme, n: int = 3,
+                   formatting: Dict[str, Any] | None = None) -> List[str]:
     colors = list(theme.data_colors[:n]) if theme.data_colors else []
     if not colors:
         colors = [theme.table_accent]
     while len(colors) < n:
         colors.append(colors[-1])
+    # A per-visual default data-point colour overrides the primary series.
+    default = _col(formatting, "defaultColor", "") if formatting else ""
+    if default and is_valid_hex(default):
+        colors[0] = default
     return colors
 
 
@@ -255,9 +286,7 @@ def _chart_base(
     formatting = formatting or {}
     generic = generic or {}
     fg = theme.foreground
-    colors = (theme.data_colors[:3] or [theme.table_accent]) if theme.data_colors else [theme.table_accent]
-    while len(colors) < 3:
-        colors.append(colors[0])
+    colors = _series_colors(theme, 3, formatting)
 
     parts = _frame(width, height, generic, theme.background)
     title_svg, top_used = _title(width, title_text, fg, generic)
@@ -357,9 +386,7 @@ def generate_bar_chart_svg(
     """Bar chart honoring axes, gridlines, data labels, legend, title & background."""
     formatting = formatting or {}
     generic = generic or {}
-    colors = (theme.data_colors[:3] or [theme.table_accent]) if theme.data_colors else [theme.table_accent]
-    while len(colors) < 3:
-        colors.append(colors[0])
+    colors = _series_colors(theme, 3, formatting)
 
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Bar Chart")
 
@@ -411,9 +438,7 @@ def generate_line_chart_svg(
     """Line chart honoring the same chart chrome as the bar chart."""
     formatting = formatting or {}
     generic = generic or {}
-    colors = (theme.data_colors[:3] or [theme.table_accent]) if theme.data_colors else [theme.table_accent]
-    while len(colors) < 3:
-        colors.append(colors[0])
+    colors = _series_colors(theme, 3, formatting)
 
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Line Chart")
 
@@ -462,7 +487,7 @@ def generate_line_chart_svg(
 def generate_area_chart_svg(theme, formatting=None, generic=None, width=300, height=200):
     """Line chart with the area under each series filled."""
     formatting, generic = formatting or {}, generic or {}
-    colors = _series_colors(theme, 3)
+    colors = _series_colors(theme, 3, formatting)
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Area Chart")
     series = [[40, 55, 50, 70, 65, 80], [30, 40, 45, 55, 60, 68], [20, 28, 35, 42, 48, 58]]
     scale = (pb - pt) / 100.0
@@ -486,7 +511,7 @@ def generate_combo_chart_svg(theme, formatting=None, generic=None, width=300, he
                              stacked=False):
     """Line & column combo: grouped/stacked columns plus a line overlay."""
     formatting, generic = formatting or {}, generic or {}
-    colors = _series_colors(theme, 3)
+    colors = _series_colors(theme, 3, formatting)
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Line & Column")
     cols = [[55, 35], [70, 45], [50, 60], [80, 55]]  # two column series per category
     line_vals = [70, 85, 78, 95]
@@ -518,7 +543,7 @@ def generate_stacked_chart_svg(theme, formatting=None, generic=None, width=300, 
                                percent=True):
     """100% stacked columns: one full-height bar per category split into segments."""
     formatting, generic = formatting or {}, generic or {}
-    colors = _series_colors(theme, 3)
+    colors = _series_colors(theme, 3, formatting)
     title = "100% Stacked" if percent else "Stacked"
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, title)
     groups = [[40, 35, 25], [30, 45, 25], [50, 20, 30], [35, 40, 25]]
@@ -542,7 +567,7 @@ def generate_stacked_chart_svg(theme, formatting=None, generic=None, width=300, 
 def generate_scatter_chart_svg(theme, formatting=None, generic=None, width=300, height=200):
     """Scatter plot: points across the X/Y plane, coloured by series."""
     formatting, generic = formatting or {}, generic or {}
-    colors = _series_colors(theme, 3)
+    colors = _series_colors(theme, 3, formatting)
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Scatter Chart")
     pts_by_series = [
         [(0.15, 0.30), (0.30, 0.55), (0.45, 0.40), (0.60, 0.70), (0.80, 0.62)],
@@ -565,6 +590,7 @@ def generate_waterfall_chart_svg(theme, formatting=None, generic=None, width=300
     """Waterfall: floating step bars (increase / decrease / total) with connectors."""
     formatting, generic = formatting or {}, generic or {}
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Waterfall")
+    inc_color = _col(formatting, "defaultColor", theme.good)
     steps = [("start", 40), ("inc", 25), ("dec", -15), ("inc", 20), ("total", None)]
     span = (pr - pl) / len(steps)
     bw = span * 0.55
@@ -581,7 +607,7 @@ def generate_waterfall_chart_svg(theme, formatting=None, generic=None, width=300
             running += delta
             lo, hi = min(start, running), max(start, running)
             bottom, top = pb - lo * scale, pb - hi * scale
-            color = theme.good if (kind == "inc" or kind == "start") else theme.bad
+            color = inc_color if (kind == "inc" or kind == "start") else theme.bad
         parts.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="{bw:.1f}" height="{max(1, bottom - top):.1f}" fill="{color}" opacity="0.9"/>')
         if prev_top is not None:
             parts.append(f'<line x1="{x - (span - bw):.1f}" y1="{prev_top:.1f}" x2="{x:.1f}" y2="{prev_top:.1f}" stroke="{theme.foreground}" stroke-width="0.7" stroke-dasharray="2,2"/>')
@@ -596,7 +622,7 @@ def generate_waterfall_chart_svg(theme, formatting=None, generic=None, width=300
 def generate_ribbon_chart_svg(theme, formatting=None, generic=None, width=300, height=200):
     """Ribbon: stacked columns per category with ribbons connecting categories."""
     formatting, generic = formatting or {}, generic or {}
-    colors = _series_colors(theme, 3)
+    colors = _series_colors(theme, 3, formatting)
     parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Ribbon Chart")
     groups = [[40, 30, 25], [25, 45, 30], [35, 25, 40], [30, 40, 30]]
     span = (pr - pl) / len(groups)
@@ -687,7 +713,7 @@ def generate_gauge_svg(theme, formatting=None, generic=None, width=300, height=2
     if vmax <= vmin:
         vmax = vmin + 1
     value = vmin + (vmax - vmin) * 0.68
-    target = vmin + (vmax - vmin) * 0.85
+    target = _num(formatting, "targetValue", vmin + (vmax - vmin) * 0.85)
     fill = _col(formatting, "fillColor", theme.table_accent)
     target_col = _col(formatting, "targetColor", "#E66C37")
 

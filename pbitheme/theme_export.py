@@ -110,6 +110,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if "legendFontSize" in fmt:
             leg["fontSize"] = fmt["legendFontSize"]
 
+        _set(card("dataPoint"), "defaultColor", _fill(fmt.get("defaultColor", "")))
+
         # Scatter has no `labels` card -- data labels live on `categoryLabels`.
         label_card = "categoryLabels" if app_key in _SCATTER else "labels"
         lab = card(label_card)
@@ -154,6 +156,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             ax["min"] = fmt["minValue"]
         if "maxValue" in fmt:
             ax["max"] = fmt["maxValue"]
+        if "targetValue" in fmt:
+            ax["target"] = fmt["targetValue"]
         _set(card("dataPoint"), "fill", _fill(fmt.get("fillColor", "")))
         _set(card("target"), "color", _fill(fmt.get("targetColor", "")))
         co = card("calloutValue")

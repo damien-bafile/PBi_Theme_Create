@@ -298,6 +298,17 @@ def build_drop_shadow_object(show: bool, color: str) -> List[Dict[str, Any]]:
     return [{"show": show, "color": _solid_color(color), "position": "Outer"}]
 
 
+def build_visual_header_object(show: bool, background: str, foreground: str) -> List[Dict[str, Any]]:
+    """Build a visual-header visual-style object from picker state."""
+    return [{"show": show, "background": _solid_color(background), "foreground": _solid_color(foreground)}]
+
+
+def build_padding_object(padding: int) -> List[Dict[str, Any]]:
+    """Build a padding visual-style object (uniform on all sides)."""
+    p = int(padding)
+    return [{"top": p, "bottom": p, "left": p, "right": p}]
+
+
 def build_title_object(show: bool, font_face: str, font_size: int, color: str) -> List[Dict[str, Any]]:
     """Build a title visual-style object from picker state."""
     return [{"show": show, "fontColor": _solid_color(color), "fontSize": int(font_size), "fontFamily": font_face}]
@@ -341,6 +352,22 @@ def unpack_drop_shadow_object(obj: Dict[str, Any]) -> Tuple[bool, str]:
         bool(p.get("show", True)),
         _extract_solid_color(p.get("color"), "#000000"),
     )
+
+
+def unpack_visual_header_object(obj: Dict[str, Any]) -> Tuple[bool, str, str]:
+    """Extract visual-header picker state from an existing visual's * entry."""
+    p = _first(obj.get("visualHeader", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("background"), "#FFFFFF"),
+        _extract_solid_color(p.get("foreground"), "#605E5C"),
+    )
+
+
+def unpack_padding_object(obj: Dict[str, Any]) -> int:
+    """Extract uniform padding (top) from an existing visual's * entry."""
+    p = _first(obj.get("padding", {}))
+    return int(p.get("top", 0) or 0)
 
 
 def unpack_title_object(obj: Dict[str, Any]) -> Tuple[bool, str, int, str]:

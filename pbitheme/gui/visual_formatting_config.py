@@ -139,6 +139,12 @@ CHART_SECTIONS = [
             FormatField("legendFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
         ],
     ),
+    FormatSection(
+        "Data Colors",
+        [
+            FormatField("defaultColor", "Default Color", "color", default="#118DFF"),
+        ],
+    ),
 ]
 
 # Card and KPI formatting
@@ -195,6 +201,7 @@ GAUGE_SECTIONS = [
         [
             FormatField("minValue", "Minimum", "number", min_val=0, max_val=1000, default=0),
             FormatField("maxValue", "Maximum", "number", min_val=1, max_val=1000, default=100),
+            FormatField("targetValue", "Target", "number", min_val=0, max_val=1000, default=85),
         ],
     ),
     FormatSection(

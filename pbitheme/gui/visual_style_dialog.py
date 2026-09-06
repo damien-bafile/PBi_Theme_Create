@@ -33,12 +33,16 @@ from ..model import (
     build_background_object,
     build_border_object,
     build_drop_shadow_object,
+    build_visual_header_object,
+    build_padding_object,
     build_title_object,
     build_data_labels_object,
     build_legend_object,
     unpack_background_object,
     unpack_border_object,
     unpack_drop_shadow_object,
+    unpack_visual_header_object,
+    unpack_padding_object,
     unpack_title_object,
     unpack_data_labels_object,
     unpack_legend_object,
@@ -152,6 +156,39 @@ class VisualStyleDialog(QDialog):
         self._shadow_color.setEnabled(False)
         generic_layout.addWidget(shadow_box)
 
+        # ---- Visual header section ---- #
+        header_box = QGroupBox("Visual Header")
+        header_layout = QFormLayout(header_box)
+        self._vh_check = QCheckBox("Override")
+        self._vh_check.setAccessibleName("Override visual header")
+        self._vh_background = ColorButton(theme.SURFACE_BACKGROUND, label="Header background")
+        self._vh_foreground = ColorButton(theme.TEXT_PRIMARY, label="Header icons")
+        vh_show, vh_bg, vh_fg = unpack_visual_header_object(existing_obj)
+        self._vh_background.set_color(vh_bg)
+        self._vh_foreground.set_color(vh_fg)
+        header_layout.addRow(self._vh_check, QLabel())
+        header_layout.addRow("Background", self._vh_background)
+        header_layout.addRow("Icons", self._vh_foreground)
+        for w in (self._vh_background, self._vh_foreground):
+            self._vh_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
+            w.setEnabled(False)
+        generic_layout.addWidget(header_box)
+
+        # ---- Padding section ---- #
+        padding_box = QGroupBox("Padding")
+        padding_layout = QFormLayout(padding_box)
+        self._padding_check = QCheckBox("Override")
+        self._padding_check.setAccessibleName("Override padding")
+        self._padding_value = QSpinBox()
+        self._padding_value.setRange(0, 40)
+        self._padding_value.setSuffix(" px")
+        self._padding_value.setValue(unpack_padding_object(existing_obj))
+        padding_layout.addRow(self._padding_check, QLabel())
+        padding_layout.addRow("All sides", self._padding_value)
+        self._padding_check.toggled.connect(lambda c: self._padding_value.setEnabled(c))
+        self._padding_value.setEnabled(False)
+        generic_layout.addWidget(padding_box)
+
         # ---- Title section ---- #
         title_box = QGroupBox("Title")
         title_layout = QFormLayout(title_box)
@@ -221,15 +258,18 @@ class VisualStyleDialog(QDialog):
         for check in (
             self._bg_check, self._border_check, self._title_check,
             self._labels_check, self._legend_check, self._shadow_check,
+            self._vh_check, self._padding_check,
         ):
             check.toggled.connect(self._update_preview)
         for color_btn in (
             self._bg_color, self._border_color, self._title_color,
             self._labels_color, self._legend_color, self._shadow_color,
+            self._vh_background, self._vh_foreground,
         ):
             color_btn.colorChanged.connect(self._update_preview)
         self._border_width.valueChanged.connect(self._update_preview)
         self._border_radius.valueChanged.connect(self._update_preview)
+        self._padding_value.valueChanged.connect(self._update_preview)
         self._bg_alpha.valueChanged.connect(self._update_preview)
         self._title_font.currentFontChanged.connect(self._update_preview)
         self._title_size.valueChanged.connect(self._update_preview)
@@ -306,6 +346,8 @@ class VisualStyleDialog(QDialog):
         self._labels_check.setChecked(False)
         self._legend_check.setChecked(False)
         self._shadow_check.setChecked(False)
+        self._vh_check.setChecked(False)
+        self._padding_check.setChecked(False)
         self._advanced_edit.setPlainText("{}")
 
     def _build_overrides(self) -> Dict[str, Any]:
@@ -332,6 +374,12 @@ class VisualStyleDialog(QDialog):
             )
         if self._shadow_check.isChecked():
             overrides["dropShadow"] = build_drop_shadow_object(True, self._shadow_color.color())
+        if self._vh_check.isChecked():
+            overrides["visualHeader"] = build_visual_header_object(
+                True, self._vh_background.color(), self._vh_foreground.color()
+            )
+        if self._padding_check.isChecked():
+            overrides["padding"] = build_padding_object(self._padding_value.value())
         if self._title_check.isChecked():
             overrides["title"] = build_title_object(
                 True,
