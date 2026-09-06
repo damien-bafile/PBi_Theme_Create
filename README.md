@@ -78,8 +78,9 @@ can still be set through the **Advanced JSON** tab and exports validly.
   *orientation* is column/bar-only in the schema, and `plotArea` offers only an
   image + transparency — no fill colour — so both are intentionally skipped.)
 - **Stage 3 — Table & matrix depth — ◐ in progress.** Done: grid **outer
-  outline** (colour + weight) for table & matrix, and matrix **row-header
-  alignment** + **stepped layout**. Still to do: built-in table `stylePreset`,
+  outline** (colour + weight) for table & matrix, matrix **row-header
+  alignment** + **stepped layout**, and **italic** for column headers / values /
+  row headers / totals. Still to do: built-in table `stylePreset`,
   `columnFormatting` (per-column colour / alignment / data bars), `columnWidth`,
   column / row totals, blank rows, sparklines, word wrap.
 - **Stage 4 — Reference lines & analytics — ☐.** X / Y reference lines, trend

@@ -227,6 +227,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             ch["fontSize"] = fmt["columnHeaderFontSize"]
         if "columnHeaderFontBold" in fmt:
             ch["bold"] = bool(fmt["columnHeaderFontBold"])
+        if "columnHeaderItalic" in fmt:
+            ch["italic"] = bool(fmt["columnHeaderItalic"])
         if "columnHeaderAlignment" in fmt:
             ch["alignment"] = fmt["columnHeaderAlignment"]
 
@@ -234,6 +236,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(vals, "fontColor", _fill(fmt.get("valuesTextColor", "")))
         if "valuesFontSize" in fmt:
             vals["fontSize"] = fmt["valuesFontSize"]
+        if "valuesItalic" in fmt:
+            vals["italic"] = bool(fmt["valuesItalic"])
         if fmt.get("bandedRows"):
             # Alternating row colours use the primary/secondary value backgrounds.
             _set(vals, "backColorPrimary", _fill(fmt.get("valuesBackgroundColor", "")))
@@ -248,6 +252,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(tot, "fontColor", _fill(fmt.get("totalsTextColor", "")))
         if "totalsFontBold" in fmt:
             tot["bold"] = bool(fmt["totalsFontBold"])
+        if "totalsItalic" in fmt:
+            tot["italic"] = bool(fmt["totalsItalic"])
 
         if is_matrix:
             rh = card("rowHeaders")
@@ -257,6 +263,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
                 rh["fontSize"] = fmt["rowHeaderFontSize"]
             if "rowHeaderFontBold" in fmt:
                 rh["bold"] = bool(fmt["rowHeaderFontBold"])
+            if "rowHeaderItalic" in fmt:
+                rh["italic"] = bool(fmt["rowHeaderItalic"])
             if "rowHeaderAlignment" in fmt:
                 rh["alignment"] = fmt["rowHeaderAlignment"]
             if "rowHeaderStepped" in fmt:
@@ -592,12 +600,16 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["columnHeaderFontSize"] = ch["fontSize"]
         if "bold" in ch:
             fmt["columnHeaderFontBold"] = bool(ch["bold"])
+        if "italic" in ch:
+            fmt["columnHeaderItalic"] = bool(ch["italic"])
         if "alignment" in ch:
             fmt["columnHeaderAlignment"] = ch["alignment"]
         vals = c("values")
         _put(fmt, "valuesTextColor", _hex(vals, "fontColor"))
         if "fontSize" in vals:
             fmt["valuesFontSize"] = vals["fontSize"]
+        if "italic" in vals:
+            fmt["valuesItalic"] = bool(vals["italic"])
         if "backColorSecondary" in vals:
             fmt["bandedRows"] = True
             _put(fmt, "alternateRowColor", _hex(vals, "backColorSecondary"))
@@ -611,6 +623,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "totalsTextColor", _hex(tot, "fontColor"))
         if "bold" in tot:
             fmt["totalsFontBold"] = bool(tot["bold"])
+        if "italic" in tot:
+            fmt["totalsItalic"] = bool(tot["italic"])
         if app_key in _MATRIX:
             rh = c("rowHeaders")
             _put(fmt, "rowHeaderBackgroundColor", _hex(rh, "backColor"))
@@ -619,6 +633,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
                 fmt["rowHeaderFontSize"] = rh["fontSize"]
             if "bold" in rh:
                 fmt["rowHeaderFontBold"] = bool(rh["bold"])
+            if "italic" in rh:
+                fmt["rowHeaderItalic"] = bool(rh["italic"])
             if "alignment" in rh:
                 fmt["rowHeaderAlignment"] = rh["alignment"]
             if "stepped" in rh:
