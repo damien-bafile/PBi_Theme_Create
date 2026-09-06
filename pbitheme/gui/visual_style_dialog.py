@@ -45,7 +45,7 @@ from ..model import (
 from .widgets import ColorButton
 from .visual_formatter import VisualFormatterPanel
 from .visual_formatting_config import is_visual_customizable
-from .preview_mockups import generate_table_svg, generate_bar_chart_svg
+from .preview_mockups import render_visual_preview
 from . import theme
 
 
@@ -190,6 +190,23 @@ class VisualStyleDialog(QDialog):
         generic_layout.addWidget(legend_box)
         generic_layout.addStretch()
 
+        # Live-update the preview whenever any generic override changes.
+        for check in (
+            self._bg_check, self._border_check, self._title_check,
+            self._labels_check, self._legend_check,
+        ):
+            check.toggled.connect(self._update_preview)
+        for color_btn in (
+            self._bg_color, self._border_color, self._title_color,
+            self._labels_color, self._legend_color,
+        ):
+            color_btn.colorChanged.connect(self._update_preview)
+        self._bg_alpha.valueChanged.connect(self._update_preview)
+        self._title_font.currentFontChanged.connect(self._update_preview)
+        self._title_size.valueChanged.connect(self._update_preview)
+        self._labels_size.valueChanged.connect(self._update_preview)
+        self._legend_pos.currentIndexChanged.connect(self._update_preview)
+
         scroll = QScrollArea()
         scroll.setWidget(generic_widget)
         scroll.setWidgetResizable(True)
@@ -261,21 +278,14 @@ class VisualStyleDialog(QDialog):
         self._legend_check.setChecked(False)
         self._advanced_edit.setPlainText("{}")
 
-    def _on_ok(self) -> None:
-        """Validate and merge the result, then accept."""
-        try:
-            base = json.loads(self._advanced_edit.toPlainText().strip() or "{}")
-            if not isinstance(base, dict):
-                raise ValueError("must be a JSON object")
-        except (json.JSONDecodeError, ValueError) as exc:
-            QMessageBox.warning(
-                self, "Invalid JSON", f"Advanced JSON is not valid:\n{exc}"
-            )
-            return
+    def _build_overrides(self) -> Dict[str, Any]:
+        """Collect the current formatting + generic overrides into one dict.
 
+        Shared by :meth:`_on_ok` (what gets saved) and :meth:`_update_preview`
+        (what gets rendered), so the live preview always matches the result.
+        """
         overrides: Dict[str, Any] = {}
 
-        # Collect visual-specific formatting if available
         if self._formatter_panel:
             formatter_values = self._formatter_panel.get_values()
             if formatter_values:
@@ -302,8 +312,21 @@ class VisualStyleDialog(QDialog):
             overrides["legend"] = build_legend_object(
                 True, self._legend_pos.currentText(), self._legend_color.color()
             )
+        return overrides
 
-        self._result = merge_visual_style_entry(base, overrides)
+    def _on_ok(self) -> None:
+        """Validate and merge the result, then accept."""
+        try:
+            base = json.loads(self._advanced_edit.toPlainText().strip() or "{}")
+            if not isinstance(base, dict):
+                raise ValueError("must be a JSON object")
+        except (json.JSONDecodeError, ValueError) as exc:
+            QMessageBox.warning(
+                self, "Invalid JSON", f"Advanced JSON is not valid:\n{exc}"
+            )
+            return
+
+        self._result = merge_visual_style_entry(base, self._build_overrides())
         self.accept()
 
     def result_dict(self) -> Dict[str, Any]:
@@ -311,30 +334,15 @@ class VisualStyleDialog(QDialog):
         return self._result or {}
 
     def _update_preview(self) -> None:
-        """Update the preview to show the current formatting options."""
+        """Re-render the live preview from the *exact* overrides that will be saved."""
         if not self._preview_svg:
             return
 
-        # Get current formatting values from formatter panel
-        formatting = {}
-        if self._formatter_panel:
-            formatting = self._formatter_panel.get_values()
-
-        # Generate appropriate preview based on visual type
-        svg_data = ""
-        if self._visual_key in ("matrix", "table", "tableEx", "pivotTable"):
-            # Table preview
-            visual_styles = {"*": {"formatting": formatting}}
-            svg_data = generate_table_svg(self._theme, visual_styles, width=250, height=180)
-        elif self._visual_key in ("barChart", "columnChart", "lineChart", "pieChart", "gauge", "card", "kpi"):
-            # For charts, show a simpler bar chart with formatting
-            visual_styles = {"*": {"formatting": formatting}}
-            svg_data = generate_bar_chart_svg(self._theme, width=250, height=180)
-        else:
-            # Default preview
-            svg_data = generate_bar_chart_svg(self._theme, width=250, height=180)
-
-        # Load SVG into widget
+        # Render from a style object built the same way _on_ok builds the result,
+        # so the preview reflects both visual formatting and generic overrides.
+        style_obj = merge_visual_style_entry({}, self._build_overrides())
+        svg_data = render_visual_preview(
+            self._theme, self._visual_key, style_obj, width=250, height=200
+        )
         if svg_data:
-            svg_bytes = QByteArray(svg_data.encode("utf-8"))
-            self._preview_svg.load(svg_bytes)
+            self._preview_svg.load(QByteArray(svg_data.encode("utf-8")))
