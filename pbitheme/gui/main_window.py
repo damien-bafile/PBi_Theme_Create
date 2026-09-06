@@ -62,23 +62,6 @@ class MainWindow(QMainWindow):
     # UI construction
     # ------------------------------------------------------------------ #
     def _build_menu(self) -> None:
-        # Edit menu with undo/redo
-        edit_menu = self.menuBar().addMenu("&Edit")
-
-        self._undo_action = QAction("&Undo", self)
-        self._undo_action.setShortcut("Ctrl+Z")
-        self._undo_action.triggered.connect(self._on_undo)
-        self._undo_action.setEnabled(False)
-        edit_menu.addAction(self._undo_action)
-
-        self._redo_action = QAction("&Redo", self)
-        self._redo_action.setShortcut("Ctrl+Y")
-        self._redo_action.triggered.connect(self._on_redo)
-        self._redo_action.setEnabled(False)
-        edit_menu.addAction(self._redo_action)
-
-        edit_menu.addSeparator()
-
         # File menu
         file_menu = self.menuBar().addMenu("&File")
 
@@ -105,6 +88,23 @@ class MainWindow(QMainWindow):
             file_menu.addAction(action)
         file_menu.addSeparator()
         file_menu.addAction(quit_action)
+
+        # Edit menu with undo/redo
+        edit_menu = self.menuBar().addMenu("&Edit")
+
+        self._undo_action = QAction("&Undo", self)
+        self._undo_action.setShortcut("Ctrl+Z")
+        self._undo_action.triggered.connect(self._on_undo)
+        self._undo_action.setEnabled(False)
+        edit_menu.addAction(self._undo_action)
+
+        self._redo_action = QAction("&Redo", self)
+        self._redo_action.setShortcut("Ctrl+Y")
+        self._redo_action.triggered.connect(self._on_redo)
+        self._redo_action.setEnabled(False)
+        edit_menu.addAction(self._redo_action)
+
+        edit_menu.addSeparator()
 
     def _build_ui(self) -> None:
         splitter = QSplitter(Qt.Horizontal)
