@@ -8,10 +8,15 @@ Run with::
 
 from __future__ import annotations
 
+import os
 import sys
 
 
 def main() -> int:
+    # Suppress platform warnings (e.g., mouse grab warnings on Wayland)
+    os.environ.setdefault("QT_QPA_PLATFORM_PLUGIN_PATH", "")
+    os.environ.setdefault("QT_DEBUG_PLUGINS", "0")
+
     try:
         from PySide6.QtWidgets import QApplication
     except ImportError:
