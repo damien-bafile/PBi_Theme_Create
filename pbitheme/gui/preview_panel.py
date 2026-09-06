@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from typing import Any, Dict
 
 from PySide6.QtCore import Qt, QByteArray
 from PySide6.QtGui import QPixmap
@@ -69,10 +70,11 @@ class PreviewPanel(QWidget):
         # Initial update
         self.update_preview(self._theme)
 
-    def update_preview(self, theme: PowerBITheme) -> None:
-        """Update all mockups to reflect the current theme."""
+    def update_preview(self, theme: PowerBITheme, visual_styles: Dict[str, Any] | None = None) -> None:
+        """Update all mockups to reflect the current theme and visual styles."""
         self._theme = theme
-        mockups = generate_all_mockups(theme, size=300)
+        visual_styles = visual_styles or {}
+        mockups = generate_all_mockups(theme, visual_styles=visual_styles, size=300)
 
         for key, svg_widget in self._svg_widgets.items():
             svg_data = mockups.get(key, "")

@@ -5,7 +5,7 @@ Renders simplified but realistic Power BI visual mockups using the current theme
 
 from __future__ import annotations
 
-from typing import List
+from typing import Any, Dict, List
 
 from ..model import PowerBITheme
 
@@ -71,11 +71,34 @@ def generate_bar_chart_svg(theme: PowerBITheme, width: int = 300, height: int = 
     return "\n".join(svg_parts)
 
 
-def generate_table_svg(theme: PowerBITheme, width: int = 300, height: int = 200) -> str:
+def generate_table_svg(
+    theme: PowerBITheme,
+    visual_styles: Dict[str, Any] | None = None,
+    width: int = 300,
+    height: int = 200
+) -> str:
     """Generate SVG for a table showing structural colors and text."""
+    visual_styles = visual_styles or {}
+
+    # Extract formatting from visual_styles (from "*" key)
+    formatting = visual_styles.get("*", {}).get("formatting", {})
+
     bg = theme.background
     fg = theme.foreground
     accent = theme.table_accent
+
+    # Use custom colors from formatting if available
+    col_header_bg = formatting.get("columnHeaderBackgroundColor", accent)
+    col_header_fg = formatting.get("columnHeaderTextColor", fg)
+    col_header_size = formatting.get("columnHeaderFontSize", 12)
+    col_header_bold = formatting.get("columnHeaderFontBold", True)
+
+    values_bg = formatting.get("valuesBackgroundColor", bg)
+    values_fg = formatting.get("valuesTextColor", fg)
+    values_size = formatting.get("valuesFontSize", 11)
+
+    gridline_color = formatting.get("gridlineColor", fg)
+    gridline_style = formatting.get("gridlineStyle", "Solid")
 
     col_width = width // 3
     row_height = 30
@@ -85,16 +108,17 @@ def generate_table_svg(theme: PowerBITheme, width: int = 300, height: int = 200)
         f'<rect width="{width}" height="{height}" fill="{bg}"/>',
     ]
 
-    # Header with accent
+    # Header with custom background color
     svg_parts.append(
-        f'<rect x="0" y="0" width="{width}" height="{row_height}" fill="{accent}" opacity="0.3"/>'
+        f'<rect x="0" y="0" width="{width}" height="{row_height}" fill="{col_header_bg}" opacity="0.3"/>'
     )
 
     headers = ["Name", "Value", "Status"]
+    weight = "bold" if col_header_bold else "normal"
     for i, header in enumerate(headers):
         svg_parts.append(
-            f'<text x="{col_width * i + 10}" y="22" font-size="12" fill="{fg}" '
-            f'font-weight="bold">{header}</text>'
+            f'<text x="{col_width * i + 10}" y="22" font-size="{col_header_size}" fill="{col_header_fg}" '
+            f'font-weight="{weight}">{header}</text>'
         )
 
     # Data rows
@@ -109,15 +133,17 @@ def generate_table_svg(theme: PowerBITheme, width: int = 300, height: int = 200)
         y = row_height * (row_idx + 1)
         # Alternating row background
         if row_idx % 2 == 0:
-            svg_parts.append(f'<rect x="0" y="{y}" width="{width}" height="{row_height}" fill="{bg}" opacity="0.5"/>')
+            svg_parts.append(f'<rect x="0" y="{y}" width="{width}" height="{row_height}" fill="{values_bg}" opacity="0.5"/>')
 
         for col_idx, cell in enumerate(row):
             svg_parts.append(
-                f'<text x="{col_width * col_idx + 10}" y="{y + 22}" font-size="11" fill="{fg}">{cell}</text>'
+                f'<text x="{col_width * col_idx + 10}" y="{y + 22}" font-size="{values_size}" fill="{values_fg}">{cell}</text>'
             )
 
-        # Row border
-        svg_parts.append(f'<line x1="0" y1="{y + row_height}" x2="{width}" y2="{y + row_height}" stroke="{fg}" stroke-width="0.5" opacity="0.5"/>')
+        # Row border (gridline)
+        stroke_dasharray = "3,3" if gridline_style == "Dashed" else "none"
+        dash_attr = f' stroke-dasharray="{stroke_dasharray}"' if stroke_dasharray != "none" else ""
+        svg_parts.append(f'<line x1="0" y1="{y + row_height}" x2="{width}" y2="{y + row_height}" stroke="{gridline_color}" stroke-width="1"{dash_attr}/>')
 
     # Title
     svg_parts.append(
@@ -241,11 +267,16 @@ def generate_card_kpi_svg(theme: PowerBITheme, width: int = 300, height: int = 2
     return "\n".join(svg_parts)
 
 
-def generate_all_mockups(theme: PowerBITheme, size: int = 300) -> dict[str, str]:
-    """Generate all 4 mockup SVGs for the current theme."""
+def generate_all_mockups(
+    theme: PowerBITheme,
+    visual_styles: Dict[str, Any] | None = None,
+    size: int = 300
+) -> dict[str, str]:
+    """Generate all 4 mockup SVGs for the current theme and visual styles."""
+    visual_styles = visual_styles or {}
     return {
         "bar_chart": generate_bar_chart_svg(theme, width=size, height=int(size * 0.7)),
-        "table": generate_table_svg(theme, width=size, height=int(size * 0.7)),
+        "table": generate_table_svg(theme, visual_styles.get("table", {}), width=size, height=int(size * 0.7)),
         "line_chart": generate_line_chart_svg(theme, width=size, height=int(size * 0.7)),
         "card_kpi": generate_card_kpi_svg(theme, width=size, height=int(size * 0.7)),
     }

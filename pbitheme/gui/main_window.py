@@ -242,7 +242,7 @@ class MainWindow(QMainWindow):
         self._theme = self._collect_theme()
         self._preview.setPlainText(self._theme.to_json())
         self._visual_checklist.set_theme(self._theme)
-        self._visual_preview.update_preview(self._theme)
+        self._visual_preview.update_preview(self._theme, self._visual_styles)
         self._update_history_actions()
 
     def _record_history(self) -> None:
