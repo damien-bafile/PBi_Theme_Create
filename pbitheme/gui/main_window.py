@@ -32,6 +32,7 @@ from ..screenshot import capture_widget
 from .widgets import ColorButton, DataColorsEditor, TextClassEditor, VisualStylesChecklist
 from .visual_style_dialog import VisualStyleDialog
 from .preview_panel import PreviewPanel
+from .history import ThemeHistory
 
 
 class MainWindow(QMainWindow):
@@ -44,6 +45,10 @@ class MainWindow(QMainWindow):
         self._structural_buttons: Dict[str, ColorButton] = {}
         self._text_editors: Dict[str, TextClassEditor] = {}
         self._visual_styles: Dict[str, Dict[str, Any]] = {}
+        self._history = ThemeHistory(max_size=20)
+        self._undo_action: QAction | None = None
+        self._redo_action: QAction | None = None
+        self._skip_history_record = False  # Flag to prevent recording during undo/redo
 
         self.setWindowTitle("Power BI Theme Creator")
         self.resize(1000, 720)
@@ -57,6 +62,24 @@ class MainWindow(QMainWindow):
     # UI construction
     # ------------------------------------------------------------------ #
     def _build_menu(self) -> None:
+        # Edit menu with undo/redo
+        edit_menu = self.menuBar().addMenu("&Edit")
+
+        self._undo_action = QAction("&Undo", self)
+        self._undo_action.setShortcut("Ctrl+Z")
+        self._undo_action.triggered.connect(self._on_undo)
+        self._undo_action.setEnabled(False)
+        edit_menu.addAction(self._undo_action)
+
+        self._redo_action = QAction("&Redo", self)
+        self._redo_action.setShortcut("Ctrl+Y")
+        self._redo_action.triggered.connect(self._on_redo)
+        self._redo_action.setEnabled(False)
+        edit_menu.addAction(self._redo_action)
+
+        edit_menu.addSeparator()
+
+        # File menu
         file_menu = self.menuBar().addMenu("&File")
 
         new_action = QAction("&New", self)
@@ -220,6 +243,21 @@ class MainWindow(QMainWindow):
         self._preview.setPlainText(self._theme.to_json())
         self._visual_checklist.set_theme(self._theme)
         self._visual_preview.update_preview(self._theme)
+        self._update_history_actions()
+
+    def _record_history(self) -> None:
+        """Record current theme state for undo (unless skipped during undo/redo)."""
+        if self._skip_history_record:
+            return
+        self._history.push(self._collect_theme())
+        self._update_history_actions()
+
+    def _update_history_actions(self) -> None:
+        """Update undo/redo menu items based on history availability."""
+        if self._undo_action:
+            self._undo_action.setEnabled(self._history.can_undo())
+        if self._redo_action:
+            self._redo_action.setEnabled(self._history.can_redo())
 
     # ------------------------------------------------------------------ #
     # Menu actions
@@ -227,6 +265,7 @@ class MainWindow(QMainWindow):
     def _on_new(self) -> None:
         self._current_path = None
         self._visual_styles = {}
+        self._history.clear()
         self._load_from_theme(PowerBITheme())
         self._refresh_preview()
         self.statusBar().showMessage("New theme")
@@ -255,6 +294,7 @@ class MainWindow(QMainWindow):
             return
 
         self._current_path = path
+        self._history.clear()
         self._load_from_theme(theme)
         self._refresh_preview()
         self.statusBar().showMessage(f"Opened {os.path.basename(path)}")
@@ -290,7 +330,36 @@ class MainWindow(QMainWindow):
                 self._visual_styles[visual_key] = {"*": result}
             else:
                 self._visual_styles.pop(visual_key, None)
+            self._record_history()
             self._refresh_preview()
+
+    def _on_undo(self) -> None:
+        """Undo the last theme change."""
+        if not self._history.can_undo():
+            return
+        # Save current state for redo
+        self._history.save_for_redo(self._theme)
+        # Get previous state
+        prev_theme = self._history.undo()
+        if prev_theme:
+            self._skip_history_record = True
+            self._load_from_theme(prev_theme)
+            self._refresh_preview()
+            self._skip_history_record = False
+            self.statusBar().showMessage("Undo")
+
+    def _on_redo(self) -> None:
+        """Redo the last undone change."""
+        if not self._history.can_redo():
+            return
+        # Get next state
+        next_theme = self._history.redo()
+        if next_theme:
+            self._skip_history_record = True
+            self._load_from_theme(next_theme)
+            self._refresh_preview()
+            self._skip_history_record = False
+            self.statusBar().showMessage("Redo")
 
     def _on_save_screenshot(self) -> None:
         """Save a PNG screenshot of the current window."""
