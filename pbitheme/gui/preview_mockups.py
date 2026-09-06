@@ -1068,6 +1068,11 @@ def generate_table_svg(
     rh_fg = _col(formatting, "rowHeaderTextColor", fg)
     rh_size = int(_num(formatting, "rowHeaderFontSize", 11))
     rh_bold = _flag(formatting, "rowHeaderFontBold", False)
+    rh_align = _txt(formatting, "rowHeaderAlignment", "Left")
+    rh_stepped = _flag(formatting, "rowHeaderStepped", True)
+
+    grid_outline_color = _col(formatting, "gridOutlineColor", "#CCCCCC")
+    grid_outline_weight = _num(formatting, "gridOutlineWeight", 1)
 
     ch_bg = _col(formatting, "columnHeaderBackgroundColor", accent)
     ch_fg = _col(formatting, "columnHeaderTextColor", fg)
@@ -1117,7 +1122,7 @@ def generate_table_svg(
     header_h = max(18, ch_size + padding * 2)
     y = top
 
-    def draw_row(vals, bg, text_color, size, bold, align, is_header=False):
+    def draw_row(vals, bg, text_color, size, bold, align, is_header=False, indent=0):
         nonlocal y
         h = header_h if is_header else row_h
         parts.append(f'<rect x="0" y="{y:.1f}" width="{width}" height="{h:.1f}" fill="{bg}" opacity="0.55"/>')
@@ -1127,8 +1132,8 @@ def generate_table_svg(
                 continue
             # First column follows row-header styling for body rows.
             if ci == 0 and not is_header:
-                anc, fx = anchor("Left")
-                tx = col_w * ci + col_w * fx
+                anc, fx = anchor(rh_align)
+                tx = col_w * ci + col_w * fx + (indent if anc == "start" else 0)
                 parts.append(
                     f'<text x="{tx:.1f}" y="{y + h * 0.66:.1f}" font-size="{rh_size}" '
                     f'fill="{rh_fg}" font-weight="{"bold" if rh_bold else "normal"}" '
@@ -1163,14 +1168,24 @@ def generate_table_svg(
         data_row += 1
         return bg
 
+    # A stepped layout indents child rows beneath their subtotal.
+    step = 10 if rh_stepped else 0
     for row in body:
-        draw_row(row, value_bg(), v_fg, v_size, False, v_align)
+        draw_row(row, value_bg(), v_fg, v_size, False, v_align, indent=step)
     if show_sub:
         draw_row(sub_row, sub_bg, v_fg, v_size, sub_bold, v_align)
     for row in data2:
-        draw_row(row, value_bg(), v_fg, v_size, False, v_align)
+        draw_row(row, value_bg(), v_fg, v_size, False, v_align, indent=step)
     if show_totals:
         draw_row(tot_row, tot_bg, tot_fg, v_size, tot_bold, v_align)
+
+    # Outer grid outline.
+    if grid_outline_weight > 0:
+        parts.append(
+            f'<rect x="{grid_outline_weight / 2:.1f}" y="{top:.1f}" '
+            f'width="{width - grid_outline_weight:.1f}" height="{y - top:.1f}" '
+            f'fill="none" stroke="{grid_outline_color}" stroke-width="{grid_outline_weight}"/>'
+        )
 
     parts.append(title_svg)
     parts.append("</svg>")

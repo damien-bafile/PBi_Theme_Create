@@ -41,6 +41,8 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("gridlineColor", "Gridline Color", "color", default="#CCCCCC"),
             FormatField("gridlineThickness", "Gridline Thickness (px)", "number", min_val=1, max_val=5, suffix="px"),
             FormatField("rowSpacing", "Row Spacing (px)", "number", min_val=0, max_val=20, suffix="px"),
+            FormatField("gridOutlineColor", "Outline Color", "color", default="#CCCCCC"),
+            FormatField("gridOutlineWeight", "Outline Weight (px)", "number", min_val=0, max_val=5, default=1, suffix="px"),
         ],
     ),
     FormatSection(
@@ -50,6 +52,9 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("rowHeaderTextColor", "Text Color", "color", default="#252423"),
             FormatField("rowHeaderFontSize", "Font Size (pt)", "number", min_val=8, max_val=28, suffix="pt"),
             FormatField("rowHeaderFontBold", "Bold", "boolean", default=False),
+            FormatField("rowHeaderAlignment", "Alignment", "dropdown",
+                       options=[("Left", "Left"), ("Center", "Center"), ("Right", "Right")]),
+            FormatField("rowHeaderStepped", "Stepped Layout", "boolean", default=True),
         ],
     ),
     FormatSection(

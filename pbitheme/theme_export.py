@@ -209,6 +209,9 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             grid["gridVerticalWeight"] = fmt["gridlineThickness"]
         if "rowSpacing" in fmt:
             grid["rowPadding"] = fmt["rowSpacing"]
+        _set(grid, "outlineColor", _fill(fmt.get("gridOutlineColor", "")))
+        if "gridOutlineWeight" in fmt:
+            grid["outlineWeight"] = fmt["gridOutlineWeight"]
 
         ch = card("columnHeaders")
         _set(ch, "backColor", _fill(fmt.get("columnHeaderBackgroundColor", "")))
@@ -247,6 +250,10 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
                 rh["fontSize"] = fmt["rowHeaderFontSize"]
             if "rowHeaderFontBold" in fmt:
                 rh["bold"] = bool(fmt["rowHeaderFontBold"])
+            if "rowHeaderAlignment" in fmt:
+                rh["alignment"] = fmt["rowHeaderAlignment"]
+            if "rowHeaderStepped" in fmt:
+                rh["stepped"] = bool(fmt["rowHeaderStepped"])
             st = card("subTotals")
             if "showSubtotals" in fmt:
                 st["rowSubtotals"] = bool(fmt["showSubtotals"])
@@ -562,6 +569,9 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["gridlineThickness"] = grid["gridHorizontalWeight"]
         if "rowPadding" in grid:
             fmt["rowSpacing"] = grid["rowPadding"]
+        _put(fmt, "gridOutlineColor", _hex(grid, "outlineColor"))
+        if "outlineWeight" in grid:
+            fmt["gridOutlineWeight"] = grid["outlineWeight"]
         ch = c("columnHeaders")
         _put(fmt, "columnHeaderBackgroundColor", _hex(ch, "backColor"))
         _put(fmt, "columnHeaderTextColor", _hex(ch, "fontColor"))
@@ -596,6 +606,10 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
                 fmt["rowHeaderFontSize"] = rh["fontSize"]
             if "bold" in rh:
                 fmt["rowHeaderFontBold"] = bool(rh["bold"])
+            if "alignment" in rh:
+                fmt["rowHeaderAlignment"] = rh["alignment"]
+            if "stepped" in rh:
+                fmt["rowHeaderStepped"] = bool(rh["stepped"])
             st = c("subTotals")
             if "rowSubtotals" in st:
                 fmt["showSubtotals"] = bool(st["rowSubtotals"])
