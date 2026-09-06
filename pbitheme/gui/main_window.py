@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import copy
 import os
-from typing import Dict
+from typing import Any, Dict
 
 from PySide6.QtGui import QAction, QFont
 from PySide6.QtWidgets import (
@@ -20,12 +21,15 @@ from PySide6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
     QWidget,
+    QDialog,
 )
 from PySide6.QtCore import Qt
 
-from ..model import PowerBITheme
+from ..model import PowerBITheme, VISUAL_TYPES
 from ..pbix_import import extract_theme_from_pbix, NoThemeFoundError
+from ..screenshot import capture_widget
 from .widgets import ColorButton, DataColorsEditor, TextClassEditor, VisualStylesChecklist
+from .visual_style_dialog import VisualStyleDialog
 
 
 class MainWindow(QMainWindow):
@@ -37,6 +41,7 @@ class MainWindow(QMainWindow):
         self._current_path: str | None = None
         self._structural_buttons: Dict[str, ColorButton] = {}
         self._text_editors: Dict[str, TextClassEditor] = {}
+        self._visual_styles: Dict[str, Dict[str, Any]] = {}
 
         self.setWindowTitle("Power BI Theme Creator")
         self.resize(1000, 720)
@@ -64,11 +69,14 @@ class MainWindow(QMainWindow):
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self._on_save)
 
+        screenshot_action = QAction("Save &Screenshot...", self)
+        screenshot_action.triggered.connect(self._on_save_screenshot)
+
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
 
-        for action in (new_action, open_action, save_action):
+        for action in (new_action, open_action, save_action, screenshot_action):
             file_menu.addAction(action)
         file_menu.addSeparator()
         file_menu.addAction(quit_action)
@@ -120,6 +128,7 @@ class MainWindow(QMainWindow):
         visual_box = QGroupBox("Visual styles")
         visual_layout = QVBoxLayout(visual_box)
         self._visual_checklist = VisualStylesChecklist()
+        self._visual_checklist.visualRequested.connect(self._on_edit_visual_style)
         visual_layout.addWidget(self._visual_checklist)
         form.addWidget(visual_box)
 
@@ -165,6 +174,7 @@ class MainWindow(QMainWindow):
                 editor._font.setCurrentText(tc.font_face)
                 editor._size.setValue(tc.font_size)
                 editor._color.set_color(tc.color)
+        self._visual_styles = copy.deepcopy(theme.visual_styles)
 
     def _collect_theme(self) -> PowerBITheme:
         """Build a fresh :class:`PowerBITheme` from the current widget state."""
@@ -175,6 +185,7 @@ class MainWindow(QMainWindow):
         theme.text_classes = {
             name: editor.value() for name, editor in self._text_editors.items()
         }
+        theme.visual_styles = copy.deepcopy(self._visual_styles)
         return theme
 
     def _refresh_preview(self) -> None:
@@ -187,6 +198,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
     def _on_new(self) -> None:
         self._current_path = None
+        self._visual_styles = {}
         self._load_from_theme(PowerBITheme())
         self._refresh_preview()
         self.statusBar().showMessage("New theme")
@@ -233,3 +245,32 @@ class MainWindow(QMainWindow):
             return
         self._current_path = path
         self.statusBar().showMessage(f"Saved {os.path.basename(path)}")
+
+    def _on_edit_visual_style(self, visual_key: str) -> None:
+        """Open the style editor dialog for the selected visual type."""
+        label = dict(VISUAL_TYPES).get(visual_key, visual_key)
+        existing_obj = self._visual_styles.get(visual_key, {}).get("*", {})
+        dialog = VisualStyleDialog(visual_key, label, existing_obj, self)
+        if dialog.exec() == QDialog.Accepted:
+            result = dialog.result_dict()
+            if result:
+                self._visual_styles[visual_key] = {"*": result}
+            else:
+                self._visual_styles.pop(visual_key, None)
+            self._refresh_preview()
+
+    def _on_save_screenshot(self) -> None:
+        """Save a PNG screenshot of the current window."""
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save screenshot", "theme_editor.png", "PNG images (*.png);;All files (*)"
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".png"):
+            path += ".png"
+        try:
+            capture_widget(self, path)
+        except OSError as exc:
+            QMessageBox.critical(self, "Screenshot failed", f"Could not save screenshot:\n{exc}")
+            return
+        self.statusBar().showMessage(f"Saved screenshot {os.path.basename(path)}")

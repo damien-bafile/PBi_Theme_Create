@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 # A default Power BI-flavoured qualitative palette.
 DEFAULT_DATA_COLORS: List[str] = [
@@ -236,3 +236,119 @@ class PowerBITheme:
             self.visual_styles.get(visual_key)
             or self.visual_styles.get("*")
         )
+
+
+# ====================================================================== #
+# Visual style builders and unpackers (for interactive editor)
+# ====================================================================== #
+
+LEGEND_POSITIONS: List[str] = [
+    "Top", "Bottom", "Left", "Right",
+    "TopCenter", "BottomCenter", "LeftCenter", "RightCenter"
+]
+
+def _solid_color(hex_color: str) -> Dict[str, Any]:
+    """Wrap a hex color in the Power BI solid color format."""
+    return {"solid": {"color": normalise_hex(hex_color)}}
+
+
+def _first(items: Any) -> Dict[str, Any]:
+    """Extract first dict from a list, or return empty dict."""
+    return items[0] if isinstance(items, list) and items and isinstance(items[0], dict) else {}
+
+
+def _extract_solid_color(value: Any, default: str) -> str:
+    """Extract and normalise a hex color from a solid-color object."""
+    color = (value or {}).get("solid", {}).get("color") if isinstance(value, dict) else None
+    if isinstance(color, str):
+        c = color if color.startswith("#") else f"#{color}"
+        if is_valid_hex(c):
+            return normalise_hex(c)
+    return default
+
+
+def build_background_object(show: bool, color: str, transparency: int) -> List[Dict[str, Any]]:
+    """Build a background visual-style object from picker state."""
+    return [{"show": show, "color": _solid_color(color), "transparency": int(transparency)}]
+
+
+def build_border_object(show: bool, color: str) -> List[Dict[str, Any]]:
+    """Build a border visual-style object from picker state."""
+    return [{"show": show, "color": _solid_color(color)}]
+
+
+def build_title_object(show: bool, font_face: str, font_size: int, color: str) -> List[Dict[str, Any]]:
+    """Build a title visual-style object from picker state."""
+    return [{"show": show, "fontColor": _solid_color(color), "fontSize": int(font_size), "fontFamily": font_face}]
+
+
+def build_data_labels_object(show: bool, color: str, font_size: int) -> List[Dict[str, Any]]:
+    """Build a data-labels visual-style object from picker state."""
+    return [{"show": show, "color": _solid_color(color), "fontSize": int(font_size)}]
+
+
+def build_legend_object(show: bool, position: str, color: str) -> List[Dict[str, Any]]:
+    """Build a legend visual-style object from picker state."""
+    return [{"show": show, "position": position, "labelColor": _solid_color(color)}]
+
+
+def unpack_background_object(obj: Dict[str, Any]) -> Tuple[bool, str, int]:
+    """Extract background picker state from an existing visual's * entry."""
+    p = _first(obj.get("background", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("color"), "#FFFFFF"),
+        int(p.get("transparency", 0) or 0)
+    )
+
+
+def unpack_border_object(obj: Dict[str, Any]) -> Tuple[bool, str]:
+    """Extract border picker state from an existing visual's * entry."""
+    p = _first(obj.get("border", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("color"), "#000000")
+    )
+
+
+def unpack_title_object(obj: Dict[str, Any]) -> Tuple[bool, str, int, str]:
+    """Extract title picker state from an existing visual's * entry."""
+    p = _first(obj.get("title", {}))
+    return (
+        bool(p.get("show", True)),
+        str(p.get("fontFamily", "Segoe UI")),
+        int(p.get("fontSize", 12) or 12),
+        _extract_solid_color(p.get("fontColor"), "#252423")
+    )
+
+
+def unpack_data_labels_object(obj: Dict[str, Any]) -> Tuple[bool, str, int]:
+    """Extract data-labels picker state from an existing visual's * entry."""
+    p = _first(obj.get("labels", {}))
+    return (
+        bool(p.get("show", False)),
+        _extract_solid_color(p.get("color"), "#252423"),
+        int(p.get("fontSize", 9) or 9)
+    )
+
+
+def unpack_legend_object(obj: Dict[str, Any]) -> Tuple[bool, str, str]:
+    """Extract legend picker state from an existing visual's * entry."""
+    p = _first(obj.get("legend", {}))
+    return (
+        bool(p.get("show", True)),
+        str(p.get("position", "Top")),
+        _extract_solid_color(p.get("labelColor"), "#252423")
+    )
+
+
+def merge_visual_style_entry(base: Dict[str, Any], overrides: Dict[str, List[Dict[str, Any]]]) -> Dict[str, Any]:
+    """Merge structured-picker overrides with the advanced-JSON base dict.
+
+    The base dict (parsed from the advanced-JSON box) is copied, then for each
+    key present in overrides, that key fully replaces the one in the base.
+    Keys absent from overrides pass through from base unchanged.
+    """
+    result = dict(base)
+    result.update(overrides)
+    return result

@@ -21,9 +21,25 @@ from PySide6.QtWidgets import (
     QFontComboBox,
     QGridLayout,
     QScrollArea,
+    QCheckBox,
+    QComboBox,
+    QPlainTextEdit,
+    QMessageBox,
+    QGroupBox,
+    QFormLayout,
+    QDialogButtonBox,
+    QDialog,
 )
 
-from ..model import PowerBITheme, TextClass, VISUAL_TYPES, is_valid_hex, normalise_hex
+from ..model import (
+    PowerBITheme, TextClass, VISUAL_TYPES, LEGEND_POSITIONS,
+    is_valid_hex, normalise_hex,
+    build_background_object, build_border_object, build_title_object,
+    build_data_labels_object, build_legend_object,
+    unpack_background_object, unpack_border_object, unpack_title_object,
+    unpack_data_labels_object, unpack_legend_object,
+    merge_visual_style_entry
+)
 
 
 class ColorButton(QPushButton):
@@ -170,7 +186,9 @@ class TextClassEditor(QWidget):
 
 
 class VisualStylesChecklist(QWidget):
-    """Scrollable checklist of Power BI visual types with customization status."""
+    """Scrollable checklist of Power BI visual types with customization status. Rows are clickable."""
+
+    visualRequested = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -185,10 +203,15 @@ class VisualStylesChecklist(QWidget):
         grid.setColumnStretch(1, 0)
 
         for row, (key, label) in enumerate(VISUAL_TYPES):
-            name_label = QLabel(label)
+            name_btn = QPushButton(label)
+            name_btn.setFlat(True)
+            name_btn.setCursor(Qt.PointingHandCursor)
+            name_btn.setStyleSheet("text-align: left; border: none; padding: 2px;")
+            name_btn.clicked.connect(lambda _c=False, k=key: self.visualRequested.emit(k))
+
             status_label = QLabel("✗")
             status_label.setStyleSheet("color: #D64550; font-weight: bold; min-width: 30px;")
-            grid.addWidget(name_label, row, 0)
+            grid.addWidget(name_btn, row, 0)
             grid.addWidget(status_label, row, 1)
             self._status_labels[key] = status_label
 
