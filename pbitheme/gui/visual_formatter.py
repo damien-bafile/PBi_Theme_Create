@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -21,6 +22,8 @@ from .visual_formatting_config import FormatField, FormatSection, get_formatting
 
 class VisualFormatterPanel(QWidget):
     """Dynamic panel for formatting visual type options."""
+
+    values_changed = Signal()  # Emitted whenever any value changes
 
     def __init__(self, visual_key: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -53,11 +56,14 @@ class VisualFormatterPanel(QWidget):
     def _create_widget_for_field(self, field: FormatField) -> QWidget:
         """Create the appropriate widget for a formatting field."""
         if field.field_type == "color":
-            return ColorButton(field.default or "#FFFFFF", label=field.label)
+            button = ColorButton(field.default or "#FFFFFF", label=field.label)
+            button.colorChanged.connect(self.values_changed.emit)
+            return button
 
         elif field.field_type == "boolean":
             checkbox = QCheckBox()
             checkbox.setChecked(bool(field.default))
+            checkbox.toggled.connect(self.values_changed.emit)
             return checkbox
 
         elif field.field_type == "number":
@@ -67,6 +73,7 @@ class VisualFormatterPanel(QWidget):
             if field.suffix:
                 spinbox.setSuffix(f" {field.suffix}")
             spinbox.setValue(int(field.default or 0))
+            spinbox.valueChanged.connect(self.values_changed.emit)
             return spinbox
 
         elif field.field_type == "dropdown":
@@ -74,6 +81,7 @@ class VisualFormatterPanel(QWidget):
             if field.options:
                 for value, label in field.options:
                     combo.addItem(label, value)
+            combo.currentIndexChanged.connect(self.values_changed.emit)
             return combo
 
         else:

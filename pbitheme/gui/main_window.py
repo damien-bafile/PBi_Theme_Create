@@ -323,7 +323,7 @@ class MainWindow(QMainWindow):
         """Open the style editor dialog for the selected visual type."""
         label = dict(VISUAL_TYPES).get(visual_key, visual_key)
         existing_obj = self._visual_styles.get(visual_key, {}).get("*", {})
-        dialog = VisualStyleDialog(visual_key, label, existing_obj, self)
+        dialog = VisualStyleDialog(visual_key, label, existing_obj, self, self._theme)
         if dialog.exec() == QDialog.Accepted:
             result = dialog.result_dict()
             if result:

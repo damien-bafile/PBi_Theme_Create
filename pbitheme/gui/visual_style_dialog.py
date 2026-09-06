@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QByteArray
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
+    QHBoxLayout,
     QGroupBox,
     QFormLayout,
     QCheckBox,
@@ -24,8 +25,10 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QFontComboBox,
 )
+from PySide6.QtSvgWidgets import QSvgWidget
 
 from ..model import (
+    PowerBITheme,
     LEGEND_POSITIONS,
     build_background_object,
     build_border_object,
@@ -42,6 +45,7 @@ from ..model import (
 from .widgets import ColorButton
 from .visual_formatter import VisualFormatterPanel
 from .visual_formatting_config import is_visual_customizable
+from .preview_mockups import generate_table_svg, generate_bar_chart_svg
 from . import theme
 
 
@@ -54,17 +58,24 @@ class VisualStyleDialog(QDialog):
         visual_label: str,
         existing_obj: Dict[str, Any],
         parent: QWidget | None = None,
+        theme: PowerBITheme | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Edit {visual_label} Style")
-        self.resize(600, 550)
+        self.resize(1000, 650)
         self._visual_key = visual_key
+        self._visual_label = visual_label
+        self._theme = theme or PowerBITheme()
         self._result: Dict[str, Any] | None = None
         self._formatter_panel: VisualFormatterPanel | None = None
+        self._preview_svg: QSvgWidget | None = None
 
-        root_layout = QVBoxLayout(self)
+        root_layout = QHBoxLayout(self)
 
-        # ---- Tabs ---- #
+        # ---- Left side: Tabs ---- #
+        left_layout = QVBoxLayout()
+
+        # Tabs
         tabs = QTabWidget()
 
         # Tab 1: Visual-specific formatting (if available)
@@ -193,25 +204,49 @@ class VisualStyleDialog(QDialog):
         advanced_layout.addWidget(self._advanced_edit)
         tabs.addTab(advanced_widget, "Advanced JSON")
 
-        root_layout.addWidget(tabs)
+        left_layout.addWidget(tabs)
 
         # ---- Clear all button ---- #
         clear_btn = QPushButton("Clear All Overrides")
         clear_btn.clicked.connect(self._clear_all)
-        root_layout.addWidget(clear_btn)
+        left_layout.addWidget(clear_btn)
 
         # ---- Dialog buttons ---- #
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self._on_ok)
         buttons.rejected.connect(self.reject)
         buttons.button(QDialogButtonBox.Ok).setDefault(True)
-        root_layout.addWidget(buttons)
+        left_layout.addWidget(buttons)
+
+        # ---- Right side: Preview ---- #
+        right_layout = QVBoxLayout()
+        right_layout.addWidget(QLabel("Live Preview:"))
+        right_layout.addWidget(QLabel(f"{visual_label}", ), )
+
+        self._preview_svg = QSvgWidget()
+        self._preview_svg.setMinimumSize(250, 250)
+        self._preview_svg.setStyleSheet("border: 1px solid #ddd; border-radius: 4px; background: white;")
+        right_layout.addWidget(self._preview_svg)
+        right_layout.addStretch()
+
+        # Add left and right to main layout
+        left_widget = QWidget()
+        left_widget.setLayout(left_layout)
+        left_widget.setMinimumWidth(450)
+
+        root_layout.addWidget(left_widget, 1)
+        root_layout.addLayout(right_layout, 0)
 
         # Load existing formatting values if available
         if self._formatter_panel and existing_obj:
             formatting = existing_obj.get("formatting", {})
             if formatting:
                 self._formatter_panel.set_values(formatting)
+            # Connect formatter changes to preview updates
+            self._formatter_panel.values_changed.connect(self._update_preview)
+
+        # Initial preview update
+        self._update_preview()
 
         # Set initial focus to first tab
         tabs.setFocus()
@@ -273,3 +308,32 @@ class VisualStyleDialog(QDialog):
     def result_dict(self) -> Dict[str, Any]:
         """Return the merged result dict, or empty dict if dialog was cancelled."""
         return self._result or {}
+
+    def _update_preview(self) -> None:
+        """Update the preview to show the current formatting options."""
+        if not self._preview_svg:
+            return
+
+        # Get current formatting values from formatter panel
+        formatting = {}
+        if self._formatter_panel:
+            formatting = self._formatter_panel.get_values()
+
+        # Generate appropriate preview based on visual type
+        svg_data = ""
+        if self._visual_key in ("matrix", "table", "tableEx", "pivotTable"):
+            # Table preview
+            visual_styles = {"*": {"formatting": formatting}}
+            svg_data = generate_table_svg(self._theme, visual_styles, width=250, height=180)
+        elif self._visual_key in ("barChart", "columnChart", "lineChart", "pieChart", "gauge", "card", "kpi"):
+            # For charts, show a simpler bar chart with formatting
+            visual_styles = {"*": {"formatting": formatting}}
+            svg_data = generate_bar_chart_svg(self._theme, width=250, height=180)
+        else:
+            # Default preview
+            svg_data = generate_bar_chart_svg(self._theme, width=250, height=180)
+
+        # Load SVG into widget
+        if svg_data:
+            svg_bytes = QByteArray(svg_data.encode("utf-8"))
+            self._preview_svg.load(svg_bytes)
