@@ -72,6 +72,8 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("valuesAlignment", "Alignment", "dropdown",
                        options=[("Left", "Left"), ("Center", "Center"), ("Right", "Right")]),
             FormatField("cellPadding", "Cell Padding (px)", "number", min_val=2, max_val=20, suffix="px"),
+            FormatField("bandedRows", "Banded Rows", "boolean", default=False),
+            FormatField("alternateRowColor", "Alternate Row Color", "color", default="#F5F5F5"),
         ],
     ),
     FormatSection(

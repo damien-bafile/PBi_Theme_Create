@@ -197,10 +197,15 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             ch["alignment"] = fmt["columnHeaderAlignment"]
 
         vals = card("values")
-        _set(vals, "backColor", _fill(fmt.get("valuesBackgroundColor", "")))
         _set(vals, "fontColor", _fill(fmt.get("valuesTextColor", "")))
         if "valuesFontSize" in fmt:
             vals["fontSize"] = fmt["valuesFontSize"]
+        if fmt.get("bandedRows"):
+            # Alternating row colours use the primary/secondary value backgrounds.
+            _set(vals, "backColorPrimary", _fill(fmt.get("valuesBackgroundColor", "")))
+            _set(vals, "backColorSecondary", _fill(fmt.get("alternateRowColor", "")))
+        else:
+            _set(vals, "backColor", _fill(fmt.get("valuesBackgroundColor", "")))
 
         tot = card("total")
         if "showTotals" in fmt:
@@ -521,10 +526,15 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         if "alignment" in ch:
             fmt["columnHeaderAlignment"] = ch["alignment"]
         vals = c("values")
-        _put(fmt, "valuesBackgroundColor", _hex(vals, "backColor"))
         _put(fmt, "valuesTextColor", _hex(vals, "fontColor"))
         if "fontSize" in vals:
             fmt["valuesFontSize"] = vals["fontSize"]
+        if "backColorSecondary" in vals:
+            fmt["bandedRows"] = True
+            _put(fmt, "alternateRowColor", _hex(vals, "backColorSecondary"))
+            _put(fmt, "valuesBackgroundColor", _hex(vals, "backColorPrimary"))
+        else:
+            _put(fmt, "valuesBackgroundColor", _hex(vals, "backColor"))
         tot = c("total")
         if "totals" in tot:
             fmt["showTotals"] = bool(tot["totals"])

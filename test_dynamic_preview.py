@@ -78,9 +78,11 @@ def main() -> int:
     for key, label in customizable:
         dlg = driver.open_visual_dialog(key)
         panel = dlg._formatter_panel
-        # Enable gridlines so gridline colour/thickness are visible (gated by style).
+        # Enable gated features so dependent colours are visible in the preview.
         if "gridlineStyle" in panel._field_widgets:
             panel.set_values({"gridlineStyle": "Solid"})
+        if "bandedRows" in panel._field_widgets:
+            panel.set_values({"bandedRows": True})
         cap = _instrument(dlg)
 
         # --- Formatting fields ---

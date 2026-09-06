@@ -1033,6 +1033,8 @@ def generate_table_svg(
     v_size = int(_num(formatting, "valuesFontSize", 11))
     v_align = _txt(formatting, "valuesAlignment", "Left")
     padding = _num(formatting, "cellPadding", 6)
+    banded = _flag(formatting, "bandedRows", False)
+    alt_bg = _col(formatting, "alternateRowColor", "#F5F5F5")
 
     show_totals = _flag(formatting, "showTotals", True)
     tot_bg = _col(formatting, "totalsBackgroundColor", "#E8E8E8")
@@ -1105,12 +1107,21 @@ def generate_table_svg(
     parts.append(f'<rect x="0" y="{y:.1f}" width="{col_w:.1f}" height="{header_h:.1f}" fill="{rh_bg}" opacity="0.7"/>')
     draw_row(cols, ch_bg, ch_fg, ch_size, ch_bold, ch_align, is_header=True)
 
+    data_row = 0
+
+    def value_bg() -> str:
+        nonlocal data_row
+        # Banded rows alternate the background of every second value row.
+        bg = alt_bg if (banded and data_row % 2 == 1) else v_bg
+        data_row += 1
+        return bg
+
     for row in body:
-        draw_row(row, v_bg, v_fg, v_size, False, v_align)
+        draw_row(row, value_bg(), v_fg, v_size, False, v_align)
     if show_sub:
         draw_row(sub_row, sub_bg, v_fg, v_size, sub_bold, v_align)
     for row in data2:
-        draw_row(row, v_bg, v_fg, v_size, False, v_align)
+        draw_row(row, value_bg(), v_fg, v_size, False, v_align)
     if show_totals:
         draw_row(tot_row, tot_bg, tot_fg, v_size, tot_bold, v_align)
 
