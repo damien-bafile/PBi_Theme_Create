@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PySide6.QtSvg import QSvgWidget
+from PySide6.QtSvgWidgets import QSvgWidget
 
 from ..model import PowerBITheme
 from .preview_mockups import generate_all_mockups
