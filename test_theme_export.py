@@ -98,6 +98,17 @@ def main() -> int:
     check(exported["legend"][0].get("position") == "Right", "generic legend did not win merge")
     check(exported["legend"][0].get("fontSize") == 14, "translated legend fontSize lost in merge")
 
+    # 6b) Named style presets export alongside the default.
+    vs = build_visual_styles({
+        "columnChart": {
+            "*": {"formatting": {"legendPosition": "Top"}},
+            "Bold Blue": {"formatting": {"xAxisLabelColor": "#0000FF", "legendPosition": "Bottom"}},
+        }
+    })
+    cc = vs["columnChart"]
+    check("*" in cc and "Bold Blue" in cc, "named preset not exported alongside default")
+    check("categoryAxis" in cc["Bold Blue"], "named preset formatting not translated")
+
     # 6) New theme-level colours export under their Power BI keys.
     theme = PowerBITheme()
     theme.second_level = "#AAAAAA"; theme.gradient_max = "#BBBBBB"

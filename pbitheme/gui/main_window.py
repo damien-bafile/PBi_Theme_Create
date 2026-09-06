@@ -332,12 +332,20 @@ class MainWindow(QMainWindow):
     def _on_edit_visual_style(self, visual_key: str) -> None:
         """Open the style editor dialog for the selected visual type."""
         label = dict(VISUAL_TYPES).get(visual_key, visual_key)
-        existing_obj = self._visual_styles.get(visual_key, {}).get("*", {})
-        dialog = VisualStyleDialog(visual_key, label, existing_obj, self, self._theme)
+        presets = self._visual_styles.get(visual_key) or {}
+        existing_obj = presets.get("*", {})
+        dialog = VisualStyleDialog(
+            visual_key, label, existing_obj, self, self._theme, presets=presets or None
+        )
         if dialog.exec() == QDialog.Accepted:
-            result = dialog.result_dict()
-            if result:
-                self._visual_styles[visual_key] = {"*": result}
+            # Keep the default plus any non-empty named presets.
+            updated = {
+                name: obj for name, obj in dialog.result_presets().items()
+                if obj or name == "*"
+            }
+            has_content = any(obj for obj in updated.values())
+            if has_content:
+                self._visual_styles[visual_key] = updated
             else:
                 self._visual_styles.pop(visual_key, None)
             self._record_history()

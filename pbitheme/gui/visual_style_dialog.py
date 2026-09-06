@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from typing import Any, Dict
 
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QScrollArea,
     QFontComboBox,
+    QInputDialog,
 )
 from PySide6.QtSvgWidgets import QSvgWidget
 
@@ -58,6 +60,9 @@ from . import theme
 class VisualStyleDialog(QDialog):
     """Edit structured and raw-JSON overrides for a single visual type's style."""
 
+    #: label shown in the preset selector for the default ("*") style.
+    DEFAULT_PRESET_LABEL = "Default (all visuals of this type)"
+
     def __init__(
         self,
         visual_key: str,
@@ -65,6 +70,7 @@ class VisualStyleDialog(QDialog):
         existing_obj: Dict[str, Any],
         parent: QWidget | None = None,
         pbi_theme: PowerBITheme | None = None,
+        presets: Dict[str, Any] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Edit {visual_label} Style")
@@ -76,10 +82,28 @@ class VisualStyleDialog(QDialog):
         self._formatter_panel: VisualFormatterPanel | None = None
         self._preview_svg: QSvgWidget | None = None
 
+        # Named style presets: {"*": default, "Preset A": {...}, ...}.
+        self._presets: Dict[str, Any] = copy.deepcopy(presets) if presets else {"*": existing_obj or {}}
+        if "*" not in self._presets:
+            self._presets["*"] = {}
+        self._current_preset: str = "*"
+        existing_obj = self._presets.get("*", {})
+
         root_layout = QHBoxLayout(self)
 
         # ---- Left side: Tabs ---- #
         left_layout = QVBoxLayout()
+
+        # Style preset selector
+        preset_row = QHBoxLayout()
+        preset_row.addWidget(QLabel("Style preset:"))
+        self._preset_combo = QComboBox()
+        self._preset_combo.setAccessibleName("Style preset")
+        preset_row.addWidget(self._preset_combo, 1)
+        self._new_preset_btn = QPushButton("+ New")
+        self._new_preset_btn.clicked.connect(self._on_new_preset)
+        preset_row.addWidget(self._new_preset_btn)
+        left_layout.addLayout(preset_row)
 
         # Tabs
         tabs = QTabWidget()
@@ -332,11 +356,101 @@ class VisualStyleDialog(QDialog):
             # Connect formatter changes to preview updates
             self._formatter_panel.values_changed.connect(self._update_preview)
 
+        # Populate the preset selector now that every widget exists.
+        self._refresh_preset_combo()
+        self._preset_combo.currentIndexChanged.connect(self._on_preset_changed)
+
         # Initial preview update
         self._update_preview()
 
         # Set initial focus to first tab
         tabs.setFocus()
+
+    # ------------------------------------------------------------------ #
+    # Style presets
+    # ------------------------------------------------------------------ #
+    def _refresh_preset_combo(self) -> None:
+        self._preset_combo.blockSignals(True)
+        self._preset_combo.clear()
+        for name in self._presets:
+            label = self.DEFAULT_PRESET_LABEL if name == "*" else name
+            self._preset_combo.addItem(label, name)
+        idx = self._preset_combo.findData(self._current_preset)
+        if idx >= 0:
+            self._preset_combo.setCurrentIndex(idx)
+        self._preset_combo.blockSignals(False)
+
+    def _current_style(self) -> Dict[str, Any]:
+        """Build the style object represented by the fields right now."""
+        try:
+            base = json.loads(self._advanced_edit.toPlainText().strip() or "{}")
+            if not isinstance(base, dict):
+                base = {}
+        except (json.JSONDecodeError, ValueError):
+            base = {}
+        return merge_visual_style_entry(base, self._build_overrides())
+
+    def _apply_style(self, style_obj: Dict[str, Any]) -> None:
+        """Populate every field from *style_obj* (mirrors the initial load)."""
+        style_obj = style_obj or {}
+        if self._formatter_panel:
+            self._formatter_panel.set_values(style_obj.get("formatting", {}))
+        _, bg_color, bg_trans = unpack_background_object(style_obj)
+        self._bg_color.set_color(bg_color)
+        self._bg_alpha.setValue(bg_trans)
+        _, b_color, b_radius, b_width = unpack_border_object(style_obj)
+        self._border_color.set_color(b_color)
+        self._border_radius.setValue(b_radius)
+        self._border_width.setValue(b_width)
+        _, s_color = unpack_drop_shadow_object(style_obj)
+        self._shadow_color.set_color(s_color)
+        _, t_font, t_size, t_color = unpack_title_object(style_obj)
+        self._title_font.setCurrentText(t_font)
+        self._title_size.setValue(t_size)
+        self._title_color.set_color(t_color)
+        _, l_color, l_size = unpack_data_labels_object(style_obj)
+        self._labels_color.set_color(l_color)
+        self._labels_size.setValue(l_size)
+        _, lg_pos, lg_color = unpack_legend_object(style_obj)
+        self._legend_pos.setCurrentText(lg_pos)
+        self._legend_color.set_color(lg_color)
+        _, vh_bg, vh_fg = unpack_visual_header_object(style_obj)
+        self._vh_background.set_color(vh_bg)
+        self._vh_foreground.set_color(vh_fg)
+        self._padding_value.setValue(unpack_padding_object(style_obj))
+        for chk in (
+            self._bg_check, self._border_check, self._shadow_check, self._title_check,
+            self._labels_check, self._legend_check, self._vh_check, self._padding_check,
+        ):
+            chk.setChecked(False)
+        self._advanced_edit.setPlainText(json.dumps(style_obj, indent=2))
+
+    def _on_preset_changed(self, index: int) -> None:
+        name = self._preset_combo.itemData(index)
+        if name is None or name == self._current_preset:
+            return
+        self._presets[self._current_preset] = self._current_style()
+        self._current_preset = name
+        self._apply_style(self._presets.get(name, {}))
+        self._update_preview()
+
+    def _on_new_preset(self) -> None:
+        name, ok = QInputDialog.getText(self, "New style preset", "Preset name:")
+        name = (name or "").strip()
+        if not ok or not name:
+            return
+        if name == "*" or name == self.DEFAULT_PRESET_LABEL or name in self._presets:
+            QMessageBox.warning(self, "Invalid name", "Choose a unique preset name (not 'Default').")
+            return
+        # Save the current preset, then seed the new one from the current fields.
+        self._presets[self._current_preset] = self._current_style()
+        self._presets[name] = self._current_style()
+        self._current_preset = name
+        self._refresh_preset_combo()
+
+    def result_presets(self) -> Dict[str, Any]:
+        """Return the full {presetName: styleObj} map (default plus named presets)."""
+        return getattr(self, "_result_presets", None) or {"*": self.result_dict()}
 
     def _clear_all(self) -> None:
         """Uncheck all sections and reset JSON to empty."""
@@ -409,7 +523,13 @@ class VisualStyleDialog(QDialog):
             )
             return
 
-        self._result = merge_visual_style_entry(base, self._build_overrides())
+        # Save the preset currently being edited, then expose the full map.
+        self._presets[self._current_preset] = merge_visual_style_entry(base, self._build_overrides())
+        self._result = self._presets.get("*", {})
+        # Keep the default plus any non-empty named presets.
+        self._result_presets = {
+            name: obj for name, obj in self._presets.items() if obj or name == "*"
+        }
         self.accept()
 
     def result_dict(self) -> Dict[str, Any]:
