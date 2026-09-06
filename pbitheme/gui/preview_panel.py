@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from io import BytesIO
+
+from PySide6.QtCore import Qt, QByteArray
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QGridLayout,
@@ -75,5 +77,6 @@ class PreviewPanel(QWidget):
         for key, svg_widget in self._svg_widgets.items():
             svg_data = mockups.get(key, "")
             if svg_data:
-                # Load SVG from string
-                svg_widget.load(svg_data.encode("utf-8"))
+                # Load SVG from string using QByteArray
+                svg_bytes = QByteArray(svg_data.encode("utf-8"))
+                svg_widget.load(svg_bytes)
