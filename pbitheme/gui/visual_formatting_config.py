@@ -253,6 +253,34 @@ FUNNEL_SECTIONS = [
     ),
 ]
 
+# KPI -- indicator value, goal, trend line and status colours.
+KPI_SECTIONS = [
+    FormatSection(
+        "Indicator",
+        [
+            FormatField("indicatorFontColor", "Color", "color", default="#252423"),
+            FormatField("indicatorFontSize", "Font Size (pt)", "number", min_val=12, max_val=60, suffix="pt"),
+            FormatField("indicatorBold", "Bold", "boolean", default=True),
+        ],
+    ),
+    FormatSection(
+        "Goal",
+        [
+            FormatField("showGoal", "Show Goal", "boolean", default=True),
+            FormatField("goalFontColor", "Color", "color", default="#605E5C"),
+            FormatField("goalFontSize", "Font Size (pt)", "number", min_val=8, max_val=40, suffix="pt"),
+        ],
+    ),
+    FormatSection(
+        "Trend & Status",
+        [
+            FormatField("trendlineShow", "Show Trend Line", "boolean", default=True),
+            FormatField("statusGoodColor", "Good Color", "color", default="#1AAB40"),
+            FormatField("statusBadColor", "Bad Color", "color", default="#D64550"),
+        ],
+    ),
+]
+
 # Slicer -- header + selectable items.
 SLICER_SECTIONS = [
     FormatSection(
@@ -308,7 +336,7 @@ VISUAL_FORMATTING = {
 
     # Cards and KPIs
     "card": CARD_KPI_SECTIONS,
-    "kpi": CARD_KPI_SECTIONS,
+    "kpi": KPI_SECTIONS,
     "multiRowCard": CARD_KPI_SECTIONS,
 
     # Slicer

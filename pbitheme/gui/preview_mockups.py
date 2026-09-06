@@ -865,6 +865,54 @@ def generate_multirow_card_svg(theme, formatting=None, generic=None, width=300, 
     return "\n".join(parts)
 
 
+def generate_kpi_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """KPI: a large indicator value, a goal line, a trend line and a status arrow."""
+    formatting, generic = formatting or {}, generic or {}
+    fg = theme.foreground
+
+    ind_color = _col(formatting, "indicatorFontColor", fg)
+    ind_size = int(_num(formatting, "indicatorFontSize", 40))
+    ind_bold = _flag(formatting, "indicatorBold", True)
+    show_goal = _flag(formatting, "showGoal", True)
+    goal_color = _col(formatting, "goalFontColor", "#605E5C")
+    goal_size = int(_num(formatting, "goalFontSize", 12))
+    trend_show = _flag(formatting, "trendlineShow", True)
+    good = _col(formatting, "statusGoodColor", theme.good)
+    bad = _col(formatting, "statusBadColor", theme.bad)
+
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "KPI", fg, generic)
+
+    cx = width // 2
+    # Trend line across the lower third (in the good colour), with a bad dip.
+    if trend_show:
+        ty = top + (height - top) * 0.72
+        pts = [(0.08, 0.0), (0.28, -12), (0.5, -6), (0.7, -20), (0.92, -28)]
+        poly = " ".join(f"{0.0 + fx * width:.1f},{ty + dy:.1f}" for fx, dy in pts)
+        parts.append(f'<polyline points="{poly}" fill="none" stroke="{good}" stroke-width="2.5" opacity="0.85"/>')
+        parts.append(f'<circle cx="{0.7 * width:.1f}" cy="{ty - 20:.1f}" r="3" fill="{bad}"/>')
+
+    weight = "bold" if ind_bold else "normal"
+    vy = top + (height - top) * 0.42
+    parts.append(
+        f'<text x="{cx}" y="{vy:.0f}" font-size="{ind_size}" fill="{ind_color}" '
+        f'text-anchor="middle" font-weight="{weight}">$1.2M</text>'
+    )
+    parts.append(
+        f'<text x="{cx}" y="{vy + ind_size * 0.55:.0f}" font-size="12" fill="{good}" '
+        f'text-anchor="middle">▲ +12.5%</text>'
+    )
+    if show_goal:
+        parts.append(
+            f'<text x="{cx}" y="{vy + ind_size * 0.55 + goal_size + 6:.0f}" font-size="{goal_size}" '
+            f'fill="{goal_color}" text-anchor="middle">Goal: $1.5M (80%)</text>'
+        )
+
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
 def generate_slicer_svg(theme, formatting=None, generic=None, width=300, height=200):
     """Slicer: a header plus a short list of selectable items."""
     formatting, generic = formatting or {}, generic or {}
@@ -1100,7 +1148,7 @@ def generate_card_kpi_svg(
 # Dispatch
 # --------------------------------------------------------------------------- #
 _TABLE_KEYS = {"matrix", "table", "tableEx", "pivotTable"}
-_CARD_KEYS = {"card", "kpi"}
+_CARD_KEYS = {"card"}
 _BAR_KEYS = {"barChart", "columnChart", "clusteredBarChart", "clusteredColumnChart"}
 
 
@@ -1124,6 +1172,8 @@ def render_visual_preview(
         return generate_card_kpi_svg(*args)
     if visual_key == "multiRowCard":
         return generate_multirow_card_svg(*args)
+    if visual_key == "kpi":
+        return generate_kpi_svg(*args)
 
     # Non-cartesian charts (own settings sets)
     if visual_key == "pieChart":

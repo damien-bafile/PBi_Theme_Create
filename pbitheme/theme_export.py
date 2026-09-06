@@ -46,6 +46,7 @@ _MATRIX = {"matrix", "pivotTable"}
 _CARD = {"card"}
 _MULTIROW = {"multiRowCard"}
 _SLICER = {"slicer"}
+_KPI = {"kpi"}
 
 _GRIDLINE_STYLE = {"Solid": "solid", "Dashed": "dashed", "Dotted": "dotted"}
 
@@ -256,6 +257,26 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             card("background").update({"show": True, "color": bg})
         if "backgroundBorder" in fmt:
             card("border")["show"] = bool(fmt["backgroundBorder"])
+
+    # ---- KPI: indicator / goal / trend / status ---- #
+    elif app_key in _KPI:
+        ind = card("indicator")
+        _set(ind, "fontColor", _fill(fmt.get("indicatorFontColor", "")))
+        if "indicatorFontSize" in fmt:
+            ind["fontSize"] = fmt["indicatorFontSize"]
+        if "indicatorBold" in fmt:
+            ind["bold"] = bool(fmt["indicatorBold"])
+        goals = card("goals")
+        if "showGoal" in fmt:
+            goals["showGoal"] = bool(fmt["showGoal"])
+        _set(goals, "goalFontColor", _fill(fmt.get("goalFontColor", "")))
+        if "goalFontSize" in fmt:
+            goals["fontSize"] = fmt["goalFontSize"]
+        if "trendlineShow" in fmt:
+            card("trendline")["show"] = bool(fmt["trendlineShow"])
+        status = card("status")
+        _set(status, "goodColor", _fill(fmt.get("statusGoodColor", "")))
+        _set(status, "badColor", _fill(fmt.get("statusBadColor", "")))
 
     # ---- Slicer: header + items ---- #
     elif app_key in _SLICER:
