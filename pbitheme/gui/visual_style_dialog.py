@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QFontComboBox,
     QInputDialog,
+    QLineEdit,
 )
 from PySide6.QtSvgWidgets import QSvgWidget
 
@@ -36,6 +37,7 @@ from ..model import (
     build_border_object,
     build_drop_shadow_object,
     build_visual_header_object,
+    build_subtitle_object,
     build_padding_object,
     build_title_object,
     build_data_labels_object,
@@ -44,6 +46,7 @@ from ..model import (
     unpack_border_object,
     unpack_drop_shadow_object,
     unpack_visual_header_object,
+    unpack_subtitle_object,
     unpack_padding_object,
     unpack_title_object,
     unpack_data_labels_object,
@@ -180,6 +183,29 @@ class VisualStyleDialog(QDialog):
         self._shadow_color.setEnabled(False)
         generic_layout.addWidget(shadow_box)
 
+        # ---- Subtitle section ---- #
+        subtitle_box = QGroupBox("Subtitle")
+        subtitle_layout = QFormLayout(subtitle_box)
+        self._subtitle_check = QCheckBox("Override")
+        self._subtitle_check.setAccessibleName("Override subtitle")
+        self._subtitle_text = QLineEdit()
+        self._subtitle_color = ColorButton(theme.TEXT_PRIMARY, label="Subtitle color")
+        self._subtitle_size = QSpinBox()
+        self._subtitle_size.setRange(6, 40)
+        self._subtitle_size.setSuffix(" pt")
+        sub_show, sub_text, sub_color, sub_size = unpack_subtitle_object(existing_obj)
+        self._subtitle_text.setText(sub_text)
+        self._subtitle_color.set_color(sub_color)
+        self._subtitle_size.setValue(sub_size)
+        subtitle_layout.addRow(self._subtitle_check, QLabel())
+        subtitle_layout.addRow("Text", self._subtitle_text)
+        subtitle_layout.addRow("Color", self._subtitle_color)
+        subtitle_layout.addRow("Size", self._subtitle_size)
+        for w in (self._subtitle_text, self._subtitle_color, self._subtitle_size):
+            self._subtitle_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
+            w.setEnabled(False)
+        generic_layout.addWidget(subtitle_box)
+
         # ---- Visual header section ---- #
         header_box = QGroupBox("Visual Header")
         header_layout = QFormLayout(header_box)
@@ -282,18 +308,20 @@ class VisualStyleDialog(QDialog):
         for check in (
             self._bg_check, self._border_check, self._title_check,
             self._labels_check, self._legend_check, self._shadow_check,
-            self._vh_check, self._padding_check,
+            self._vh_check, self._padding_check, self._subtitle_check,
         ):
             check.toggled.connect(self._update_preview)
         for color_btn in (
             self._bg_color, self._border_color, self._title_color,
             self._labels_color, self._legend_color, self._shadow_color,
-            self._vh_background, self._vh_foreground,
+            self._vh_background, self._vh_foreground, self._subtitle_color,
         ):
             color_btn.colorChanged.connect(self._update_preview)
         self._border_width.valueChanged.connect(self._update_preview)
         self._border_radius.valueChanged.connect(self._update_preview)
         self._padding_value.valueChanged.connect(self._update_preview)
+        self._subtitle_size.valueChanged.connect(self._update_preview)
+        self._subtitle_text.textChanged.connect(self._update_preview)
         self._bg_alpha.valueChanged.connect(self._update_preview)
         self._title_font.currentFontChanged.connect(self._update_preview)
         self._title_size.valueChanged.connect(self._update_preview)
@@ -418,9 +446,14 @@ class VisualStyleDialog(QDialog):
         self._vh_background.set_color(vh_bg)
         self._vh_foreground.set_color(vh_fg)
         self._padding_value.setValue(unpack_padding_object(style_obj))
+        _, sub_text, sub_color, sub_size = unpack_subtitle_object(style_obj)
+        self._subtitle_text.setText(sub_text)
+        self._subtitle_color.set_color(sub_color)
+        self._subtitle_size.setValue(sub_size)
         for chk in (
             self._bg_check, self._border_check, self._shadow_check, self._title_check,
             self._labels_check, self._legend_check, self._vh_check, self._padding_check,
+            self._subtitle_check,
         ):
             chk.setChecked(False)
         self._advanced_edit.setPlainText(json.dumps(style_obj, indent=2))
@@ -462,6 +495,7 @@ class VisualStyleDialog(QDialog):
         self._shadow_check.setChecked(False)
         self._vh_check.setChecked(False)
         self._padding_check.setChecked(False)
+        self._subtitle_check.setChecked(False)
         self._advanced_edit.setPlainText("{}")
 
     def _build_overrides(self) -> Dict[str, Any]:
@@ -494,6 +528,11 @@ class VisualStyleDialog(QDialog):
             )
         if self._padding_check.isChecked():
             overrides["padding"] = build_padding_object(self._padding_value.value())
+        if self._subtitle_check.isChecked():
+            overrides["subTitle"] = build_subtitle_object(
+                True, self._subtitle_text.text(),
+                self._subtitle_color.color(), self._subtitle_size.value(),
+            )
         if self._title_check.isChecked():
             overrides["title"] = build_title_object(
                 True,

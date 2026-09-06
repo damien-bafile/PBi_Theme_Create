@@ -121,6 +121,8 @@ def main() -> int:
         "barChart": {"*": {"formatting": {
             "xAxisLabelColor": "#FF0000", "gridlineStyle": "Dashed",
             "gridlineColor": "#00FF00", "legendPosition": "Bottom", "dataLabelFontSize": 12,
+            "xAxisTitleText": "Quarter", "yAxisLogScale": True,
+            "dataLabelDisplayUnits": "1000", "legendShowTitle": True, "legendTitleText": "Series",
         }}},
         "matrix": {"*": {"formatting": {
             "columnHeaderBackgroundColor": "#112233", "showSubtotals": True,
@@ -133,6 +135,10 @@ def main() -> int:
     check(bar_fmt.get("xAxisLabelColor") == "#FF0000", "round-trip lost xAxisLabelColor")
     check(bar_fmt.get("gridlineStyle") == "Dashed", "round-trip lost/garbled gridlineStyle")
     check(bar_fmt.get("legendPosition") == "Bottom", "round-trip lost legendPosition")
+    check(bar_fmt.get("xAxisTitleText") == "Quarter", "round-trip lost axis title text")
+    check(bar_fmt.get("yAxisLogScale") is True, "round-trip lost log scale")
+    check(bar_fmt.get("dataLabelDisplayUnits") == "1000", "round-trip lost display units")
+    check(bar_fmt.get("legendTitleText") == "Series", "round-trip lost legend title")
     # Matrix (pivotTable) maps back to the 'matrix' key with its formatting intact.
     check("matrix" in imported, "pivotTable did not map back to matrix on import")
     mat_fmt = imported.get("matrix", {}).get("*", {}).get("formatting", {})

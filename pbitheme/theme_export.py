@@ -93,6 +93,9 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(cat, "titleColor", _fill(fmt.get("xAxisTitleColor", "")))
         if "xAxisTitleFontSize" in fmt:
             cat["titleFontSize"] = fmt["xAxisTitleFontSize"]
+        if fmt.get("xAxisTitleText"):
+            cat["titleText"] = fmt["xAxisTitleText"]
+            cat["showAxisTitle"] = True
 
         val = card("valueAxis")
         _set(val, "labelColor", _fill(fmt.get("yAxisLabelColor", "")))
@@ -101,6 +104,11 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(val, "titleColor", _fill(fmt.get("yAxisTitleColor", "")))
         if "yAxisTitleFontSize" in fmt:
             val["titleFontSize"] = fmt["yAxisTitleFontSize"]
+        if fmt.get("yAxisTitleText"):
+            val["titleText"] = fmt["yAxisTitleText"]
+            val["showAxisTitle"] = True
+        if "yAxisLogScale" in fmt:
+            val["logAxisScale"] = bool(fmt["yAxisLogScale"])
         _axis_gridlines(val, fmt)
 
         leg = card("legend")
@@ -109,6 +117,10 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(leg, "labelColor", _fill(fmt.get("legendTextColor", "")))
         if "legendFontSize" in fmt:
             leg["fontSize"] = fmt["legendFontSize"]
+        if "legendShowTitle" in fmt:
+            leg["showTitle"] = bool(fmt["legendShowTitle"])
+        if fmt.get("legendTitleText"):
+            leg["titleText"] = fmt["legendTitleText"]
 
         _set(card("dataPoint"), "defaultColor", _fill(fmt.get("defaultColor", "")))
 
@@ -120,6 +132,11 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             lab["fontSize"] = fmt["dataLabelFontSize"]
         if app_key not in _SCATTER and "dataLabelBackground" in fmt:
             lab["enableBackground"] = bool(fmt["dataLabelBackground"])
+        if app_key not in _SCATTER:
+            if "dataLabelDisplayUnits" in fmt:
+                lab["labelDisplayUnits"] = int(fmt["dataLabelDisplayUnits"])
+            if "dataLabelPrecision" in fmt:
+                lab["labelPrecision"] = int(fmt["dataLabelPrecision"])
         # Drop an empty card so we don't emit `[{}]`.
         if not lab:
             cards.pop(label_card, None)
@@ -450,6 +467,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "xAxisTitleColor", _hex(cat, "titleColor"))
         if "titleFontSize" in cat:
             fmt["xAxisTitleFontSize"] = cat["titleFontSize"]
+        if "titleText" in cat:
+            fmt["xAxisTitleText"] = cat["titleText"]
         val = c("valueAxis")
         _put(fmt, "yAxisLabelColor", _hex(val, "labelColor"))
         if "fontSize" in val:
@@ -457,6 +476,10 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "yAxisTitleColor", _hex(val, "titleColor"))
         if "titleFontSize" in val:
             fmt["yAxisTitleFontSize"] = val["titleFontSize"]
+        if "titleText" in val:
+            fmt["yAxisTitleText"] = val["titleText"]
+        if "logAxisScale" in val:
+            fmt["yAxisLogScale"] = bool(val["logAxisScale"])
         _axis_gridlines_inv(fmt, val)
         leg = c("legend")
         if "position" in leg:
@@ -464,12 +487,20 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "legendTextColor", _hex(leg, "labelColor"))
         if "fontSize" in leg:
             fmt["legendFontSize"] = leg["fontSize"]
+        if "showTitle" in leg:
+            fmt["legendShowTitle"] = bool(leg["showTitle"])
+        if "titleText" in leg:
+            fmt["legendTitleText"] = leg["titleText"]
         lab = c("categoryLabels") if app_key in _SCATTER else c("labels")
         _put(fmt, "dataLabelColor", _hex(lab, "color"))
         if "fontSize" in lab:
             fmt["dataLabelFontSize"] = lab["fontSize"]
         if "enableBackground" in lab:
             fmt["dataLabelBackground"] = bool(lab["enableBackground"])
+        if "labelDisplayUnits" in lab:
+            fmt["dataLabelDisplayUnits"] = str(lab["labelDisplayUnits"])
+        if "labelPrecision" in lab:
+            fmt["dataLabelPrecision"] = lab["labelPrecision"]
         _put(fmt, "defaultColor", _hex(c("dataPoint"), "defaultColor"))
 
     elif app_key in _PIE | _TREEMAP:

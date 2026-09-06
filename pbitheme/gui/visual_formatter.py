@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QGroupBox,
+    QLineEdit,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -84,8 +85,13 @@ class VisualFormatterPanel(QWidget):
             combo.currentIndexChanged.connect(self._on_field_changed)
             return combo
 
+        elif field.field_type == "text":
+            edit = QLineEdit()
+            edit.setText(str(field.default or ""))
+            edit.textChanged.connect(self._on_field_changed)
+            return edit
+
         else:
-            # Default: text input (not implemented yet)
             raise NotImplementedError(f"Field type {field.field_type} not implemented")
 
     def _on_field_changed(self) -> None:
@@ -104,6 +110,8 @@ class VisualFormatterPanel(QWidget):
                 values[key] = widget.value()
             elif isinstance(widget, QComboBox):
                 values[key] = widget.currentData()
+            elif isinstance(widget, QLineEdit):
+                values[key] = widget.text()
         return values
 
     def set_values(self, values: Dict[str, Any]) -> None:
@@ -123,3 +131,5 @@ class VisualFormatterPanel(QWidget):
                 index = widget.findData(value)
                 if index >= 0:
                     widget.setCurrentIndex(index)
+            elif isinstance(widget, QLineEdit):
+                widget.setText(str(value))

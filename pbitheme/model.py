@@ -306,6 +306,14 @@ def build_visual_header_object(show: bool, background: str, foreground: str) -> 
     return [{"show": show, "background": _solid_color(background), "foreground": _solid_color(foreground)}]
 
 
+def build_subtitle_object(show: bool, text: str, color: str, font_size: int) -> List[Dict[str, Any]]:
+    """Build a subtitle visual-style object from picker state."""
+    obj: Dict[str, Any] = {"show": show, "fontColor": _solid_color(color), "fontSize": int(font_size)}
+    if text:
+        obj["text"] = text
+    return [obj]
+
+
 def build_padding_object(padding: int) -> List[Dict[str, Any]]:
     """Build a padding visual-style object (uniform on all sides)."""
     p = int(padding)
@@ -364,6 +372,17 @@ def unpack_visual_header_object(obj: Dict[str, Any]) -> Tuple[bool, str, str]:
         bool(p.get("show", True)),
         _extract_solid_color(p.get("background"), "#FFFFFF"),
         _extract_solid_color(p.get("foreground"), "#605E5C"),
+    )
+
+
+def unpack_subtitle_object(obj: Dict[str, Any]) -> Tuple[bool, str, str, int]:
+    """Extract subtitle picker state from an existing visual's * entry."""
+    p = _first(obj.get("subTitle", {}))
+    return (
+        bool(p.get("show", True)),
+        str(p.get("text", "")),
+        _extract_solid_color(p.get("fontColor"), "#605E5C"),
+        int(p.get("fontSize", 10) or 10),
     )
 
 

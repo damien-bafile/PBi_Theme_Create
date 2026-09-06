@@ -28,6 +28,7 @@ from ..model import (
     unpack_border_object,
     unpack_drop_shadow_object,
     unpack_visual_header_object,
+    unpack_subtitle_object,
     unpack_padding_object,
     unpack_title_object,
     unpack_data_labels_object,
@@ -120,6 +121,11 @@ def extract_generic(style_obj: Dict[str, Any] | None) -> Dict[str, Any]:
     if "padding" in style_obj:
         generic["padding"] = unpack_padding_object(style_obj)
 
+    if "subTitle" in style_obj:
+        sub_show, sub_text, sub_color, sub_size = unpack_subtitle_object(style_obj)
+        if sub_show:
+            generic["subtitle"] = {"text": sub_text, "color": sub_color, "size": sub_size}
+
     return generic
 
 
@@ -174,7 +180,8 @@ def _frame(width: int, height: int, generic: Dict[str, Any], theme_bg: str) -> L
 def _title(width: int, default_text: str, default_color: str,
            generic: Dict[str, Any]) -> Tuple[str, int]:
     """Return (title <text> svg, y-offset consumed) honoring a generic title override."""
-    gtitle = (generic or {}).get("title")
+    generic = generic or {}
+    gtitle = generic.get("title")
     color = gtitle["color"] if gtitle else default_color
     size = int(gtitle["size"]) if gtitle else 13
     y = size + 4
@@ -182,7 +189,19 @@ def _title(width: int, default_text: str, default_color: str,
         f'<text x="{width // 2}" y="{y}" font-size="{size}" fill="{color}" '
         f'text-anchor="middle" font-weight="bold">{_esc(default_text)}</text>'
     )
-    return svg, y + 4
+    consumed = y + 4
+    # A subtitle renders just below the title.
+    gsub = generic.get("subtitle")
+    if gsub:
+        sub_size = int(gsub.get("size", 10))
+        sub_text = gsub.get("text") or "Subtitle"
+        sub_y = consumed + sub_size
+        svg += (
+            f'<text x="{width // 2}" y="{sub_y}" font-size="{sub_size}" fill="{gsub["color"]}" '
+            f'text-anchor="middle">{_esc(sub_text)}</text>'
+        )
+        consumed = sub_y + 4
+    return svg, consumed
 
 
 def _legend(x: int, y: int, colors: List[str], formatting: Dict[str, Any],
@@ -194,6 +213,13 @@ def _legend(x: int, y: int, colors: List[str], formatting: Dict[str, Any],
     names = ["Series A", "Series B", "Series C"]
     parts: List[str] = []
     cx, cy = x, y
+    if _flag(formatting, "legendShowTitle", False):
+        title = _txt(formatting, "legendTitleText", "Legend")
+        parts.append(f'<text x="{cx}" y="{cy}" font-size="{size}" fill="{color}" font-weight="bold">{_esc(title)}</text>')
+        if horizontal:
+            cx += size + 6 + len(title) * size * 0.55
+        else:
+            cy += size + 6
     for i, name in enumerate(names[: len(colors)]):
         parts.append(f'<rect x="{cx}" y="{cy - size + 2}" width="{size}" height="{size}" fill="{colors[i]}"/>')
         parts.append(
@@ -227,12 +253,26 @@ def _series_colors(theme: PowerBITheme, n: int = 3,
     return colors
 
 
+_UNIT_SUFFIX = {1000: "K", 1000000: "M", 1000000000: "bn", 1000000000000: "tn"}
+
+
+def _format_measure(value: float, formatting: Dict[str, Any]) -> str:
+    """Format a numeric data-label value with display units and decimal precision."""
+    units = int(_num(formatting, "dataLabelDisplayUnits", 1) or 1)
+    prec = int(_num(formatting, "dataLabelPrecision", 0))
+    if units > 1:
+        return f"{value / units:.{prec}f}{_UNIT_SUFFIX.get(units, '')}"
+    return f"{value:.{prec}f}" if prec > 0 else f"{int(round(value))}"
+
+
 def _data_label(x: float, y: float, text: Any, formatting: Dict[str, Any],
                 generic: Dict[str, Any], with_bg: bool = False) -> List[str]:
     """A single chart data label honoring generic labels or the chart dataLabel fields."""
     color = generic["labels"]["color"] if (generic or {}).get("labels") else _col(formatting, "dataLabelColor", "#252423")
     size = int(generic["labels"]["size"]) if (generic or {}).get("labels") else int(_num(formatting, "dataLabelFontSize", 8))
     with_bg = with_bg or _flag(formatting, "dataLabelBackground", False)
+    if isinstance(text, (int, float)) and not isinstance(text, bool):
+        text = _format_measure(text, formatting)
     parts: List[str] = []
     if with_bg:
         parts.append(
@@ -331,7 +371,10 @@ def _chart_base(
     # ---- Y-axis labels + title ---- #
     y_lab_color = _col(formatting, "yAxisLabelColor", fg)
     y_lab_size = int(_num(formatting, "yAxisLabelFontSize", 8))
-    for frac, val in ((0.0, "0"), (0.5, "50"), (1.0, "100")):
+    # A log scale relabels the ticks (1 / 10 / 100) instead of a linear 0 / 50 / 100.
+    y_ticks = ((0.0, "1"), (0.5, "10"), (1.0, "100")) if _flag(formatting, "yAxisLogScale", False) \
+        else ((0.0, "0"), (0.5, "50"), (1.0, "100"))
+    for frac, val in y_ticks:
         gy = plot_b - frac * (plot_b - plot_t)
         parts.append(
             f'<text x="{plot_l - 4}" y="{gy + y_lab_size / 3:.1f}" font-size="{y_lab_size}" '
@@ -339,10 +382,11 @@ def _chart_base(
         )
     y_title_color = _col(formatting, "yAxisTitleColor", fg)
     y_title_size = int(_num(formatting, "yAxisTitleFontSize", 8))
+    y_title = _txt(formatting, "yAxisTitleText", "Value")
     ty = (plot_t + plot_b) / 2
     parts.append(
         f'<text x="10" y="{ty:.1f}" font-size="{y_title_size}" fill="{y_title_color}" '
-        f'text-anchor="middle" transform="rotate(-90 10 {ty:.1f})">Value</text>'
+        f'text-anchor="middle" transform="rotate(-90 10 {ty:.1f})">{_esc(y_title)}</text>'
     )
 
     # ---- X-axis labels + title ---- #
@@ -358,9 +402,10 @@ def _chart_base(
         )
     x_title_color = _col(formatting, "xAxisTitleColor", fg)
     x_title_size = int(_num(formatting, "xAxisTitleFontSize", 8))
+    x_title = _txt(formatting, "xAxisTitleText", "Category")
     parts.append(
         f'<text x="{(plot_l + plot_r) / 2:.1f}" y="{height - 4}" font-size="{x_title_size}" '
-        f'fill="{x_title_color}" text-anchor="middle">Category</text>'
+        f'fill="{x_title_color}" text-anchor="middle">{_esc(x_title)}</text>'
     )
 
     # ---- Legend ---- #
@@ -396,10 +441,7 @@ def generate_bar_chart_svg(
     bar_w = span / 4.2
     scale = (pb - pt) / 100.0
 
-    show_labels = bool(generic.get("labels")) or bool(formatting.get("dataLabelColor"))
-    dl_color = generic["labels"]["color"] if generic.get("labels") else _col(formatting, "dataLabelColor", "#252423")
-    dl_size = int(generic["labels"]["size"]) if generic.get("labels") else int(_num(formatting, "dataLabelFontSize", 8))
-    dl_bg = _flag(formatting, "dataLabelBackground", False)
+    show_labels = _labels_on(formatting, generic)
 
     for gi, vals in enumerate(groups):
         base_x = pl + span * gi + span * 0.12
@@ -415,15 +457,7 @@ def generate_bar_chart_svg(
             top_val = vals[0]
             lx = base_x + bar_w / 2
             ly = pb - top_val * scale - 3
-            if dl_bg:
-                parts.append(
-                    f'<rect x="{lx - 9:.1f}" y="{ly - dl_size:.1f}" width="18" height="{dl_size + 3}" '
-                    f'fill="#FFFFFF" opacity="0.7"/>'
-                )
-            parts.append(
-                f'<text x="{lx:.1f}" y="{ly:.1f}" font-size="{dl_size}" fill="{dl_color}" '
-                f'text-anchor="middle">{top_val}</text>'
-            )
+            parts += _data_label(lx, ly, top_val, formatting, generic)
 
     parts.append("</svg>")
     return "\n".join(parts)
@@ -471,15 +505,7 @@ def generate_line_chart_svg(
             for i, val in enumerate(line):
                 x = pl + i * step
                 y = pb - val * scale - 3
-                if dl_bg:
-                    parts.append(
-                        f'<rect x="{x - 9:.1f}" y="{y - dl_size:.1f}" width="18" height="{dl_size + 3}" '
-                        f'fill="#FFFFFF" opacity="0.7"/>'
-                    )
-                parts.append(
-                    f'<text x="{x:.1f}" y="{y:.1f}" font-size="{dl_size}" fill="{dl_color}" '
-                    f'text-anchor="middle">{val}</text>'
-                )
+                parts += _data_label(x, y, val, formatting, generic)
 
     parts.append("</svg>")
     return "\n".join(parts)
@@ -559,7 +585,7 @@ def generate_stacked_chart_svg(theme, formatting=None, generic=None, width=300, 
             h = full * (v / total)
             parts.append(f'<rect x="{x:.1f}" y="{y0 - h:.1f}" width="{bw:.1f}" height="{h:.1f}" fill="{colors[si]}" opacity="0.9"/>')
             if _labels_on(formatting, generic):
-                parts += _data_label(x + bw / 2, y0 - h / 2 + 3, f"{round(100 * v / total)}%", formatting, generic)
+                parts += _data_label(x + bw / 2, y0 - h / 2 + 3, 100.0 * v / total, formatting, generic)
             y0 -= h
     parts.append("</svg>")
     return "\n".join(parts)

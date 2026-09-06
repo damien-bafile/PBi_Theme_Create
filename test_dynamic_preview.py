@@ -18,7 +18,7 @@ import sys
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QCheckBox, QComboBox, QSpinBox
+from PySide6.QtWidgets import QCheckBox, QComboBox, QLineEdit, QSpinBox
 
 from pbitheme.driver import AppDriver
 from pbitheme.model import VISUAL_TYPES
@@ -64,6 +64,11 @@ def _mutate(widget):
         old = widget.currentIndex()
         widget.setCurrentIndex((old + 1) % widget.count())
         return widget.currentData(), lambda: widget.setCurrentIndex(old)
+    if isinstance(widget, QLineEdit):
+        old = widget.text()
+        new = "Custom" if old != "Custom" else "Custom2"
+        widget.setText(new)
+        return new, lambda: widget.setText(old)
     return None, (lambda: None)
 
 
@@ -83,6 +88,8 @@ def main() -> int:
             panel.set_values({"gridlineStyle": "Solid"})
         if "bandedRows" in panel._field_widgets:
             panel.set_values({"bandedRows": True})
+        if "legendShowTitle" in panel._field_widgets:
+            panel.set_values({"legendShowTitle": True})
         cap = _instrument(dlg)
 
         # --- Formatting fields ---

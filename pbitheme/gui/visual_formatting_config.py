@@ -100,6 +100,7 @@ CHART_SECTIONS = [
     FormatSection(
         "X-Axis",
         [
+            FormatField("xAxisTitleText", "Title Text", "text", default=""),
             FormatField("xAxisLabelColor", "Label Color", "color", default="#252423"),
             FormatField("xAxisLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
             FormatField("xAxisTitleColor", "Title Color", "color", default="#252423"),
@@ -109,6 +110,8 @@ CHART_SECTIONS = [
     FormatSection(
         "Y-Axis",
         [
+            FormatField("yAxisTitleText", "Title Text", "text", default=""),
+            FormatField("yAxisLogScale", "Log Scale", "boolean", default=False),
             FormatField("yAxisLabelColor", "Label Color", "color", default="#252423"),
             FormatField("yAxisLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
             FormatField("yAxisTitleColor", "Title Color", "color", default="#252423"),
@@ -130,6 +133,10 @@ CHART_SECTIONS = [
             FormatField("dataLabelColor", "Color", "color", default="#252423"),
             FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
             FormatField("dataLabelBackground", "Show Background", "boolean", default=False),
+            FormatField("dataLabelDisplayUnits", "Display Units", "dropdown",
+                       options=[("1", "None"), ("1000", "Thousands"), ("1000000", "Millions"),
+                                ("1000000000", "Billions")]),
+            FormatField("dataLabelPrecision", "Decimal Places", "number", min_val=0, max_val=4),
         ],
     ),
     FormatSection(
@@ -139,6 +146,8 @@ CHART_SECTIONS = [
                        options=[("Top", "Top"), ("Bottom", "Bottom"), ("Left", "Left"), ("Right", "Right")]),
             FormatField("legendTextColor", "Text Color", "color", default="#252423"),
             FormatField("legendFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
+            FormatField("legendShowTitle", "Show Title", "boolean", default=False),
+            FormatField("legendTitleText", "Title Text", "text", default=""),
         ],
     ),
     FormatSection(

@@ -60,7 +60,7 @@ can still be set through the **Advanced JSON** tab and exports validly.
 
 **Legend:** ✅ done &nbsp;·&nbsp; ◐ partial &nbsp;·&nbsp; ☐ planned &nbsp;·&nbsp; — not applicable to this visual
 
-**Current overall card coverage: ~47%** (353 / 749 themeable cards across all visuals).
+**Current overall card coverage: ~52%** (393 / 749 themeable cards across all visuals).
 
 ### Stages
 
@@ -71,10 +71,12 @@ can still be set through the **Advanced JSON** tab and exports validly.
   visual header, padding); data-point default colour; gauge / KPI / slicer / card
   specifics; named style presets; bespoke SVG previews for every visual; valid
   card export **and** reverse-translate import (round-trip).
-- **Stage 2 — Axis & label depth + plot area — ☐.** Category / value axis range
-  (start / end), log scale, concatenate & position; data-label display units,
-  precision, position & orientation; legend title; `plotArea` background /
-  transparency; `subTitle`.
+- **Stage 2 — Axis & label depth + subtitle — ◐ in progress.** Done: axis
+  **title text**, value-axis **log scale**, data-label **display units** &
+  **decimal precision**, **legend title** (show + text), and a **subtitle**
+  generic override (all visuals). Deferred within this stage: axis range
+  (start / end), data-label position / orientation. (`plotArea` offers only an
+  image + transparency — no fill colour — so it is intentionally skipped.)
 - **Stage 3 — Table & matrix depth — ☐.** Built-in table `stylePreset`,
   `columnFormatting` (per-column colour / alignment / data bars), `columnWidth`,
   column / row totals (matrix), blank rows, sparklines, word wrap.
@@ -94,46 +96,46 @@ can still be set through the **Advanced JSON** tab and exports validly.
 
 | Visual | Frame | Axes | Legend | Labels | Colors | Table | Card/KPI/Gauge | Slicer | Refs/Analytics | % |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 44% |
-| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 44% |
-| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 44% |
-| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 44% |
-| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 44% |
-| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 44% |
-| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 42% |
-| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 42% |
-| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 42% |
-| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 45% |
-| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 44% |
-| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 37% |
-| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ☐ | — | — | — | ☐ | 50% |
-| Pie Chart | ✅ | — | ✅ | ✅ | ☐ | — | — | — | ☐ | 50% |
-| Donut Chart | ✅ | — | ✅ | ✅ | ☐ | — | — | — | ☐ | 50% |
-| Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 50% |
-| Funnel | ✅ | ☐ | — | ✅ | ✅ | — | — | — | ☐ | 53% |
-| Gauge | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | — | ☐ | 64% |
-| Card | ✅ | — | — | ✅ | — | — | ☐ | — | ☐ | 53% |
-| Multi-row Card | ✅ | — | — | ✅ | — | — | ☐ | — | ☐ | 50% |
-| KPI | ✅ | — | — | — | — | — | ✅ | — | ☐ | 62% |
-| Table | ✅ | — | — | — | — | ◐ | — | — | ☐ | 52% |
-| Table (Extended) | ✅ | — | — | — | — | ◐ | — | — | ☐ | 52% |
-| Matrix | ✅ | — | — | — | — | ◐ | — | — | ☐ | 50% |
-| Pivot Table | ✅ | — | — | — | — | ◐ | — | — | ☐ | 50% |
-| Slicer | ✅ | — | — | — | — | — | — | ◐ | ☐ | 33% |
-| Map | ✅ | — | ✅ | ☐ | ☐ | — | — | — | ☐ | 43% |
-| Filled Map | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 50% |
-| Shape Map | ✅ | — | ✅ | — | ☐ | — | — | — | ☐ | 46% |
-| Azure Maps | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 50% |
-| Decomposition Tree | ✅ | — | — | ☐ | — | — | — | — | ☐ | 42% |
-| Key Drivers | ✅ | — | — | — | — | — | — | — | ☐ | 50% |
-| Q&A | ✅ | — | — | — | — | — | — | — | ☐ | 50% |
-| Smart Narrative | ✅ | — | — | — | — | — | — | — | ☐ | 50% |
-| Action Button | ✅ | — | — | — | — | — | — | — | ☐ | 50% |
-| Basic Shape | ✅ | — | — | — | — | — | — | — | ☐ | 50% |
-| Image | ✅ | — | — | — | — | — | — | — | ☐ | 50% |
-| Text Box | ✅ | — | — | — | — | ☐ | — | — | ☐ | 46% |
-| Python Visual | ✅ | — | — | — | — | — | — | — | ☐ | 50% |
-| R Visual | ✅ | — | — | — | — | — | — | — | ☐ | 50% |
+| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
+| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
+| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 48% |
+| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 48% |
+| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
+| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
+| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 46% |
+| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 46% |
+| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 46% |
+| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 50% |
+| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
+| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 41% |
+| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ☐ | — | — | — | ☐ | 55% |
+| Pie Chart | ✅ | — | ✅ | ✅ | ☐ | — | — | — | ☐ | 56% |
+| Donut Chart | ✅ | — | ✅ | ✅ | ☐ | — | — | — | ☐ | 56% |
+| Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 56% |
+| Funnel | ✅ | ☐ | — | ✅ | ✅ | — | — | — | ☐ | 60% |
+| Gauge | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | — | ☐ | 70% |
+| Card | ✅ | — | — | ✅ | — | — | ☐ | — | ☐ | 60% |
+| Multi-row Card | ✅ | — | — | ✅ | — | — | ☐ | — | ☐ | 56% |
+| KPI | ✅ | — | — | — | — | — | ✅ | — | ☐ | 68% |
+| Table | ✅ | — | — | — | — | ◐ | — | — | ☐ | 57% |
+| Table (Extended) | ✅ | — | — | — | — | ◐ | — | — | ☐ | 57% |
+| Matrix | ✅ | — | — | — | — | ◐ | — | — | ☐ | 54% |
+| Pivot Table | ✅ | — | — | — | — | ◐ | — | — | ☐ | 54% |
+| Slicer | ✅ | — | — | — | — | — | — | ◐ | ☐ | 37% |
+| Map | ✅ | — | ✅ | ☐ | ☐ | — | — | — | ☐ | 50% |
+| Filled Map | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 56% |
+| Shape Map | ✅ | — | ✅ | — | ☐ | — | — | — | ☐ | 53% |
+| Azure Maps | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 56% |
+| Decomposition Tree | ✅ | — | — | ☐ | — | — | — | — | ☐ | 50% |
+| Key Drivers | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
+| Q&A | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
+| Smart Narrative | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
+| Action Button | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
+| Basic Shape | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
+| Image | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
+| Text Box | ✅ | — | — | — | — | ☐ | — | — | ☐ | 53% |
+| Python Visual | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
+| R Visual | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
 
 *Notes: **Frame** = title, background, border, drop shadow, visual header,
 padding (generic overrides on every visual). The **Card/KPI/Gauge** column tracks
