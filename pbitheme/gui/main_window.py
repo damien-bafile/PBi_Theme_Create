@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         struct_box = QGroupBox("Structural colours")
         struct_layout = QFormLayout(struct_box)
         for attr, _key, label, default in PowerBITheme.STRUCTURAL_FIELDS:
-            button = ColorButton(default)
+            button = ColorButton(default, label=label)
             button.colorChanged.connect(lambda _c: self._refresh_preview())
             self._structural_buttons[attr] = button
             struct_layout.addRow(label, button)
@@ -158,6 +158,23 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
         self.statusBar().showMessage("Ready")
+
+        # Set up keyboard navigation (tab order)
+        self._setup_tab_order()
+
+    def _setup_tab_order(self) -> None:
+        """Define keyboard tab order for accessibility."""
+        # Start with theme name, then structural colors, then data colors, then text, then visuals
+        current_widget = self._name_edit
+        for button in self._structural_buttons.values():
+            QWidget.setTabOrder(current_widget, button)
+            current_widget = button
+        QWidget.setTabOrder(current_widget, self._data_editor)
+        current_widget = self._data_editor
+        for editor in self._text_editors.values():
+            QWidget.setTabOrder(current_widget, editor)
+            current_widget = editor
+        QWidget.setTabOrder(current_widget, self._visual_checklist)
 
     # ------------------------------------------------------------------ #
     # Model <-> widgets

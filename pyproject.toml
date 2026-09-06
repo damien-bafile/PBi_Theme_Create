@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pbitheme"
+version = "0.1.0"
+description = "Power BI theme creator with PySide6 GUI"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Damien Bafile", email = "damnhatesyou@gmail.com"}
+]
+requires-python = ">=3.8"
+dependencies = [
+    "PySide6>=6.5",
+]
+
+[project.scripts]
+pbitheme = "pbitheme.gui:main"
+
+[tool.uv]
+managed = true

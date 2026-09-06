@@ -1,0 +1,100 @@
+{
+  "name": "Visual Styles Demo",
+  "dataColors": [
+    "#118DFF",
+    "#12239E",
+    "#E66C37",
+    "#6B007B",
+    "#E044A7",
+    "#744EC2",
+    "#D9B300",
+    "#D64550"
+  ],
+  "foreground": "#252423",
+  "background": "#FFFFFF",
+  "tableAccent": "#118DFF",
+  "good": "#1AAB40",
+  "neutral": "#F2C811",
+  "bad": "#D64550",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#252423"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#252423"
+    },
+    "callout": {
+      "fontFace": "Segoe UI",
+      "fontSize": 45,
+      "color": "#252423"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#252423"
+    }
+  },
+  "visualStyles": {
+    "barChart": {
+      "*": {
+        "background": [
+          {
+            "show": true,
+            "color": {
+              "solid": {
+                "color": "#FF0000"
+              }
+            },
+            "transparency": 10
+          }
+        ],
+        "title": [
+          {
+            "show": true,
+            "fontColor": {
+              "solid": {
+                "color": "#0000FF"
+              }
+            },
+            "fontSize": 14,
+            "fontFamily": "Arial"
+          }
+        ]
+      }
+    },
+    "pieChart": {
+      "*": {
+        "labels": [
+          {
+            "show": true,
+            "color": {
+              "solid": {
+                "color": "#00FF00"
+              }
+            },
+            "fontSize": 10
+          }
+        ]
+      }
+    },
+    "*": {
+      "*": {
+        "legend": [
+          {
+            "show": true,
+            "position": "Top",
+            "labelColor": {
+              "solid": {
+                "color": "#FF00FF"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

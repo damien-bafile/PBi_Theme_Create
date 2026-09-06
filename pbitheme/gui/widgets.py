@@ -47,9 +47,10 @@ class ColorButton(QPushButton):
 
     colorChanged = Signal(str)
 
-    def __init__(self, color: str = "#FFFFFF", parent: QWidget | None = None) -> None:
+    def __init__(self, color: str = "#FFFFFF", label: str = "Color", parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._color = normalise_hex(color) if is_valid_hex(color) else "#FFFFFF"
+        self._label = label
         self.setFixedSize(120, 28)
         self.setCursor(Qt.PointingHandCursor)
         self.clicked.connect(self._choose_color)
@@ -80,6 +81,9 @@ class ColorButton(QPushButton):
             f"background-color: {self._color}; color: {text};"
             "border: 1px solid #888; border-radius: 4px; font-family: monospace;"
         )
+        # Set accessible name and description for screen readers
+        self.setAccessibleName(f"{self._label} color button")
+        self.setAccessibleDescription(f"Current color: {self._color}. Click to open color picker.")
 
 
 class DataColorsEditor(QWidget):
@@ -126,7 +130,7 @@ class DataColorsEditor(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         index = len(self._buttons) + 1
         layout.addWidget(QLabel(f"{index}."))
-        button = ColorButton(color)
+        button = ColorButton(color, label=f"Data color {index}")
         button.colorChanged.connect(lambda _c: self.changed.emit())
         layout.addWidget(button)
         layout.addStretch(1)
@@ -162,14 +166,18 @@ class TextClassEditor(QWidget):
         self._font = QFontComboBox()
         self._font.setCurrentText(text_class.font_face)
         self._font.currentFontChanged.connect(lambda _f: self.changed.emit())
+        self._font.setAccessibleName(f"{text_class.name} font")
+        self._font.setAccessibleDescription("Select font family")
 
         self._size = QSpinBox()
         self._size.setRange(4, 120)
         self._size.setValue(text_class.font_size)
         self._size.setSuffix(" pt")
         self._size.valueChanged.connect(lambda _v: self.changed.emit())
+        self._size.setAccessibleName(f"{text_class.name} size")
+        self._size.setAccessibleDescription("Font size in points")
 
-        self._color = ColorButton(text_class.color)
+        self._color = ColorButton(text_class.color, label=f"{text_class.name} color")
         self._color.colorChanged.connect(lambda _c: self.changed.emit())
 
         layout.addWidget(self._font, 2)
@@ -229,8 +237,8 @@ class VisualStylesChecklist(QWidget):
         """Update the checklist based on which visuals are customised."""
         for key, label in self._status_labels.items():
             if theme.is_visual_customised(key):
-                label.setText("✓")
-                label.setStyleSheet("color: #1AAB40; font-weight: bold; min-width: 30px;")
+                label.setText("✓ Custom")
+                label.setStyleSheet("color: #005620; font-weight: bold; min-width: 80px;")
             else:
-                label.setText("✗")
-                label.setStyleSheet("color: #D64550; font-weight: bold; min-width: 30px;")
+                label.setText("✗ Default")
+                label.setStyleSheet("color: #8b0000; font-weight: bold; min-width: 80px;")

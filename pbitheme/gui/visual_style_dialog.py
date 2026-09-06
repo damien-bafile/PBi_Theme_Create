@@ -62,10 +62,14 @@ class VisualStyleDialog(QDialog):
         bg_box = QGroupBox("Background")
         bg_layout = QFormLayout(bg_box)
         self._bg_check = QCheckBox("Override")
-        self._bg_color = ColorButton("#FFFFFF")
+        self._bg_check.setAccessibleName("Override background")
+        self._bg_check.setAccessibleDescription("Check to customize background color and transparency")
+        self._bg_color = ColorButton("#FFFFFF", label="Background color")
         self._bg_alpha = QSpinBox()
         self._bg_alpha.setRange(0, 100)
         self._bg_alpha.setSuffix("%")
+        self._bg_alpha.setAccessibleName("Background transparency")
+        self._bg_alpha.setAccessibleDescription("0 is fully transparent, 100 is fully opaque")
         bg_show, bg_color, bg_trans = unpack_background_object(existing_obj)
         self._bg_color.set_color(bg_color)
         self._bg_alpha.setValue(bg_trans)
@@ -82,7 +86,8 @@ class VisualStyleDialog(QDialog):
         border_box = QGroupBox("Border")
         border_layout = QFormLayout(border_box)
         self._border_check = QCheckBox("Override")
-        self._border_color = ColorButton("#000000")
+        self._border_check.setAccessibleName("Override border")
+        self._border_color = ColorButton("#000000", label="Border color")
         border_show, border_color = unpack_border_object(existing_obj)
         self._border_color.set_color(border_color)
         border_layout.addRow(self._border_check, QLabel())
@@ -174,7 +179,11 @@ class VisualStyleDialog(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self._on_ok)
         buttons.rejected.connect(self.reject)
+        buttons.button(QDialogButtonBox.Ok).setDefault(True)
         layout.addWidget(buttons)
+
+        # Set initial focus to first editable field
+        self._bg_check.setFocus()
 
     def _clear_all(self) -> None:
         """Uncheck all sections and reset JSON to empty."""
