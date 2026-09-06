@@ -58,14 +58,14 @@ class VisualStyleDialog(QDialog):
         visual_label: str,
         existing_obj: Dict[str, Any],
         parent: QWidget | None = None,
-        theme: PowerBITheme | None = None,
+        pbi_theme: PowerBITheme | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Edit {visual_label} Style")
         self.resize(1000, 650)
         self._visual_key = visual_key
         self._visual_label = visual_label
-        self._theme = theme or PowerBITheme()
+        self._theme = pbi_theme or PowerBITheme()
         self._result: Dict[str, Any] | None = None
         self._formatter_panel: VisualFormatterPanel | None = None
         self._preview_svg: QSvgWidget | None = None
