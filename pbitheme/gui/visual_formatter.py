@@ -57,13 +57,13 @@ class VisualFormatterPanel(QWidget):
         """Create the appropriate widget for a formatting field."""
         if field.field_type == "color":
             button = ColorButton(field.default or "#FFFFFF", label=field.label)
-            button.colorChanged.connect(self.values_changed.emit)
+            button.colorChanged.connect(self._on_field_changed)
             return button
 
         elif field.field_type == "boolean":
             checkbox = QCheckBox()
             checkbox.setChecked(bool(field.default))
-            checkbox.toggled.connect(self.values_changed.emit)
+            checkbox.toggled.connect(self._on_field_changed)
             return checkbox
 
         elif field.field_type == "number":
@@ -73,7 +73,7 @@ class VisualFormatterPanel(QWidget):
             if field.suffix:
                 spinbox.setSuffix(f" {field.suffix}")
             spinbox.setValue(int(field.default or 0))
-            spinbox.valueChanged.connect(self.values_changed.emit)
+            spinbox.valueChanged.connect(self._on_field_changed)
             return spinbox
 
         elif field.field_type == "dropdown":
@@ -81,12 +81,16 @@ class VisualFormatterPanel(QWidget):
             if field.options:
                 for value, label in field.options:
                     combo.addItem(label, value)
-            combo.currentIndexChanged.connect(self.values_changed.emit)
+            combo.currentIndexChanged.connect(self._on_field_changed)
             return combo
 
         else:
             # Default: text input (not implemented yet)
             raise NotImplementedError(f"Field type {field.field_type} not implemented")
+
+    def _on_field_changed(self) -> None:
+        """Emit values_changed signal when any field changes."""
+        self.values_changed.emit()
 
     def get_values(self) -> Dict[str, Any]:
         """Collect all formatting values from widgets."""

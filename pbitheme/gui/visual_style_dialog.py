@@ -238,10 +238,11 @@ class VisualStyleDialog(QDialog):
         root_layout.addLayout(right_layout, 0)
 
         # Load existing formatting values if available
-        if self._formatter_panel and existing_obj:
-            formatting = existing_obj.get("formatting", {})
-            if formatting:
-                self._formatter_panel.set_values(formatting)
+        if self._formatter_panel:
+            if existing_obj:
+                formatting = existing_obj.get("formatting", {})
+                if formatting:
+                    self._formatter_panel.set_values(formatting)
             # Connect formatter changes to preview updates
             self._formatter_panel.values_changed.connect(self._update_preview)
 
