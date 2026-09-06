@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QScrollArea,
     QSplitter,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
     QDialog,
@@ -30,6 +31,7 @@ from ..pbix_import import extract_theme_from_pbix, NoThemeFoundError
 from ..screenshot import capture_widget
 from .widgets import ColorButton, DataColorsEditor, TextClassEditor, VisualStylesChecklist
 from .visual_style_dialog import VisualStyleDialog
+from .preview_panel import PreviewPanel
 
 
 class MainWindow(QMainWindow):
@@ -139,15 +141,23 @@ class MainWindow(QMainWindow):
         scroll.setWidget(form_host)
         splitter.addWidget(scroll)
 
-        # -- Right: JSON preview ---------------------------------------- #
-        preview_host = QWidget()
-        preview_layout = QVBoxLayout(preview_host)
-        preview_layout.addWidget(QLabel("JSON preview"))
+        # -- Right: Preview tabs (Visual + JSON) ---------------------- #
+        preview_tabs = QTabWidget()
+
+        # Visual preview tab
+        self._visual_preview = PreviewPanel(self._theme)
+        preview_tabs.addTab(self._visual_preview, "Visual Preview")
+
+        # JSON preview tab
+        json_host = QWidget()
+        json_layout = QVBoxLayout(json_host)
         self._preview = QPlainTextEdit()
         self._preview.setReadOnly(True)
         self._preview.setFont(QFont("monospace", 10))
-        preview_layout.addWidget(self._preview)
-        splitter.addWidget(preview_host)
+        json_layout.addWidget(self._preview)
+        preview_tabs.addTab(json_host, "JSON Preview")
+
+        splitter.addWidget(preview_tabs)
 
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
@@ -209,6 +219,7 @@ class MainWindow(QMainWindow):
         self._theme = self._collect_theme()
         self._preview.setPlainText(self._theme.to_json())
         self._visual_checklist.set_theme(self._theme)
+        self._visual_preview.update_preview(self._theme)
 
     # ------------------------------------------------------------------ #
     # Menu actions
