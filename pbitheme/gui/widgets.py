@@ -210,8 +210,15 @@ class VisualStylesChecklist(QWidget):
         grid = QGridLayout(container)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 0)
+        grid.setColumnStretch(2, 1)
+        grid.setColumnStretch(3, 0)
+        grid.setSpacing(8)
 
-        for row, (key, label) in enumerate(VISUAL_TYPES):
+        # Display in 2 columns to fit more visuals on screen
+        for idx, (key, label) in enumerate(VISUAL_TYPES):
+            row = idx // 2
+            col = (idx % 2) * 2  # 0 or 2
+
             name_btn = QPushButton(label)
             name_btn.setFlat(True)
             name_btn.setCursor(Qt.PointingHandCursor)
@@ -219,14 +226,14 @@ class VisualStylesChecklist(QWidget):
             name_btn.clicked.connect(lambda _c=False, k=key: self.visualRequested.emit(k))
 
             status_label = QLabel("✗")
-            status_label.setStyleSheet("color: #D64550; font-weight: bold; min-width: 30px;")
-            grid.addWidget(name_btn, row, 0)
-            grid.addWidget(status_label, row, 1)
+            status_label.setStyleSheet("color: #8b0000; font-weight: bold; min-width: 30px;")
+            grid.addWidget(name_btn, row, col)
+            grid.addWidget(status_label, row, col + 1)
             self._status_labels[key] = status_label
 
         # Add a stretch row at the end to push all items to the top
-        grid.addWidget(QWidget(), len(VISUAL_TYPES), 0)
-        grid.setRowStretch(len(VISUAL_TYPES), 1)
+        grid.addWidget(QWidget(), (len(VISUAL_TYPES) + 1) // 2 + 1, 0)
+        grid.setRowStretch((len(VISUAL_TYPES) + 1) // 2 + 1, 1)
 
         scroll.setWidget(container)
 
