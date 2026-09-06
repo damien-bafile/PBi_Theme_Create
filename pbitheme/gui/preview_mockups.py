@@ -25,6 +25,7 @@ from ..model import (
     PowerBITheme,
     unpack_background_object,
     unpack_border_object,
+    unpack_drop_shadow_object,
     unpack_title_object,
     unpack_data_labels_object,
     unpack_legend_object,
@@ -83,9 +84,14 @@ def extract_generic(style_obj: Dict[str, Any] | None) -> Dict[str, Any]:
             generic["background"] = {"color": bg_color, "transparency": bg_trans}
 
     if "border" in style_obj:
-        border_show, border_color = unpack_border_object(style_obj)
+        border_show, border_color, border_radius, border_width = unpack_border_object(style_obj)
         if border_show:
-            generic["border"] = {"color": border_color}
+            generic["border"] = {"color": border_color, "radius": border_radius, "width": border_width}
+
+    if "dropShadow" in style_obj:
+        shadow_show, shadow_color = unpack_drop_shadow_object(style_obj)
+        if shadow_show:
+            generic["dropShadow"] = {"color": shadow_color}
 
     if "title" in style_obj:
         title_show, title_font, title_size, title_color = unpack_title_object(style_obj)
@@ -107,18 +113,33 @@ def extract_generic(style_obj: Dict[str, Any] | None) -> Dict[str, Any]:
 
 def _frame(width: int, height: int, generic: Dict[str, Any], theme_bg: str) -> List[str]:
     """Background rect (+ optional generic background/border) for any mockup."""
+    generic = generic or {}
     parts = [f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">']
-    gbg = (generic or {}).get("background")
+    gborder = generic.get("border")
+    radius = int(gborder.get("radius", 0)) if gborder else 0
+    rx = f' rx="{radius}"' if radius else ""
+
+    # Drop shadow: an offset rounded rect behind the visual.
+    gshadow = generic.get("dropShadow")
+    if gshadow:
+        parts.append(
+            f'<rect x="4" y="4" width="{width - 6}" height="{height - 6}"{rx} '
+            f'fill="{gshadow["color"]}" opacity="0.35"/>'
+        )
+
+    gbg = generic.get("background")
     if gbg:
         opacity = max(0.0, min(1.0, gbg.get("transparency", 100) / 100.0))
-        parts.append(f'<rect width="{width}" height="{height}" fill="{gbg["color"]}" opacity="{opacity:.2f}"/>')
+        parts.append(f'<rect width="{width}" height="{height}"{rx} fill="{gbg["color"]}" opacity="{opacity:.2f}"/>')
     else:
-        parts.append(f'<rect width="{width}" height="{height}" fill="{theme_bg}"/>')
-    gborder = (generic or {}).get("border")
+        parts.append(f'<rect width="{width}" height="{height}"{rx} fill="{theme_bg}"/>')
+
     if gborder:
+        w = int(gborder.get("width", 1)) or 1
+        off = w / 2 + 0.5
         parts.append(
-            f'<rect x="0.5" y="0.5" width="{width - 1}" height="{height - 1}" '
-            f'fill="none" stroke="{gborder["color"]}" stroke-width="2"/>'
+            f'<rect x="{off:.1f}" y="{off:.1f}" width="{width - off * 2:.1f}" height="{height - off * 2:.1f}"{rx} '
+            f'fill="none" stroke="{gborder["color"]}" stroke-width="{w}"/>'
         )
     return parts
 

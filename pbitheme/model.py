@@ -288,9 +288,14 @@ def build_background_object(show: bool, color: str, transparency: int) -> List[D
     return [{"show": show, "color": _solid_color(color), "transparency": int(transparency)}]
 
 
-def build_border_object(show: bool, color: str) -> List[Dict[str, Any]]:
+def build_border_object(show: bool, color: str, radius: int = 0, width: int = 1) -> List[Dict[str, Any]]:
     """Build a border visual-style object from picker state."""
-    return [{"show": show, "color": _solid_color(color)}]
+    return [{"show": show, "color": _solid_color(color), "radius": int(radius), "width": int(width)}]
+
+
+def build_drop_shadow_object(show: bool, color: str) -> List[Dict[str, Any]]:
+    """Build a drop-shadow visual-style object from picker state."""
+    return [{"show": show, "color": _solid_color(color), "position": "Outer"}]
 
 
 def build_title_object(show: bool, font_face: str, font_size: int, color: str) -> List[Dict[str, Any]]:
@@ -318,12 +323,23 @@ def unpack_background_object(obj: Dict[str, Any]) -> Tuple[bool, str, int]:
     )
 
 
-def unpack_border_object(obj: Dict[str, Any]) -> Tuple[bool, str]:
+def unpack_border_object(obj: Dict[str, Any]) -> Tuple[bool, str, int, int]:
     """Extract border picker state from an existing visual's * entry."""
     p = _first(obj.get("border", {}))
     return (
         bool(p.get("show", True)),
-        _extract_solid_color(p.get("color"), "#000000")
+        _extract_solid_color(p.get("color"), "#000000"),
+        int(p.get("radius", 0) or 0),
+        int(p.get("width", 1) or 1),
+    )
+
+
+def unpack_drop_shadow_object(obj: Dict[str, Any]) -> Tuple[bool, str]:
+    """Extract drop-shadow picker state from an existing visual's * entry."""
+    p = _first(obj.get("dropShadow", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("color"), "#000000"),
     )
 
 

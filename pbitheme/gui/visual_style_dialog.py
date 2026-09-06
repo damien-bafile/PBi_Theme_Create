@@ -32,11 +32,13 @@ from ..model import (
     LEGEND_POSITIONS,
     build_background_object,
     build_border_object,
+    build_drop_shadow_object,
     build_title_object,
     build_data_labels_object,
     build_legend_object,
     unpack_background_object,
     unpack_border_object,
+    unpack_drop_shadow_object,
     unpack_title_object,
     unpack_data_labels_object,
     unpack_legend_object,
@@ -117,13 +119,38 @@ class VisualStyleDialog(QDialog):
         self._border_check = QCheckBox("Override")
         self._border_check.setAccessibleName("Override border")
         self._border_color = ColorButton(theme.TEXT_STRONG, label="Border color")
-        border_show, border_color = unpack_border_object(existing_obj)
+        self._border_width = QSpinBox()
+        self._border_width.setRange(1, 10)
+        self._border_width.setSuffix(" px")
+        self._border_radius = QSpinBox()
+        self._border_radius.setRange(0, 30)
+        self._border_radius.setSuffix(" px")
+        border_show, border_color, border_radius, border_width = unpack_border_object(existing_obj)
         self._border_color.set_color(border_color)
+        self._border_radius.setValue(border_radius)
+        self._border_width.setValue(border_width)
         border_layout.addRow(self._border_check, QLabel())
         border_layout.addRow("Color", self._border_color)
-        self._border_check.toggled.connect(lambda c: self._border_color.setEnabled(c))
-        self._border_color.setEnabled(False)
+        border_layout.addRow("Width", self._border_width)
+        border_layout.addRow("Rounded corners", self._border_radius)
+        for w in (self._border_color, self._border_width, self._border_radius):
+            self._border_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
+            w.setEnabled(False)
         generic_layout.addWidget(border_box)
+
+        # ---- Drop shadow section ---- #
+        shadow_box = QGroupBox("Drop Shadow")
+        shadow_layout = QFormLayout(shadow_box)
+        self._shadow_check = QCheckBox("Override")
+        self._shadow_check.setAccessibleName("Override drop shadow")
+        self._shadow_color = ColorButton(theme.TEXT_STRONG, label="Shadow color")
+        shadow_show, shadow_color = unpack_drop_shadow_object(existing_obj)
+        self._shadow_color.set_color(shadow_color)
+        shadow_layout.addRow(self._shadow_check, QLabel())
+        shadow_layout.addRow("Color", self._shadow_color)
+        self._shadow_check.toggled.connect(lambda c: self._shadow_color.setEnabled(c))
+        self._shadow_color.setEnabled(False)
+        generic_layout.addWidget(shadow_box)
 
         # ---- Title section ---- #
         title_box = QGroupBox("Title")
@@ -193,14 +220,16 @@ class VisualStyleDialog(QDialog):
         # Live-update the preview whenever any generic override changes.
         for check in (
             self._bg_check, self._border_check, self._title_check,
-            self._labels_check, self._legend_check,
+            self._labels_check, self._legend_check, self._shadow_check,
         ):
             check.toggled.connect(self._update_preview)
         for color_btn in (
             self._bg_color, self._border_color, self._title_color,
-            self._labels_color, self._legend_color,
+            self._labels_color, self._legend_color, self._shadow_color,
         ):
             color_btn.colorChanged.connect(self._update_preview)
+        self._border_width.valueChanged.connect(self._update_preview)
+        self._border_radius.valueChanged.connect(self._update_preview)
         self._bg_alpha.valueChanged.connect(self._update_preview)
         self._title_font.currentFontChanged.connect(self._update_preview)
         self._title_size.valueChanged.connect(self._update_preview)
@@ -276,6 +305,7 @@ class VisualStyleDialog(QDialog):
         self._title_check.setChecked(False)
         self._labels_check.setChecked(False)
         self._legend_check.setChecked(False)
+        self._shadow_check.setChecked(False)
         self._advanced_edit.setPlainText("{}")
 
     def _build_overrides(self) -> Dict[str, Any]:
@@ -296,7 +326,12 @@ class VisualStyleDialog(QDialog):
                 True, self._bg_color.color(), self._bg_alpha.value()
             )
         if self._border_check.isChecked():
-            overrides["border"] = build_border_object(True, self._border_color.color())
+            overrides["border"] = build_border_object(
+                True, self._border_color.color(),
+                self._border_radius.value(), self._border_width.value(),
+            )
+        if self._shadow_check.isChecked():
+            overrides["dropShadow"] = build_drop_shadow_object(True, self._shadow_color.color())
         if self._title_check.isChecked():
             overrides["title"] = build_title_object(
                 True,
