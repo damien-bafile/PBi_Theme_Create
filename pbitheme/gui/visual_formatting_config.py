@@ -93,13 +93,112 @@ MATRIX_TABLE_SECTIONS = [
     ),
 ]
 
+# Chart formatting sections
+CHART_SECTIONS = [
+    FormatSection(
+        "X-Axis",
+        [
+            FormatField("xAxisLabelColor", "Label Color", "color", default="#252423"),
+            FormatField("xAxisLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
+            FormatField("xAxisTitleColor", "Title Color", "color", default="#252423"),
+            FormatField("xAxisTitleFontSize", "Title Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
+        ],
+    ),
+    FormatSection(
+        "Y-Axis",
+        [
+            FormatField("yAxisLabelColor", "Label Color", "color", default="#252423"),
+            FormatField("yAxisLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
+            FormatField("yAxisTitleColor", "Title Color", "color", default="#252423"),
+            FormatField("yAxisTitleFontSize", "Title Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
+        ],
+    ),
+    FormatSection(
+        "Gridlines",
+        [
+            FormatField("gridlineStyle", "Style", "dropdown",
+                       options=[("None", "None"), ("Solid", "Solid"), ("Dashed", "Dashed")]),
+            FormatField("gridlineColor", "Color", "color", default="#CCCCCC"),
+            FormatField("gridlineThickness", "Thickness (px)", "number", min_val=1, max_val=3, suffix="px"),
+        ],
+    ),
+    FormatSection(
+        "Data Labels",
+        [
+            FormatField("dataLabelColor", "Color", "color", default="#252423"),
+            FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
+            FormatField("dataLabelBackground", "Show Background", "boolean", default=False),
+        ],
+    ),
+    FormatSection(
+        "Legend",
+        [
+            FormatField("legendPosition", "Position", "dropdown",
+                       options=[("Top", "Top"), ("Bottom", "Bottom"), ("Left", "Left"), ("Right", "Right")]),
+            FormatField("legendTextColor", "Text Color", "color", default="#252423"),
+            FormatField("legendFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
+        ],
+    ),
+]
+
+# Card and KPI formatting
+CARD_KPI_SECTIONS = [
+    FormatSection(
+        "Value",
+        [
+            FormatField("valueColor", "Color", "color", default="#000000"),
+            FormatField("valueFontSize", "Font Size (pt)", "number", min_val=12, max_val=72, suffix="pt"),
+            FormatField("valueFontBold", "Bold", "boolean", default=True),
+        ],
+    ),
+    FormatSection(
+        "Label",
+        [
+            FormatField("labelColor", "Color", "color", default="#252423"),
+            FormatField("labelFontSize", "Font Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
+        ],
+    ),
+    FormatSection(
+        "Background",
+        [
+            FormatField("backgroundColor", "Color", "color", default="#FFFFFF"),
+            FormatField("backgroundBorder", "Show Border", "boolean", default=False),
+        ],
+    ),
+]
+
 # Map visual types to their formatting sections
 VISUAL_FORMATTING = {
+    # Matrix and Table
     "matrix": MATRIX_TABLE_SECTIONS,
     "table": MATRIX_TABLE_SECTIONS,
     "tableEx": MATRIX_TABLE_SECTIONS,
     "pivotTable": MATRIX_TABLE_SECTIONS,
-    # Other visuals can be added here as we expand
+
+    # Charts
+    "barChart": CHART_SECTIONS,
+    "clusteredBarChart": CHART_SECTIONS,
+    "hundredPercentStackedBarChart": CHART_SECTIONS,
+    "columnChart": CHART_SECTIONS,
+    "clusteredColumnChart": CHART_SECTIONS,
+    "hundredPercentStackedColumnChart": CHART_SECTIONS,
+    "lineChart": CHART_SECTIONS,
+    "lineClusteredColumnComboChart": CHART_SECTIONS,
+    "lineStackedColumnComboChart": CHART_SECTIONS,
+    "areaChart": CHART_SECTIONS,
+    "scatterChart": CHART_SECTIONS,
+    "pieChart": CHART_SECTIONS,
+    "donutChart": CHART_SECTIONS,
+    "ribbonChart": CHART_SECTIONS,
+    "treemap": CHART_SECTIONS,
+    "waterfallChart": CHART_SECTIONS,
+    "funnel": CHART_SECTIONS,
+    "gauge": CHART_SECTIONS,
+
+    # Cards and KPIs
+    "card": CARD_KPI_SECTIONS,
+    "kpi": CARD_KPI_SECTIONS,
+    "multiRowCard": CARD_KPI_SECTIONS,
 }
 
 
