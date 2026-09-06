@@ -41,12 +41,9 @@ def main():
 
     # Check if we're on Windows
     if sys.platform != "win32":
-        print("⚠ Warning: This build process is optimized for Windows.")
-        print("  You can still build on other systems, but exe will target Windows.")
-        response = input("  Continue? (y/n): ").strip().lower()
-        if response != 'y':
-            print("Build cancelled.")
-            return 1
+        print("⚠ Note: Building on Linux/Mac for Windows deployment")
+        print("  The executable will work on Windows.")
+        print("  (For production builds, use Windows machine for best compatibility)")
 
     # Check Python version
     if sys.version_info < (3, 8):
@@ -93,11 +90,21 @@ def main():
         print("✗ PyInstaller build failed")
         return 1
 
-    # Check if exe was created
-    exe_file = Path("dist/PowerBI_Theme_Creator.exe")
-    if not exe_file.exists():
+    # Check if exe was created (name differs by platform)
+    exe_candidates = [
+        Path("dist/PowerBI_Theme_Creator.exe"),  # Windows
+        Path("dist/PowerBI_Theme_Creator"),      # Linux/Mac
+    ]
+    exe_file = next((f for f in exe_candidates if f.exists()), None)
+    if not exe_file:
         print("✗ Executable not created")
         return 1
+
+    # On Linux/Mac, rename to .exe for consistency
+    if sys.platform != "win32" and exe_file.suffix != ".exe":
+        exe_renamed = exe_file.with_suffix(".exe")
+        exe_file.rename(exe_renamed)
+        exe_file = exe_renamed
 
     # Get file size
     exe_size_mb = exe_file.stat().st_size / (1024 * 1024)
