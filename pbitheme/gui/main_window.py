@@ -228,6 +228,7 @@ class MainWindow(QMainWindow):
         if not path:
             return
 
+        self.statusBar().showMessage(f"Opening {os.path.basename(path)}...")
         try:
             if path.lower().endswith((".pbix", ".pbit")):
                 theme = extract_theme_from_pbix(path)
@@ -235,9 +236,11 @@ class MainWindow(QMainWindow):
                 theme = PowerBITheme.load(path)
         except NoThemeFoundError as exc:
             QMessageBox.warning(self, "No custom theme", str(exc))
+            self.statusBar().showMessage("Ready")
             return
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self, "Open failed", f"Could not load theme:\n{exc}")
+            self.statusBar().showMessage("Ready")
             return
 
         self._current_path = path
@@ -255,10 +258,12 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".json"):
             path += ".json"
+        self.statusBar().showMessage(f"Saving {os.path.basename(path)}...")
         try:
             theme.save(path)
         except OSError as exc:
             QMessageBox.critical(self, "Save failed", f"Could not save theme:\n{exc}")
+            self.statusBar().showMessage("Ready")
             return
         self._current_path = path
         self.statusBar().showMessage(f"Saved {os.path.basename(path)}")
@@ -285,9 +290,11 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".png"):
             path += ".png"
+        self.statusBar().showMessage(f"Saving screenshot {os.path.basename(path)}...")
         try:
             capture_widget(self, path)
         except OSError as exc:
             QMessageBox.critical(self, "Screenshot failed", f"Could not save screenshot:\n{exc}")
+            self.statusBar().showMessage("Ready")
             return
         self.statusBar().showMessage(f"Saved screenshot {os.path.basename(path)}")
