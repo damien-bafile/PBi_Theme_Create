@@ -17,7 +17,7 @@ def main() -> int:
     except ImportError:
         sys.stderr.write(
             "PySide6 is required to run the GUI.\n"
-            "Install it with:  pip install -r requirements.txt\n"
+            "Install dependencies with:  uv sync\n"
         )
         return 1
 

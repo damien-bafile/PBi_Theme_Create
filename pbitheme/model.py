@@ -24,6 +24,52 @@ DEFAULT_DATA_COLORS: List[str] = [
     "#D64550",
 ]
 
+# All valid Power BI visual types that can be customised in a theme.
+# Each tuple is (JSON key, human label).
+VISUAL_TYPES: List[tuple[str, str]] = [
+    ("*", "All visuals (wildcard)"),
+    ("areaChart", "Area Chart"),
+    ("actionButton", "Action Button"),
+    ("azureMapVisual", "Azure Maps"),
+    ("barChart", "Bar Chart"),
+    ("basicShape", "Basic Shape"),
+    ("card", "Card"),
+    ("clusteredBarChart", "Clustered Bar Chart"),
+    ("clusteredColumnChart", "Clustered Column Chart"),
+    ("columnChart", "Column Chart"),
+    ("decompositionTreeVisual", "Decomposition Tree"),
+    ("donutChart", "Donut Chart"),
+    ("filledMap", "Filled Map"),
+    ("funnel", "Funnel"),
+    ("gauge", "Gauge"),
+    ("hundredPercentStackedBarChart", "100% Stacked Bar Chart"),
+    ("hundredPercentStackedColumnChart", "100% Stacked Column Chart"),
+    ("image", "Image"),
+    ("keyDriversVisual", "Key Drivers"),
+    ("kpi", "KPI"),
+    ("lineChart", "Line Chart"),
+    ("lineClusteredColumnComboChart", "Line & Clustered Column Chart"),
+    ("lineStackedColumnComboChart", "Line & Stacked Column Chart"),
+    ("map", "Map"),
+    ("matrix", "Matrix"),
+    ("multiRowCard", "Multi-row Card"),
+    ("pivotTable", "Pivot Table"),
+    ("pieChart", "Pie Chart"),
+    ("pythonVisual", "Python Visual"),
+    ("qnaVisual", "Q&A"),
+    ("ribbonChart", "Ribbon Chart"),
+    ("rVisual", "R Visual"),
+    ("scatterChart", "Scatter Chart"),
+    ("shapeMap", "Shape Map"),
+    ("slicer", "Slicer"),
+    ("smartNarrative", "Smart Narrative"),
+    ("table", "Table"),
+    ("tableEx", "Table (Extended)"),
+    ("textbox", "Text Box"),
+    ("treemap", "Treemap"),
+    ("waterfallChart", "Waterfall Chart"),
+]
+
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 
@@ -111,6 +157,7 @@ class PowerBITheme:
         self.neutral: str = "#F2C811"
         self.bad: str = "#D64550"
         self.text_classes: Dict[str, TextClass] = _default_text_classes()
+        self.visual_styles: Dict[str, Dict[str, Any]] = {}
 
     # ------------------------------------------------------------------ #
     # Serialisation
@@ -135,6 +182,9 @@ class PowerBITheme:
         }
         if text_classes:
             theme["textClasses"] = text_classes
+
+        if self.visual_styles:
+            theme["visualStyles"] = self.visual_styles
 
         return theme
 
@@ -167,9 +217,22 @@ class PowerBITheme:
                 if isinstance(value, dict)
             }
 
+        if isinstance(data.get("visualStyles"), dict):
+            theme.visual_styles = data["visualStyles"]
+
         return theme
 
     @classmethod
     def load(cls, path: str) -> "PowerBITheme":
         with open(path, "r", encoding="utf-8") as fh:
             return cls.from_dict(json.load(fh))
+
+    # ------------------------------------------------------------------ #
+    # Visual styles
+    # ------------------------------------------------------------------ #
+    def is_visual_customised(self, visual_key: str) -> bool:
+        """Return True if *visual_key* or the wildcard "*" has style overrides."""
+        return bool(
+            self.visual_styles.get(visual_key)
+            or self.visual_styles.get("*")
+        )

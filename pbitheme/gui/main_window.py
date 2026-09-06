@@ -24,7 +24,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from ..model import PowerBITheme
-from .widgets import ColorButton, DataColorsEditor, TextClassEditor
+from ..pbix_import import extract_theme_from_pbix, NoThemeFoundError
+from .widgets import ColorButton, DataColorsEditor, TextClassEditor, VisualStylesChecklist
 
 
 class MainWindow(QMainWindow):
@@ -115,6 +116,13 @@ class MainWindow(QMainWindow):
             text_layout.addRow(name.capitalize(), editor)
         form.addWidget(text_box)
 
+        # Visual styles
+        visual_box = QGroupBox("Visual styles")
+        visual_layout = QVBoxLayout(visual_box)
+        self._visual_checklist = VisualStylesChecklist()
+        visual_layout.addWidget(self._visual_checklist)
+        form.addWidget(visual_box)
+
         form.addStretch(1)
 
         scroll = QScrollArea()
@@ -172,6 +180,7 @@ class MainWindow(QMainWindow):
     def _refresh_preview(self) -> None:
         self._theme = self._collect_theme()
         self._preview.setPlainText(self._theme.to_json())
+        self._visual_checklist.set_theme(self._theme)
 
     # ------------------------------------------------------------------ #
     # Menu actions
@@ -184,15 +193,24 @@ class MainWindow(QMainWindow):
 
     def _on_open(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open theme", "", "JSON files (*.json);;All files (*)"
+            self, "Open theme or Power BI file", "",
+            "Power BI files (*.pbix *.pbit *.json);;All files (*)"
         )
         if not path:
             return
+
         try:
-            theme = PowerBITheme.load(path)
+            if path.lower().endswith((".pbix", ".pbit")):
+                theme = extract_theme_from_pbix(path)
+            else:
+                theme = PowerBITheme.load(path)
+        except NoThemeFoundError as exc:
+            QMessageBox.warning(self, "No custom theme", str(exc))
+            return
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self, "Open failed", f"Could not load theme:\n{exc}")
             return
+
         self._current_path = path
         self._load_from_theme(theme)
         self._refresh_preview()

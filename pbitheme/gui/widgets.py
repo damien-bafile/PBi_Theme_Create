@@ -19,9 +19,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QFontComboBox,
+    QGridLayout,
+    QScrollArea,
 )
 
-from ..model import TextClass, is_valid_hex, normalise_hex
+from ..model import PowerBITheme, TextClass, VISUAL_TYPES, is_valid_hex, normalise_hex
 
 
 class ColorButton(QPushButton):
@@ -165,3 +167,47 @@ class TextClassEditor(QWidget):
             font_size=self._size.value(),
             color=self._color.color(),
         )
+
+
+class VisualStylesChecklist(QWidget):
+    """Scrollable checklist of Power BI visual types with customization status."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._status_labels: dict[str, QLabel] = {}
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+
+        container = QWidget()
+        grid = QGridLayout(container)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 0)
+
+        for row, (key, label) in enumerate(VISUAL_TYPES):
+            name_label = QLabel(label)
+            status_label = QLabel("✗")
+            status_label.setStyleSheet("color: #D64550; font-weight: bold; min-width: 30px;")
+            grid.addWidget(name_label, row, 0)
+            grid.addWidget(status_label, row, 1)
+            self._status_labels[key] = status_label
+
+        # Add a stretch row at the end to push all items to the top
+        grid.addWidget(QWidget(), len(VISUAL_TYPES), 0)
+        grid.setRowStretch(len(VISUAL_TYPES), 1)
+
+        scroll.setWidget(container)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
+
+    def set_theme(self, theme: PowerBITheme) -> None:
+        """Update the checklist based on which visuals are customised."""
+        for key, label in self._status_labels.items():
+            if theme.is_visual_customised(key):
+                label.setText("✓")
+                label.setStyleSheet("color: #1AAB40; font-weight: bold; min-width: 30px;")
+            else:
+                label.setText("✗")
+                label.setStyleSheet("color: #D64550; font-weight: bold; min-width: 30px;")
