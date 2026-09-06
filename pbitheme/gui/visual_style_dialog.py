@@ -20,6 +20,9 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QMessageBox,
     QWidget,
+    QTabWidget,
+    QScrollArea,
+    QFontComboBox,
 )
 
 from ..model import (
@@ -54,19 +57,24 @@ class VisualStyleDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Edit {visual_label} Style")
-        self.resize(600, 800)
+        self.resize(600, 550)
         self._visual_key = visual_key
         self._result: Dict[str, Any] | None = None
         self._formatter_panel: VisualFormatterPanel | None = None
 
-        layout = QVBoxLayout(self)
-        layout.addWidget(QLabel(f"Style overrides: {visual_label}"))
+        root_layout = QVBoxLayout(self)
 
-        # Add visual-specific formatter if available
+        # ---- Tabs ---- #
+        tabs = QTabWidget()
+
+        # Tab 1: Visual-specific formatting (if available)
         if is_visual_customizable(visual_key):
             self._formatter_panel = VisualFormatterPanel(visual_key)
-            layout.addWidget(self._formatter_panel)
-            layout.addWidget(QLabel("Generic overrides (if needed):"))
+            tabs.addTab(self._formatter_panel, "Visual Formatting")
+
+        # Tab 2: Generic overrides
+        generic_widget = QWidget()
+        generic_layout = QVBoxLayout(generic_widget)
 
         # ---- Background section ---- #
         bg_box = QGroupBox("Background")
@@ -90,7 +98,7 @@ class VisualStyleDialog(QDialog):
         self._bg_check.toggled.connect(lambda c: self._bg_alpha.setEnabled(c))
         self._bg_color.setEnabled(False)
         self._bg_alpha.setEnabled(False)
-        layout.addWidget(bg_box)
+        generic_layout.addWidget(bg_box)
 
         # ---- Border section ---- #
         border_box = QGroupBox("Border")
@@ -104,15 +112,12 @@ class VisualStyleDialog(QDialog):
         border_layout.addRow("Color", self._border_color)
         self._border_check.toggled.connect(lambda c: self._border_color.setEnabled(c))
         self._border_color.setEnabled(False)
-        layout.addWidget(border_box)
+        generic_layout.addWidget(border_box)
 
         # ---- Title section ---- #
         title_box = QGroupBox("Title")
         title_layout = QFormLayout(title_box)
         self._title_check = QCheckBox("Override")
-        self._title_font = ColorButton.__bases__[0].__subclasses__()[0]()  # Get QFontComboBox
-        # Simpler approach: just create it fresh
-        from PySide6.QtWidgets import QFontComboBox
         self._title_font = QFontComboBox()
         self._title_size = QSpinBox()
         self._title_size.setRange(4, 120)
@@ -132,7 +137,7 @@ class VisualStyleDialog(QDialog):
         self._title_font.setEnabled(False)
         self._title_size.setEnabled(False)
         self._title_color.setEnabled(False)
-        layout.addWidget(title_box)
+        generic_layout.addWidget(title_box)
 
         # ---- Data labels section ---- #
         labels_box = QGroupBox("Data Labels")
@@ -152,7 +157,7 @@ class VisualStyleDialog(QDialog):
         self._labels_check.toggled.connect(lambda c: self._labels_size.setEnabled(c))
         self._labels_color.setEnabled(False)
         self._labels_size.setEnabled(False)
-        layout.addWidget(labels_box)
+        generic_layout.addWidget(labels_box)
 
         # ---- Legend section ---- #
         legend_box = QGroupBox("Legend")
@@ -171,26 +176,36 @@ class VisualStyleDialog(QDialog):
         self._legend_check.toggled.connect(lambda c: self._legend_color.setEnabled(c))
         self._legend_pos.setEnabled(False)
         self._legend_color.setEnabled(False)
-        layout.addWidget(legend_box)
+        generic_layout.addWidget(legend_box)
+        generic_layout.addStretch()
 
-        # ---- Advanced JSON section ---- #
-        layout.addWidget(QLabel("Advanced JSON (raw styleName '*' object)"))
+        scroll = QScrollArea()
+        scroll.setWidget(generic_widget)
+        scroll.setWidgetResizable(True)
+        tabs.addTab(scroll, "Generic Overrides")
+
+        # Tab 3: Advanced JSON
+        advanced_widget = QWidget()
+        advanced_layout = QVBoxLayout(advanced_widget)
+        advanced_layout.addWidget(QLabel("Raw styleName '*' object:"))
         self._advanced_edit = QPlainTextEdit()
         self._advanced_edit.setPlainText(json.dumps(existing_obj, indent=2))
-        self._advanced_edit.setMinimumHeight(150)
-        layout.addWidget(self._advanced_edit)
+        advanced_layout.addWidget(self._advanced_edit)
+        tabs.addTab(advanced_widget, "Advanced JSON")
+
+        root_layout.addWidget(tabs)
 
         # ---- Clear all button ---- #
         clear_btn = QPushButton("Clear All Overrides")
         clear_btn.clicked.connect(self._clear_all)
-        layout.addWidget(clear_btn)
+        root_layout.addWidget(clear_btn)
 
         # ---- Dialog buttons ---- #
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self._on_ok)
         buttons.rejected.connect(self.reject)
         buttons.button(QDialogButtonBox.Ok).setDefault(True)
-        layout.addWidget(buttons)
+        root_layout.addWidget(buttons)
 
         # Load existing formatting values if available
         if self._formatter_panel and existing_obj:
@@ -198,8 +213,8 @@ class VisualStyleDialog(QDialog):
             if formatting:
                 self._formatter_panel.set_values(formatting)
 
-        # Set initial focus to first editable field
-        self._bg_check.setFocus()
+        # Set initial focus to first tab
+        tabs.setFocus()
 
     def _clear_all(self) -> None:
         """Uncheck all sections and reset JSON to empty."""
