@@ -37,6 +37,8 @@ from ..model import (
     merge_visual_style_entry,
 )
 from .widgets import ColorButton
+from .visual_formatter import VisualFormatterPanel
+from .visual_formatting_config import is_visual_customizable
 from . import theme
 
 
@@ -52,12 +54,19 @@ class VisualStyleDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Edit {visual_label} Style")
-        self.resize(600, 700)
+        self.resize(600, 800)
         self._visual_key = visual_key
         self._result: Dict[str, Any] | None = None
+        self._formatter_panel: VisualFormatterPanel | None = None
 
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(f"Style overrides: {visual_label}"))
+
+        # Add visual-specific formatter if available
+        if is_visual_customizable(visual_key):
+            self._formatter_panel = VisualFormatterPanel(visual_key)
+            layout.addWidget(self._formatter_panel)
+            layout.addWidget(QLabel("Generic overrides (if needed):"))
 
         # ---- Background section ---- #
         bg_box = QGroupBox("Background")
@@ -183,6 +192,12 @@ class VisualStyleDialog(QDialog):
         buttons.button(QDialogButtonBox.Ok).setDefault(True)
         layout.addWidget(buttons)
 
+        # Load existing formatting values if available
+        if self._formatter_panel and existing_obj:
+            formatting = existing_obj.get("formatting", {})
+            if formatting:
+                self._formatter_panel.set_values(formatting)
+
         # Set initial focus to first editable field
         self._bg_check.setFocus()
 
@@ -208,6 +223,12 @@ class VisualStyleDialog(QDialog):
             return
 
         overrides: Dict[str, Any] = {}
+
+        # Collect visual-specific formatting if available
+        if self._formatter_panel:
+            formatter_values = self._formatter_panel.get_values()
+            if formatter_values:
+                overrides["formatting"] = formatter_values
 
         if self._bg_check.isChecked():
             overrides["background"] = build_background_object(
