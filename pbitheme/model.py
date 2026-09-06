@@ -106,7 +106,8 @@ class TextClass:
         if self.font_face:
             data["fontFace"] = self.font_face
         if self.font_size:
-            data["fontSize"] = int(self.font_size)
+            # Power BI's schema constrains font sizes to 8-60.
+            data["fontSize"] = max(8, min(60, int(self.font_size)))
         if self.color:
             data["color"] = normalise_hex(self.color)
         return data
@@ -138,24 +139,35 @@ class PowerBITheme:
     """
 
     #: Structural colour fields -> (JSON key, human label, default value).
+    # (attribute, theme JSON key, UI label, default) -- structural colour classes.
+    # These map to Power BI's named colour classes and sentiment colours, all of
+    # which are top-level theme properties.
     STRUCTURAL_FIELDS = [
         ("foreground", "foreground", "Foreground", "#252423"),
+        ("second_level", "secondLevelElements", "Secondary text", "#605E5C"),
+        ("third_level", "thirdLevelElements", "Gridlines / grid", "#F3F2F1"),
+        ("fourth_level", "fourthLevelElements", "Dimmed / category", "#B3B0AD"),
         ("background", "background", "Background", "#FFFFFF"),
+        ("secondary_background", "secondaryBackground", "Secondary background", "#C8C6C4"),
         ("table_accent", "tableAccent", "Table accent", "#118DFF"),
         ("good", "good", "Good", "#1AAB40"),
         ("neutral", "neutral", "Neutral", "#F2C811"),
         ("bad", "bad", "Bad", "#D64550"),
     ]
 
+    # Conditional-formatting gradient colours (also top-level theme properties).
+    GRADIENT_FIELDS = [
+        ("gradient_min", "minimum", "Minimum", "#DEEFFF"),
+        ("gradient_center", "center", "Center", "#D9B300"),
+        ("gradient_max", "maximum", "Maximum", "#118DFF"),
+        ("gradient_null", "null", "Null / N/A", "#FF7F48"),
+    ]
+
     def __init__(self, name: str = "My Theme") -> None:
         self.name: str = name
         self.data_colors: List[str] = list(DEFAULT_DATA_COLORS)
-        self.foreground: str = "#252423"
-        self.background: str = "#FFFFFF"
-        self.table_accent: str = "#118DFF"
-        self.good: str = "#1AAB40"
-        self.neutral: str = "#F2C811"
-        self.bad: str = "#D64550"
+        for attr, _key, _label, default in self.STRUCTURAL_FIELDS + self.GRADIENT_FIELDS:
+            setattr(self, attr, default)
         self.text_classes: Dict[str, TextClass] = _default_text_classes()
         self.visual_styles: Dict[str, Dict[str, Any]] = {}
 
@@ -170,7 +182,7 @@ class PowerBITheme:
         if colors:
             theme["dataColors"] = colors
 
-        for attr, key, _label, _default in self.STRUCTURAL_FIELDS:
+        for attr, key, _label, _default in self.STRUCTURAL_FIELDS + self.GRADIENT_FIELDS:
             value = getattr(self, attr)
             if is_valid_hex(value):
                 theme[key] = normalise_hex(value)
@@ -184,7 +196,11 @@ class PowerBITheme:
             theme["textClasses"] = text_classes
 
         if self.visual_styles:
-            theme["visualStyles"] = self.visual_styles
+            # Translate the app's internal formatting into valid Power BI cards.
+            from .theme_export import build_visual_styles
+            visual_styles = build_visual_styles(self.visual_styles)
+            if visual_styles:
+                theme["visualStyles"] = visual_styles
 
         return theme
 
@@ -205,7 +221,7 @@ class PowerBITheme:
         if isinstance(data.get("dataColors"), list):
             theme.data_colors = [str(c) for c in data["dataColors"]]
 
-        for attr, key, _label, _default in cls.STRUCTURAL_FIELDS:
+        for attr, key, _label, _default in cls.STRUCTURAL_FIELDS + cls.GRADIENT_FIELDS:
             if key in data:
                 setattr(theme, attr, str(data[key]))
 

@@ -131,6 +131,16 @@ class MainWindow(QMainWindow):
             struct_layout.addRow(label, button)
         form.addWidget(struct_box)
 
+        # Conditional-formatting gradient colours
+        gradient_box = QGroupBox("Conditional formatting colours")
+        gradient_layout = QFormLayout(gradient_box)
+        for attr, _key, label, default in PowerBITheme.GRADIENT_FIELDS:
+            button = ColorButton(default, label=label)
+            button.colorChanged.connect(lambda _c: self._refresh_preview())
+            self._structural_buttons[attr] = button
+            gradient_layout.addRow(label, button)
+        form.addWidget(gradient_box)
+
         # Data colours
         data_box = QGroupBox("Data colours")
         data_layout = QVBoxLayout(data_box)
