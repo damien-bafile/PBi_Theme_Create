@@ -82,13 +82,15 @@ shown in a simplified mockup (e.g. font family, word wrap).
   *orientation* is column/bar-only in the schema, and `plotArea` offers only an
   image + transparency — no fill colour — so both are intentionally skipped.)
 - **Stage 3 — Table & matrix depth — ◐ mostly done.** Previewed: grid **outer
-  outline** (colour + weight), matrix **row-header alignment** + **stepped
-  layout**, **italic** for column headers / values / row headers / totals.
-  Export-only (valid, no live preview): **font family** for headers / values /
-  row headers / totals, **word wrap** for headers & values, matrix **column
-  subtotals**. Still to do: built-in table `stylePreset`, per-column
-  `columnFormatting` (colour / data bars), `columnWidth`, sparklines — these
-  need per-column ids or uncertain enums, so they remain in Advanced JSON.
+  outline** + **overall text size**, matrix **row-header alignment** + **stepped
+  layout**, **bold / italic / underline** and **font size** across column
+  headers / values / row headers / totals / subtotals, full **subtotal font
+  styling** (colour / size / italic / underline). Export-only (valid, no live
+  preview): **font family** everywhere, **word wrap** (headers & values), matrix
+  **column subtotals**. Still in Advanced JSON only: built-in table
+  `stylePreset` (enum names not in the schema), per-column `columnFormatting`
+  (data bars — needs per-column ids), `columnWidth`, `columnTotal`/`rowTotal`,
+  `blankRows`, sparklines.
 - **Stage 4 — Reference lines & analytics — ☐.** X / Y reference lines, trend
   line, ratio line, error bars, markers, scatter bubbles / fill, waterfall
   sentiment colours & breakdown, ribbon bands, pie slices (start angle / inner

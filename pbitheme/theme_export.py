@@ -219,6 +219,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(grid, "outlineColor", _fill(fmt.get("gridOutlineColor", "")))
         if "gridOutlineWeight" in fmt:
             grid["outlineWeight"] = fmt["gridOutlineWeight"]
+        if "gridTextSize" in fmt:
+            grid["textSize"] = fmt["gridTextSize"]
 
         ch = card("columnHeaders")
         _set(ch, "backColor", _fill(fmt.get("columnHeaderBackgroundColor", "")))
@@ -229,6 +231,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             ch["bold"] = bool(fmt["columnHeaderFontBold"])
         if "columnHeaderItalic" in fmt:
             ch["italic"] = bool(fmt["columnHeaderItalic"])
+        if "columnHeaderUnderline" in fmt:
+            ch["underline"] = bool(fmt["columnHeaderUnderline"])
         if "columnHeaderAlignment" in fmt:
             ch["alignment"] = fmt["columnHeaderAlignment"]
         if fmt.get("columnHeaderFontFamily"):
@@ -240,8 +244,12 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(vals, "fontColor", _fill(fmt.get("valuesTextColor", "")))
         if "valuesFontSize" in fmt:
             vals["fontSize"] = fmt["valuesFontSize"]
+        if "valuesFontBold" in fmt:
+            vals["bold"] = bool(fmt["valuesFontBold"])
         if "valuesItalic" in fmt:
             vals["italic"] = bool(fmt["valuesItalic"])
+        if "valuesUnderline" in fmt:
+            vals["underline"] = bool(fmt["valuesUnderline"])
         if fmt.get("valuesFontFamily"):
             vals["fontFamily"] = fmt["valuesFontFamily"]
         if "valuesWordWrap" in fmt:
@@ -258,10 +266,14 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             tot["totals"] = bool(fmt["showTotals"])
         _set(tot, "backColor", _fill(fmt.get("totalsBackgroundColor", "")))
         _set(tot, "fontColor", _fill(fmt.get("totalsTextColor", "")))
+        if "totalsFontSize" in fmt:
+            tot["fontSize"] = fmt["totalsFontSize"]
         if "totalsFontBold" in fmt:
             tot["bold"] = bool(fmt["totalsFontBold"])
         if "totalsItalic" in fmt:
             tot["italic"] = bool(fmt["totalsItalic"])
+        if "totalsUnderline" in fmt:
+            tot["underline"] = bool(fmt["totalsUnderline"])
         if fmt.get("totalsFontFamily"):
             tot["fontFamily"] = fmt["totalsFontFamily"]
 
@@ -275,6 +287,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
                 rh["bold"] = bool(fmt["rowHeaderFontBold"])
             if "rowHeaderItalic" in fmt:
                 rh["italic"] = bool(fmt["rowHeaderItalic"])
+            if "rowHeaderUnderline" in fmt:
+                rh["underline"] = bool(fmt["rowHeaderUnderline"])
             if "rowHeaderAlignment" in fmt:
                 rh["alignment"] = fmt["rowHeaderAlignment"]
             if "rowHeaderStepped" in fmt:
@@ -287,8 +301,17 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             if "columnSubtotals" in fmt:
                 st["columnSubtotals"] = bool(fmt["columnSubtotals"])
             _set(st, "backColor", _fill(fmt.get("subtotalsBackgroundColor", "")))
+            _set(st, "fontColor", _fill(fmt.get("subtotalsTextColor", "")))
+            if "subtotalsFontSize" in fmt:
+                st["fontSize"] = fmt["subtotalsFontSize"]
             if "subtotalsFontBold" in fmt:
                 st["bold"] = bool(fmt["subtotalsFontBold"])
+            if "subtotalsItalic" in fmt:
+                st["italic"] = bool(fmt["subtotalsItalic"])
+            if "subtotalsUnderline" in fmt:
+                st["underline"] = bool(fmt["subtotalsUnderline"])
+            if fmt.get("subtotalsFontFamily"):
+                st["fontFamily"] = fmt["subtotalsFontFamily"]
         # valuesAlignment / cellPadding have no clean global card and are omitted.
 
     # ---- Card ---- #
@@ -607,6 +630,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "gridOutlineColor", _hex(grid, "outlineColor"))
         if "outlineWeight" in grid:
             fmt["gridOutlineWeight"] = grid["outlineWeight"]
+        if "textSize" in grid:
+            fmt["gridTextSize"] = grid["textSize"]
         ch = c("columnHeaders")
         _put(fmt, "columnHeaderBackgroundColor", _hex(ch, "backColor"))
         _put(fmt, "columnHeaderTextColor", _hex(ch, "fontColor"))
@@ -616,6 +641,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["columnHeaderFontBold"] = bool(ch["bold"])
         if "italic" in ch:
             fmt["columnHeaderItalic"] = bool(ch["italic"])
+        if "underline" in ch:
+            fmt["columnHeaderUnderline"] = bool(ch["underline"])
         if "alignment" in ch:
             fmt["columnHeaderAlignment"] = ch["alignment"]
         if "fontFamily" in ch:
@@ -626,8 +653,12 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "valuesTextColor", _hex(vals, "fontColor"))
         if "fontSize" in vals:
             fmt["valuesFontSize"] = vals["fontSize"]
+        if "bold" in vals:
+            fmt["valuesFontBold"] = bool(vals["bold"])
         if "italic" in vals:
             fmt["valuesItalic"] = bool(vals["italic"])
+        if "underline" in vals:
+            fmt["valuesUnderline"] = bool(vals["underline"])
         if "fontFamily" in vals:
             fmt["valuesFontFamily"] = vals["fontFamily"]
         if "wordWrap" in vals:
@@ -643,10 +674,14 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["showTotals"] = bool(tot["totals"])
         _put(fmt, "totalsBackgroundColor", _hex(tot, "backColor"))
         _put(fmt, "totalsTextColor", _hex(tot, "fontColor"))
+        if "fontSize" in tot:
+            fmt["totalsFontSize"] = tot["fontSize"]
         if "bold" in tot:
             fmt["totalsFontBold"] = bool(tot["bold"])
         if "italic" in tot:
             fmt["totalsItalic"] = bool(tot["italic"])
+        if "underline" in tot:
+            fmt["totalsUnderline"] = bool(tot["underline"])
         if "fontFamily" in tot:
             fmt["totalsFontFamily"] = tot["fontFamily"]
         if app_key in _MATRIX:
@@ -659,6 +694,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
                 fmt["rowHeaderFontBold"] = bool(rh["bold"])
             if "italic" in rh:
                 fmt["rowHeaderItalic"] = bool(rh["italic"])
+            if "underline" in rh:
+                fmt["rowHeaderUnderline"] = bool(rh["underline"])
             if "alignment" in rh:
                 fmt["rowHeaderAlignment"] = rh["alignment"]
             if "stepped" in rh:
@@ -671,8 +708,17 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             if "columnSubtotals" in st:
                 fmt["columnSubtotals"] = bool(st["columnSubtotals"])
             _put(fmt, "subtotalsBackgroundColor", _hex(st, "backColor"))
+            _put(fmt, "subtotalsTextColor", _hex(st, "fontColor"))
+            if "fontSize" in st:
+                fmt["subtotalsFontSize"] = st["fontSize"]
             if "bold" in st:
                 fmt["subtotalsFontBold"] = bool(st["bold"])
+            if "italic" in st:
+                fmt["subtotalsItalic"] = bool(st["italic"])
+            if "underline" in st:
+                fmt["subtotalsUnderline"] = bool(st["underline"])
+            if "fontFamily" in st:
+                fmt["subtotalsFontFamily"] = st["fontFamily"]
 
     elif app_key in _CARD | _MULTIROW:
         value_card = c("dataLabels") if app_key in _MULTIROW else c("labels")

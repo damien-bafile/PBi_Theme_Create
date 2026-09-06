@@ -1071,6 +1071,7 @@ def generate_table_svg(
     rh_size = int(_num(formatting, "rowHeaderFontSize", 11))
     rh_bold = _flag(formatting, "rowHeaderFontBold", False)
     rh_italic = _flag(formatting, "rowHeaderItalic", False)
+    rh_underline = _flag(formatting, "rowHeaderUnderline", False)
     rh_align = _txt(formatting, "rowHeaderAlignment", "Left")
     rh_stepped = _flag(formatting, "rowHeaderStepped", True)
 
@@ -1082,12 +1083,15 @@ def generate_table_svg(
     ch_size = int(_num(formatting, "columnHeaderFontSize", 12))
     ch_bold = _flag(formatting, "columnHeaderFontBold", True)
     ch_italic = _flag(formatting, "columnHeaderItalic", False)
+    ch_underline = _flag(formatting, "columnHeaderUnderline", False)
     ch_align = _txt(formatting, "columnHeaderAlignment", "Left")
 
     v_bg = _col(formatting, "valuesBackgroundColor", theme.background)
     v_fg = _col(formatting, "valuesTextColor", fg)
     v_size = int(_num(formatting, "valuesFontSize", 11))
+    v_bold = _flag(formatting, "valuesFontBold", False)
     v_italic = _flag(formatting, "valuesItalic", False)
+    v_underline = _flag(formatting, "valuesUnderline", False)
     v_align = _txt(formatting, "valuesAlignment", "Left")
     padding = _num(formatting, "cellPadding", 6)
     banded = _flag(formatting, "bandedRows", False)
@@ -1096,12 +1100,18 @@ def generate_table_svg(
     show_totals = _flag(formatting, "showTotals", True)
     tot_bg = _col(formatting, "totalsBackgroundColor", "#E8E8E8")
     tot_fg = _col(formatting, "totalsTextColor", "#000000")
+    tot_size = int(_num(formatting, "totalsFontSize", 12))
     tot_bold = _flag(formatting, "totalsFontBold", True)
     tot_italic = _flag(formatting, "totalsItalic", False)
+    tot_underline = _flag(formatting, "totalsUnderline", False)
 
     show_sub = _flag(formatting, "showSubtotals", True)
     sub_bg = _col(formatting, "subtotalsBackgroundColor", "#F0F0F0")
+    sub_fg = _col(formatting, "subtotalsTextColor", fg)
+    sub_size = int(_num(formatting, "subtotalsFontSize", 11))
     sub_bold = _flag(formatting, "subtotalsFontBold", True)
+    sub_italic = _flag(formatting, "subtotalsItalic", False)
+    sub_underline = _flag(formatting, "subtotalsUnderline", False)
 
     def anchor(a: str) -> Tuple[str, float]:
         return {"Left": ("start", 0.08), "Center": ("middle", 0.5), "Right": ("end", 0.92)}.get(
@@ -1128,12 +1138,14 @@ def generate_table_svg(
     header_h = max(18, ch_size + padding * 2)
     y = top
 
-    def draw_row(vals, bg, text_color, size, bold, align, is_header=False, indent=0, italic=False):
+    def draw_row(vals, bg, text_color, size, bold, align, is_header=False, indent=0,
+                 italic=False, underline=False):
         nonlocal y
         h = header_h if is_header else row_h
         parts.append(f'<rect x="0" y="{y:.1f}" width="{width}" height="{h:.1f}" fill="{bg}" opacity="0.55"/>')
         weight = "bold" if bold else "normal"
         style = ' font-style="italic"' if italic else ""
+        deco = ' text-decoration="underline"' if underline else ""
         for ci, cell in enumerate(vals):
             if cell == "":
                 continue
@@ -1142,9 +1154,10 @@ def generate_table_svg(
                 anc, fx = anchor(rh_align)
                 tx = col_w * ci + col_w * fx + (indent if anc == "start" else 0)
                 rh_style = ' font-style="italic"' if rh_italic else ""
+                rh_deco = ' text-decoration="underline"' if rh_underline else ""
                 parts.append(
                     f'<text x="{tx:.1f}" y="{y + h * 0.66:.1f}" font-size="{rh_size}" '
-                    f'fill="{rh_fg}" font-weight="{"bold" if rh_bold else "normal"}"{rh_style} '
+                    f'fill="{rh_fg}" font-weight="{"bold" if rh_bold else "normal"}"{rh_style}{rh_deco} '
                     f'text-anchor="{anc}">{_esc(cell)}</text>'
                 )
                 continue
@@ -1152,7 +1165,7 @@ def generate_table_svg(
             tx = col_w * ci + col_w * fx
             parts.append(
                 f'<text x="{tx:.1f}" y="{y + h * 0.66:.1f}" font-size="{size}" fill="{text_color}" '
-                f'font-weight="{weight}"{style} text-anchor="{anc}">{_esc(cell)}</text>'
+                f'font-weight="{weight}"{style}{deco} text-anchor="{anc}">{_esc(cell)}</text>'
             )
         # gridline under the row
         if grid_style != "None":
@@ -1165,7 +1178,7 @@ def generate_table_svg(
 
     # Header row (row-header bg tints the first cell area).
     parts.append(f'<rect x="0" y="{y:.1f}" width="{col_w:.1f}" height="{header_h:.1f}" fill="{rh_bg}" opacity="0.7"/>')
-    draw_row(cols, ch_bg, ch_fg, ch_size, ch_bold, ch_align, is_header=True, italic=ch_italic)
+    draw_row(cols, ch_bg, ch_fg, ch_size, ch_bold, ch_align, is_header=True, italic=ch_italic, underline=ch_underline)
 
     data_row = 0
 
@@ -1179,13 +1192,13 @@ def generate_table_svg(
     # A stepped layout indents child rows beneath their subtotal.
     step = 10 if rh_stepped else 0
     for row in body:
-        draw_row(row, value_bg(), v_fg, v_size, False, v_align, indent=step, italic=v_italic)
+        draw_row(row, value_bg(), v_fg, v_size, v_bold, v_align, indent=step, italic=v_italic, underline=v_underline)
     if show_sub:
-        draw_row(sub_row, sub_bg, v_fg, v_size, sub_bold, v_align, italic=v_italic)
+        draw_row(sub_row, sub_bg, sub_fg, sub_size, sub_bold, v_align, italic=sub_italic, underline=sub_underline)
     for row in data2:
-        draw_row(row, value_bg(), v_fg, v_size, False, v_align, indent=step, italic=v_italic)
+        draw_row(row, value_bg(), v_fg, v_size, v_bold, v_align, indent=step, italic=v_italic, underline=v_underline)
     if show_totals:
-        draw_row(tot_row, tot_bg, tot_fg, v_size, tot_bold, v_align, italic=tot_italic)
+        draw_row(tot_row, tot_bg, tot_fg, tot_size, tot_bold, v_align, italic=tot_italic, underline=tot_underline)
 
     # Outer grid outline.
     if grid_outline_weight > 0:
