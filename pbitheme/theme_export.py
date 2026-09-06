@@ -19,9 +19,9 @@ differ: Matrix -> ``pivotTable`` and Table -> ``tableEx``.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
-from .model import _solid_color, is_valid_hex
+from .model import _solid_color, _first, _extract_solid_color, is_valid_hex
 
 # App visual key -> Power BI visualStyles visual name (only where they differ).
 VISUAL_NAME_MAP = {
@@ -373,4 +373,264 @@ def build_visual_styles(visual_styles: Dict[str, Any]) -> Dict[str, Any]:
                 out_presets[preset_name] = cards
         if not out_presets:
             result.pop(pbi_name, None)
+    return result
+
+
+# --------------------------------------------------------------------------- #
+# Import: real Power BI cards -> the app's internal formatting
+# --------------------------------------------------------------------------- #
+INVERSE_NAME_MAP = {pbi: app for app, pbi in VISUAL_NAME_MAP.items()}
+_GRIDLINE_STYLE_INV = {v: k for k, v in _GRIDLINE_STYLE.items()}
+
+
+def _hex(card: Dict[str, Any], prop: str) -> str | None:
+    return _extract_solid_color(card.get(prop), "#000000") if prop in card else None
+
+
+def _put(fmt: Dict[str, Any], key: str, value: Any) -> None:
+    if value is not None:
+        fmt[key] = value
+
+
+def _axis_gridlines_inv(fmt: Dict[str, Any], c: Dict[str, Any]) -> None:
+    if "gridlineShow" in c and not c["gridlineShow"]:
+        fmt["gridlineStyle"] = "None"
+    elif "gridlineStyle" in c:
+        fmt["gridlineStyle"] = _GRIDLINE_STYLE_INV.get(c["gridlineStyle"], "Solid")
+    elif c.get("gridlineShow"):
+        fmt["gridlineStyle"] = "Solid"
+    _put(fmt, "gridlineColor", _hex(c, "gridlineColor"))
+    if "gridlineThickness" in c:
+        fmt["gridlineThickness"] = c["gridlineThickness"]
+
+
+# Per-family sets of cards that reconstruct the flat `formatting` dict (and are
+# therefore removed from the passed-through cards). Everything else -- title,
+# dropShadow, visualHeader, padding, and background/border except on cards --
+# stays as a real card the generic-override section reads.
+def _consumed_cards(app_key: str) -> set:
+    if app_key in _CARTESIAN | _SCATTER:
+        return {"categoryAxis", "valueAxis", "legend", "labels", "categoryLabels", "dataPoint"}
+    if app_key in _PIE | _TREEMAP:
+        return {"legend", "labels"}
+    if app_key in _FUNNEL:
+        return {"dataPoint", "labels"}
+    if app_key in _GAUGE:
+        return {"axis", "dataPoint", "target", "calloutValue"}
+    if app_key in _TABLE_PLAIN | _MATRIX:
+        return {"grid", "columnHeaders", "values", "total", "rowHeaders", "subTotals"}
+    if app_key in _CARD:
+        return {"labels", "categoryLabels", "background", "border"}
+    if app_key in _MULTIROW:
+        return {"dataLabels", "categoryLabels", "background", "border"}
+    if app_key in _KPI:
+        return {"indicator", "goals", "trendline", "status"}
+    if app_key in _SLICER:
+        return {"header", "items"}
+    return set()
+
+
+def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
+    """Reconstruct the flat ``formatting`` dict from real Power BI cards."""
+    fmt: Dict[str, Any] = {}
+
+    def c(name: str) -> Dict[str, Any]:
+        return _first(cards.get(name, []))
+
+    if app_key in _CARTESIAN | _SCATTER:
+        cat = c("categoryAxis")
+        _put(fmt, "xAxisLabelColor", _hex(cat, "labelColor"))
+        if "fontSize" in cat:
+            fmt["xAxisLabelFontSize"] = cat["fontSize"]
+        _put(fmt, "xAxisTitleColor", _hex(cat, "titleColor"))
+        if "titleFontSize" in cat:
+            fmt["xAxisTitleFontSize"] = cat["titleFontSize"]
+        val = c("valueAxis")
+        _put(fmt, "yAxisLabelColor", _hex(val, "labelColor"))
+        if "fontSize" in val:
+            fmt["yAxisLabelFontSize"] = val["fontSize"]
+        _put(fmt, "yAxisTitleColor", _hex(val, "titleColor"))
+        if "titleFontSize" in val:
+            fmt["yAxisTitleFontSize"] = val["titleFontSize"]
+        _axis_gridlines_inv(fmt, val)
+        leg = c("legend")
+        if "position" in leg:
+            fmt["legendPosition"] = leg["position"]
+        _put(fmt, "legendTextColor", _hex(leg, "labelColor"))
+        if "fontSize" in leg:
+            fmt["legendFontSize"] = leg["fontSize"]
+        lab = c("categoryLabels") if app_key in _SCATTER else c("labels")
+        _put(fmt, "dataLabelColor", _hex(lab, "color"))
+        if "fontSize" in lab:
+            fmt["dataLabelFontSize"] = lab["fontSize"]
+        if "enableBackground" in lab:
+            fmt["dataLabelBackground"] = bool(lab["enableBackground"])
+        _put(fmt, "defaultColor", _hex(c("dataPoint"), "defaultColor"))
+
+    elif app_key in _PIE | _TREEMAP:
+        leg = c("legend")
+        if "position" in leg:
+            fmt["legendPosition"] = leg["position"]
+        _put(fmt, "legendTextColor", _hex(leg, "labelColor"))
+        if "fontSize" in leg:
+            fmt["legendFontSize"] = leg["fontSize"]
+        lab = c("labels")
+        if "show" in lab:
+            fmt["showDataLabels"] = bool(lab["show"])
+        _put(fmt, "dataLabelColor", _hex(lab, "color"))
+        if "fontSize" in lab:
+            fmt["dataLabelFontSize"] = lab["fontSize"]
+
+    elif app_key in _FUNNEL:
+        _put(fmt, "barColor", _hex(c("dataPoint"), "defaultColor"))
+        lab = c("labels")
+        if "show" in lab:
+            fmt["showDataLabels"] = bool(lab["show"])
+        _put(fmt, "dataLabelColor", _hex(lab, "color"))
+        if "fontSize" in lab:
+            fmt["dataLabelFontSize"] = lab["fontSize"]
+
+    elif app_key in _GAUGE:
+        ax = c("axis")
+        for src, dst in (("min", "minValue"), ("max", "maxValue"), ("target", "targetValue")):
+            if src in ax:
+                fmt[dst] = ax[src]
+        _put(fmt, "fillColor", _hex(c("dataPoint"), "fill"))
+        _put(fmt, "targetColor", _hex(c("target"), "color"))
+        co = c("calloutValue")
+        if "show" in co:
+            fmt["showCallout"] = bool(co["show"])
+        _put(fmt, "calloutColor", _hex(co, "color"))
+
+    elif app_key in _TABLE_PLAIN | _MATRIX:
+        grid = c("grid")
+        if "gridHorizontal" in grid:
+            fmt["gridlineStyle"] = "Solid" if grid["gridHorizontal"] else "None"
+        _put(fmt, "gridlineColor", _hex(grid, "gridHorizontalColor"))
+        if "gridHorizontalWeight" in grid:
+            fmt["gridlineThickness"] = grid["gridHorizontalWeight"]
+        if "rowPadding" in grid:
+            fmt["rowSpacing"] = grid["rowPadding"]
+        ch = c("columnHeaders")
+        _put(fmt, "columnHeaderBackgroundColor", _hex(ch, "backColor"))
+        _put(fmt, "columnHeaderTextColor", _hex(ch, "fontColor"))
+        if "fontSize" in ch:
+            fmt["columnHeaderFontSize"] = ch["fontSize"]
+        if "bold" in ch:
+            fmt["columnHeaderFontBold"] = bool(ch["bold"])
+        if "alignment" in ch:
+            fmt["columnHeaderAlignment"] = ch["alignment"]
+        vals = c("values")
+        _put(fmt, "valuesBackgroundColor", _hex(vals, "backColor"))
+        _put(fmt, "valuesTextColor", _hex(vals, "fontColor"))
+        if "fontSize" in vals:
+            fmt["valuesFontSize"] = vals["fontSize"]
+        tot = c("total")
+        if "totals" in tot:
+            fmt["showTotals"] = bool(tot["totals"])
+        _put(fmt, "totalsBackgroundColor", _hex(tot, "backColor"))
+        _put(fmt, "totalsTextColor", _hex(tot, "fontColor"))
+        if "bold" in tot:
+            fmt["totalsFontBold"] = bool(tot["bold"])
+        if app_key in _MATRIX:
+            rh = c("rowHeaders")
+            _put(fmt, "rowHeaderBackgroundColor", _hex(rh, "backColor"))
+            _put(fmt, "rowHeaderTextColor", _hex(rh, "fontColor"))
+            if "fontSize" in rh:
+                fmt["rowHeaderFontSize"] = rh["fontSize"]
+            if "bold" in rh:
+                fmt["rowHeaderFontBold"] = bool(rh["bold"])
+            st = c("subTotals")
+            if "rowSubtotals" in st:
+                fmt["showSubtotals"] = bool(st["rowSubtotals"])
+            _put(fmt, "subtotalsBackgroundColor", _hex(st, "backColor"))
+            if "bold" in st:
+                fmt["subtotalsFontBold"] = bool(st["bold"])
+
+    elif app_key in _CARD | _MULTIROW:
+        value_card = c("dataLabels") if app_key in _MULTIROW else c("labels")
+        _put(fmt, "valueColor", _hex(value_card, "color"))
+        if "fontSize" in value_card:
+            fmt["valueFontSize"] = value_card["fontSize"]
+        if "bold" in value_card:
+            fmt["valueFontBold"] = bool(value_card["bold"])
+        cl = c("categoryLabels")
+        _put(fmt, "labelColor", _hex(cl, "color"))
+        if "fontSize" in cl:
+            fmt["labelFontSize"] = cl["fontSize"]
+        _put(fmt, "backgroundColor", _hex(c("background"), "color"))
+        border = c("border")
+        if "show" in border:
+            fmt["backgroundBorder"] = bool(border["show"])
+
+    elif app_key in _KPI:
+        ind = c("indicator")
+        _put(fmt, "indicatorFontColor", _hex(ind, "fontColor"))
+        if "fontSize" in ind:
+            fmt["indicatorFontSize"] = ind["fontSize"]
+        if "bold" in ind:
+            fmt["indicatorBold"] = bool(ind["bold"])
+        goals = c("goals")
+        if "showGoal" in goals:
+            fmt["showGoal"] = bool(goals["showGoal"])
+        _put(fmt, "goalFontColor", _hex(goals, "goalFontColor"))
+        if "fontSize" in goals:
+            fmt["goalFontSize"] = goals["fontSize"]
+        tl = c("trendline")
+        if "show" in tl:
+            fmt["trendlineShow"] = bool(tl["show"])
+        status = c("status")
+        _put(fmt, "statusGoodColor", _hex(status, "goodColor"))
+        _put(fmt, "statusBadColor", _hex(status, "badColor"))
+
+    elif app_key in _SLICER:
+        hdr = c("header")
+        if "show" in hdr:
+            fmt["headerShow"] = bool(hdr["show"])
+        _put(fmt, "headerFontColor", _hex(hdr, "fontColor"))
+        _put(fmt, "headerBackground", _hex(hdr, "background"))
+        if "textSize" in hdr:
+            fmt["headerTextSize"] = hdr["textSize"]
+        if "bold" in hdr:
+            fmt["headerBold"] = bool(hdr["bold"])
+        it = c("items")
+        _put(fmt, "itemsFontColor", _hex(it, "fontColor"))
+        _put(fmt, "itemsBackground", _hex(it, "background"))
+        if "textSize" in it:
+            fmt["itemsTextSize"] = it["textSize"]
+        if "bold" in it:
+            fmt["itemsBold"] = bool(it["bold"])
+
+    return fmt
+
+
+def import_visual_styles(raw_visual_styles: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert a Power BI ``visualStyles`` dict into the app's internal form.
+
+    Inverse of :func:`build_visual_styles`: real cards for a customizable visual
+    are reconstructed into a flat ``formatting`` block (so the editor's formatter
+    panel repopulates), while generic cards (title, background, border, drop
+    shadow, visual header, padding) pass through for the generic-override section.
+    Power BI visual names are mapped back (pivotTable -> matrix, tableEx -> table).
+    """
+    from .gui.visual_formatting_config import is_visual_customizable
+
+    result: Dict[str, Any] = {}
+    for pbi_name, presets in (raw_visual_styles or {}).items():
+        app_key = INVERSE_NAME_MAP.get(pbi_name, pbi_name)
+        out: Dict[str, Any] = {}
+        for preset_name, cards in (presets or {}).items():
+            if not isinstance(cards, dict):
+                out[preset_name] = cards
+                continue
+            if is_visual_customizable(app_key):
+                consumed = _consumed_cards(app_key)
+                style = {name: val for name, val in cards.items() if name not in consumed}
+                fmt = _cards_to_formatting(app_key, cards)
+                if fmt:
+                    style["formatting"] = fmt
+                out[preset_name] = style
+            else:
+                out[preset_name] = dict(cards)
+        result[app_key] = out
     return result

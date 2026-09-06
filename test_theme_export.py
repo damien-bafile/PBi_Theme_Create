@@ -16,7 +16,7 @@ import sys
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from pbitheme.model import PowerBITheme
-from pbitheme.theme_export import build_visual_styles
+from pbitheme.theme_export import build_visual_styles, import_visual_styles
 
 
 def _style(formatting=None, **cards):
@@ -115,6 +115,29 @@ def main() -> int:
     td = theme.to_dict()
     check(td.get("secondLevelElements") == "#AAAAAA", "secondLevelElements not exported")
     check(td.get("maximum") == "#BBBBBB", "maximum gradient not exported")
+
+    # 7) Round-trip: real cards import back into the formatter, and re-export is stable.
+    original = {
+        "barChart": {"*": {"formatting": {
+            "xAxisLabelColor": "#FF0000", "gridlineStyle": "Dashed",
+            "gridlineColor": "#00FF00", "legendPosition": "Bottom", "dataLabelFontSize": 12,
+        }}},
+        "matrix": {"*": {"formatting": {
+            "columnHeaderBackgroundColor": "#112233", "showSubtotals": True,
+            "rowHeaderTextColor": "#445566",
+        }}},
+    }
+    exported = build_visual_styles(original)          # -> real Power BI cards
+    imported = import_visual_styles(exported)          # -> back to internal form
+    bar_fmt = imported.get("barChart", {}).get("*", {}).get("formatting", {})
+    check(bar_fmt.get("xAxisLabelColor") == "#FF0000", "round-trip lost xAxisLabelColor")
+    check(bar_fmt.get("gridlineStyle") == "Dashed", "round-trip lost/garbled gridlineStyle")
+    check(bar_fmt.get("legendPosition") == "Bottom", "round-trip lost legendPosition")
+    # Matrix (pivotTable) maps back to the 'matrix' key with its formatting intact.
+    check("matrix" in imported, "pivotTable did not map back to matrix on import")
+    mat_fmt = imported.get("matrix", {}).get("*", {}).get("formatting", {})
+    check(mat_fmt.get("showSubtotals") is True, "round-trip lost showSubtotals")
+    check(mat_fmt.get("rowHeaderTextColor") == "#445566", "round-trip lost rowHeaderTextColor")
 
     print(f"Export invariants checked. Failures: {len(failures)}")
     if failures:

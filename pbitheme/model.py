@@ -234,7 +234,10 @@ class PowerBITheme:
             }
 
         if isinstance(data.get("visualStyles"), dict):
-            theme.visual_styles = data["visualStyles"]
+            # Convert real Power BI cards back into the app's internal form so the
+            # editor's per-visual formatter repopulates on open/import.
+            from .theme_export import import_visual_styles
+            theme.visual_styles = import_visual_styles(data["visualStyles"])
 
         return theme
 
