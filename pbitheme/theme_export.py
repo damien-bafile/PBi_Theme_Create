@@ -109,6 +109,11 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             val["showAxisTitle"] = True
         if "yAxisLogScale" in fmt:
             val["logAxisScale"] = bool(fmt["yAxisLogScale"])
+        if fmt.get("yAxisSetRange"):
+            if "yAxisStart" in fmt:
+                val["start"] = fmt["yAxisStart"]
+            if "yAxisEnd" in fmt:
+                val["end"] = fmt["yAxisEnd"]
         _axis_gridlines(val, fmt)
 
         leg = card("legend")
@@ -137,6 +142,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
                 lab["labelDisplayUnits"] = int(fmt["dataLabelDisplayUnits"])
             if "dataLabelPrecision" in fmt:
                 lab["labelPrecision"] = int(fmt["dataLabelPrecision"])
+            if fmt.get("dataLabelPosition") and fmt["dataLabelPosition"] != "Auto":
+                lab["labelPosition"] = fmt["dataLabelPosition"]
         # Drop an empty card so we don't emit `[{}]`.
         if not lab:
             cards.pop(label_card, None)
@@ -480,6 +487,12 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["yAxisTitleText"] = val["titleText"]
         if "logAxisScale" in val:
             fmt["yAxisLogScale"] = bool(val["logAxisScale"])
+        if "start" in val or "end" in val:
+            fmt["yAxisSetRange"] = True
+            if "start" in val:
+                fmt["yAxisStart"] = val["start"]
+            if "end" in val:
+                fmt["yAxisEnd"] = val["end"]
         _axis_gridlines_inv(fmt, val)
         leg = c("legend")
         if "position" in leg:
@@ -501,6 +514,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["dataLabelDisplayUnits"] = str(lab["labelDisplayUnits"])
         if "labelPrecision" in lab:
             fmt["dataLabelPrecision"] = lab["labelPrecision"]
+        if "labelPosition" in lab:
+            fmt["dataLabelPosition"] = lab["labelPosition"]
         _put(fmt, "defaultColor", _hex(c("dataPoint"), "defaultColor"))
 
     elif app_key in _PIE | _TREEMAP:

@@ -273,6 +273,9 @@ def _data_label(x: float, y: float, text: Any, formatting: Dict[str, Any],
     with_bg = with_bg or _flag(formatting, "dataLabelBackground", False)
     if isinstance(text, (int, float)) and not isinstance(text, bool):
         text = _format_measure(text, formatting)
+    # A non-default label position nudges the label relative to the mark.
+    y += {"OutsideEnd": -4, "InsideEnd": size + 3, "InsideCenter": size + 12,
+          "InsideBase": size + 22, "Under": size + 6}.get(_txt(formatting, "dataLabelPosition", "Auto"), 0)
     parts: List[str] = []
     if with_bg:
         parts.append(
@@ -371,9 +374,27 @@ def _chart_base(
     # ---- Y-axis labels + title ---- #
     y_lab_color = _col(formatting, "yAxisLabelColor", fg)
     y_lab_size = int(_num(formatting, "yAxisLabelFontSize", 8))
-    # A log scale relabels the ticks (1 / 10 / 100) instead of a linear 0 / 50 / 100.
-    y_ticks = ((0.0, "1"), (0.5, "10"), (1.0, "100")) if _flag(formatting, "yAxisLogScale", False) \
-        else ((0.0, "0"), (0.5, "50"), (1.0, "100"))
+
+    def _tick(v):
+        return f"{v:.0f}" if float(v).is_integer() else f"{v:.1f}"
+
+    if _flag(formatting, "yAxisSetRange", False):
+        # A fixed range relabels the ticks to start / mid / end and caps the axis.
+        rs = _num(formatting, "yAxisStart", 0)
+        re = _num(formatting, "yAxisEnd", 100)
+        y_ticks = ((0.0, _tick(rs)), (0.5, _tick((rs + re) / 2)), (1.0, _tick(re)))
+        for cap_y in (plot_t, plot_b):
+            parts.append(f'<line x1="{plot_l - 3}" y1="{cap_y:.1f}" x2="{plot_l + 3}" y2="{cap_y:.1f}" stroke="{fg}" stroke-width="1.5"/>')
+    elif _flag(formatting, "yAxisLogScale", False):
+        # A log scale relabels the ticks (1 / 10 / 100).
+        y_ticks = ((0.0, "1"), (0.5, "10"), (1.0, "100"))
+    else:
+        y_ticks = ((0.0, "0"), (0.5, "50"), (1.0, "100"))
+    if _flag(formatting, "yAxisLogScale", False):
+        # Faint minor gridlines mark the compressed log decades (shown regardless of range).
+        for frac in (0.15, 0.30, 0.70, 0.85):
+            gy = plot_b - frac * (plot_b - plot_t)
+            parts.append(f'<line x1="{plot_l}" y1="{gy:.1f}" x2="{plot_r}" y2="{gy:.1f}" stroke="{fg}" stroke-width="0.4" stroke-dasharray="1,2" opacity="0.4"/>')
     for frac, val in y_ticks:
         gy = plot_b - frac * (plot_b - plot_t)
         parts.append(

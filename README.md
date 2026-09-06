@@ -71,12 +71,12 @@ can still be set through the **Advanced JSON** tab and exports validly.
   visual header, padding); data-point default colour; gauge / KPI / slicer / card
   specifics; named style presets; bespoke SVG previews for every visual; valid
   card export **and** reverse-translate import (round-trip).
-- **Stage 2 — Axis & label depth + subtitle — ◐ in progress.** Done: axis
-  **title text**, value-axis **log scale**, data-label **display units** &
-  **decimal precision**, **legend title** (show + text), and a **subtitle**
-  generic override (all visuals). Deferred within this stage: axis range
-  (start / end), data-label position / orientation. (`plotArea` offers only an
-  image + transparency — no fill colour — so it is intentionally skipped.)
+- **Stage 2 — Axis & label depth + subtitle — ✅ complete.** Axis **title
+  text**, value-axis **log scale** and **fixed range** (start / end), data-label
+  **display units**, **decimal precision** and **position**, **legend title**
+  (show + text), and a **subtitle** generic override (all visuals). (Data-label
+  *orientation* is column/bar-only in the schema, and `plotArea` offers only an
+  image + transparency — no fill colour — so both are intentionally skipped.)
 - **Stage 3 — Table & matrix depth — ☐.** Built-in table `stylePreset`,
   `columnFormatting` (per-column colour / alignment / data bars), `columnWidth`,
   column / row totals (matrix), blank rows, sparklines, word wrap.

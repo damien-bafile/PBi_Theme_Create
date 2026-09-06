@@ -90,6 +90,8 @@ def main() -> int:
             panel.set_values({"bandedRows": True})
         if "legendShowTitle" in panel._field_widgets:
             panel.set_values({"legendShowTitle": True})
+        if "yAxisSetRange" in panel._field_widgets:
+            panel.set_values({"yAxisSetRange": True})
         cap = _instrument(dlg)
 
         # --- Formatting fields ---

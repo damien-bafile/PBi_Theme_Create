@@ -112,6 +112,9 @@ CHART_SECTIONS = [
         [
             FormatField("yAxisTitleText", "Title Text", "text", default=""),
             FormatField("yAxisLogScale", "Log Scale", "boolean", default=False),
+            FormatField("yAxisSetRange", "Fixed Range", "boolean", default=False),
+            FormatField("yAxisStart", "Range Start", "number", min_val=0, max_val=100000, default=0),
+            FormatField("yAxisEnd", "Range End", "number", min_val=1, max_val=100000, default=100),
             FormatField("yAxisLabelColor", "Label Color", "color", default="#252423"),
             FormatField("yAxisLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
             FormatField("yAxisTitleColor", "Title Color", "color", default="#252423"),
@@ -137,6 +140,9 @@ CHART_SECTIONS = [
                        options=[("1", "None"), ("1000", "Thousands"), ("1000000", "Millions"),
                                 ("1000000000", "Billions")]),
             FormatField("dataLabelPrecision", "Decimal Places", "number", min_val=0, max_val=4),
+            FormatField("dataLabelPosition", "Position", "dropdown",
+                       options=[("Auto", "Auto"), ("OutsideEnd", "Outside End"), ("InsideEnd", "Inside End"),
+                                ("InsideCenter", "Inside Center"), ("InsideBase", "Inside Base")]),
         ],
     ),
     FormatSection(
