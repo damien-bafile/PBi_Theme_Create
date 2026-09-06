@@ -167,6 +167,92 @@ CARD_KPI_SECTIONS = [
     ),
 ]
 
+# Pie / Donut -- no cartesian axes or gridlines; legend + slice data labels.
+PIE_SECTIONS = [
+    FormatSection(
+        "Legend",
+        [
+            FormatField("legendPosition", "Position", "dropdown",
+                       options=[("Top", "Top"), ("Bottom", "Bottom"), ("Left", "Left"), ("Right", "Right")]),
+            FormatField("legendTextColor", "Text Color", "color", default="#252423"),
+            FormatField("legendFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
+        ],
+    ),
+    FormatSection(
+        "Data Labels",
+        [
+            FormatField("showDataLabels", "Show Labels", "boolean", default=True),
+            FormatField("dataLabelColor", "Color", "color", default="#FFFFFF"),
+            FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=6, max_val=16, suffix="pt"),
+        ],
+    ),
+]
+
+# Gauge -- radial: min/max scale, fill & target colours, callout value.
+GAUGE_SECTIONS = [
+    FormatSection(
+        "Axis",
+        [
+            FormatField("minValue", "Minimum", "number", min_val=0, max_val=1000, default=0),
+            FormatField("maxValue", "Maximum", "number", min_val=1, max_val=1000, default=100),
+        ],
+    ),
+    FormatSection(
+        "Colors",
+        [
+            FormatField("fillColor", "Fill Color", "color", default="#118DFF"),
+            FormatField("targetColor", "Target Color", "color", default="#E66C37"),
+        ],
+    ),
+    FormatSection(
+        "Callout Value",
+        [
+            FormatField("showCallout", "Show Value", "boolean", default=True),
+            FormatField("calloutColor", "Color", "color", default="#252423"),
+            FormatField("calloutFontSize", "Font Size (pt)", "number", min_val=10, max_val=48, suffix="pt"),
+        ],
+    ),
+]
+
+# Treemap -- coloured rectangles; legend + category/value labels.
+TREEMAP_SECTIONS = [
+    FormatSection(
+        "Legend",
+        [
+            FormatField("legendPosition", "Position", "dropdown",
+                       options=[("Top", "Top"), ("Bottom", "Bottom"), ("Left", "Left"), ("Right", "Right")]),
+            FormatField("legendTextColor", "Text Color", "color", default="#252423"),
+            FormatField("legendFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
+        ],
+    ),
+    FormatSection(
+        "Data Labels",
+        [
+            FormatField("showDataLabels", "Show Labels", "boolean", default=True),
+            FormatField("dataLabelColor", "Color", "color", default="#FFFFFF"),
+            FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=6, max_val=16, suffix="pt"),
+        ],
+    ),
+]
+
+# Funnel -- decreasing stages; bar colour + data labels.
+FUNNEL_SECTIONS = [
+    FormatSection(
+        "Bars",
+        [
+            FormatField("barColor", "Bar Color", "color", default="#118DFF"),
+        ],
+    ),
+    FormatSection(
+        "Data Labels",
+        [
+            FormatField("showDataLabels", "Show Labels", "boolean", default=True),
+            FormatField("dataLabelColor", "Color", "color", default="#FFFFFF"),
+            FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=6, max_val=16, suffix="pt"),
+        ],
+    ),
+]
+
 # Map visual types to their formatting sections
 VISUAL_FORMATTING = {
     # Matrix and Table
@@ -187,13 +273,15 @@ VISUAL_FORMATTING = {
     "lineStackedColumnComboChart": CHART_SECTIONS,
     "areaChart": CHART_SECTIONS,
     "scatterChart": CHART_SECTIONS,
-    "pieChart": CHART_SECTIONS,
-    "donutChart": CHART_SECTIONS,
     "ribbonChart": CHART_SECTIONS,
-    "treemap": CHART_SECTIONS,
     "waterfallChart": CHART_SECTIONS,
-    "funnel": CHART_SECTIONS,
-    "gauge": CHART_SECTIONS,
+
+    # Charts without cartesian axes -- their own settings sets
+    "pieChart": PIE_SECTIONS,
+    "donutChart": PIE_SECTIONS,
+    "treemap": TREEMAP_SECTIONS,
+    "funnel": FUNNEL_SECTIONS,
+    "gauge": GAUGE_SECTIONS,
 
     # Cards and KPIs
     "card": CARD_KPI_SECTIONS,

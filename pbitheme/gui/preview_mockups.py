@@ -17,6 +17,7 @@ panel go through it, so what you see always matches what will be saved.
 
 from __future__ import annotations
 
+import math
 from typing import Any, Dict, List, Optional, Tuple
 from xml.sax.saxutils import escape
 
@@ -162,6 +163,57 @@ def _legend_position(formatting: Dict[str, Any], generic: Dict[str, Any]) -> str
     if gleg:
         return gleg.get("position", "Top")
     return _txt(formatting, "legendPosition", "Top")
+
+
+def _series_colors(theme: PowerBITheme, n: int = 3) -> List[str]:
+    colors = list(theme.data_colors[:n]) if theme.data_colors else []
+    if not colors:
+        colors = [theme.table_accent]
+    while len(colors) < n:
+        colors.append(colors[-1])
+    return colors
+
+
+def _data_label(x: float, y: float, text: Any, formatting: Dict[str, Any],
+                generic: Dict[str, Any], with_bg: bool = False) -> List[str]:
+    """A single chart data label honoring generic labels or the chart dataLabel fields."""
+    color = generic["labels"]["color"] if (generic or {}).get("labels") else _col(formatting, "dataLabelColor", "#252423")
+    size = int(generic["labels"]["size"]) if (generic or {}).get("labels") else int(_num(formatting, "dataLabelFontSize", 8))
+    with_bg = with_bg or _flag(formatting, "dataLabelBackground", False)
+    parts: List[str] = []
+    if with_bg:
+        parts.append(
+            f'<rect x="{x - 9:.1f}" y="{y - size:.1f}" width="18" height="{size + 3}" fill="#FFFFFF" opacity="0.7"/>'
+        )
+    parts.append(
+        f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{color}" text-anchor="middle">{_esc(text)}</text>'
+    )
+    return parts
+
+
+def _labels_on(formatting: Dict[str, Any], generic: Dict[str, Any]) -> bool:
+    return bool((generic or {}).get("labels")) or bool((formatting or {}).get("dataLabelColor"))
+
+
+def _pt(cx: float, cy: float, r: float, deg: float) -> Tuple[float, float]:
+    """Point on a circle; 0 deg = right, 90 = top (screen y is flipped)."""
+    a = math.radians(deg)
+    return cx + r * math.cos(a), cy - r * math.sin(a)
+
+
+def _wedge(cx: float, cy: float, r: float, start: float, end: float, color: str,
+           inner: float = 0.0) -> str:
+    """Pie/donut wedge path from start->end degrees (counter-clockwise)."""
+    large = 1 if (end - start) % 360 > 180 else 0
+    x1, y1 = _pt(cx, cy, r, start)
+    x2, y2 = _pt(cx, cy, r, end)
+    if inner <= 0:
+        return (f'<path d="M{cx:.1f},{cy:.1f} L{x1:.1f},{y1:.1f} '
+                f'A{r:.1f},{r:.1f} 0 {large} 0 {x2:.1f},{y2:.1f} Z" fill="{color}"/>')
+    ix1, iy1 = _pt(cx, cy, inner, start)
+    ix2, iy2 = _pt(cx, cy, inner, end)
+    return (f'<path d="M{x1:.1f},{y1:.1f} A{r:.1f},{r:.1f} 0 {large} 0 {x2:.1f},{y2:.1f} '
+            f'L{ix2:.1f},{iy2:.1f} A{inner:.1f},{inner:.1f} 0 {large} 1 {ix1:.1f},{iy1:.1f} Z" fill="{color}"/>')
 
 
 # --------------------------------------------------------------------------- #
@@ -386,6 +438,406 @@ def generate_line_chart_svg(
     return "\n".join(parts)
 
 
+def generate_area_chart_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Line chart with the area under each series filled."""
+    formatting, generic = formatting or {}, generic or {}
+    colors = _series_colors(theme, 3)
+    parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Area Chart")
+    series = [[40, 55, 50, 70, 65, 80], [30, 40, 45, 55, 60, 68], [20, 28, 35, 42, 48, 58]]
+    scale = (pb - pt) / 100.0
+    n = len(series[0])
+    step = (pr - pl) / (n - 1)
+    for si in reversed(range(len(series))):  # back-to-front so fills overlap nicely
+        line = series[si]
+        pts = [(pl + i * step, pb - v * scale) for i, v in enumerate(line)]
+        poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+        area = f"{pl:.1f},{pb:.1f} " + poly + f" {pr:.1f},{pb:.1f}"
+        parts.append(f'<polygon points="{area}" fill="{colors[si]}" opacity="0.35"/>')
+        parts.append(f'<polyline points="{poly}" fill="none" stroke="{colors[si]}" stroke-width="2"/>')
+    if _labels_on(formatting, generic):
+        for i, v in enumerate(series[0]):
+            parts += _data_label(pl + i * step, pb - v * scale - 3, v, formatting, generic)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_combo_chart_svg(theme, formatting=None, generic=None, width=300, height=200,
+                             stacked=False):
+    """Line & column combo: grouped/stacked columns plus a line overlay."""
+    formatting, generic = formatting or {}, generic or {}
+    colors = _series_colors(theme, 3)
+    parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Line & Column")
+    cols = [[55, 35], [70, 45], [50, 60], [80, 55]]  # two column series per category
+    line_vals = [70, 85, 78, 95]
+    span = (pr - pl) / len(cols)
+    scale = (pb - pt) / 120.0
+    bw = span * (0.5 if not stacked else 0.35)
+    for gi, pair in enumerate(cols):
+        cx = pl + span * gi + span * 0.2
+        if stacked:
+            y0 = pb
+            for si, v in enumerate(pair):
+                h = v * scale
+                parts.append(f'<rect x="{cx:.1f}" y="{y0 - h:.1f}" width="{bw:.1f}" height="{h:.1f}" fill="{colors[si]}" opacity="0.9"/>')
+                y0 -= h
+        else:
+            for si, v in enumerate(pair):
+                h = v * scale
+                parts.append(f'<rect x="{cx + si * bw / 2:.1f}" y="{pb - h:.1f}" width="{bw / 2:.1f}" height="{h:.1f}" fill="{colors[si]}" opacity="0.9"/>')
+    lpts = " ".join(f"{pl + span * (i + 0.5):.1f},{pb - v * scale:.1f}" for i, v in enumerate(line_vals))
+    parts.append(f'<polyline points="{lpts}" fill="none" stroke="{colors[2]}" stroke-width="2.5"/>')
+    if _labels_on(formatting, generic):
+        for i, v in enumerate(line_vals):
+            parts += _data_label(pl + span * (i + 0.5), pb - v * scale - 3, v, formatting, generic)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_stacked_chart_svg(theme, formatting=None, generic=None, width=300, height=200,
+                               percent=True):
+    """100% stacked columns: one full-height bar per category split into segments."""
+    formatting, generic = formatting or {}, generic or {}
+    colors = _series_colors(theme, 3)
+    title = "100% Stacked" if percent else "Stacked"
+    parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, title)
+    groups = [[40, 35, 25], [30, 45, 25], [50, 20, 30], [35, 40, 25]]
+    span = (pr - pl) / len(groups)
+    bw = span * 0.55
+    full = pb - pt
+    for gi, vals in enumerate(groups):
+        total = sum(vals) if percent else 100
+        x = pl + span * gi + (span - bw) / 2
+        y0 = pb
+        for si, v in enumerate(vals):
+            h = full * (v / total)
+            parts.append(f'<rect x="{x:.1f}" y="{y0 - h:.1f}" width="{bw:.1f}" height="{h:.1f}" fill="{colors[si]}" opacity="0.9"/>')
+            if _labels_on(formatting, generic):
+                parts += _data_label(x + bw / 2, y0 - h / 2 + 3, f"{round(100 * v / total)}%", formatting, generic)
+            y0 -= h
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_scatter_chart_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Scatter plot: points across the X/Y plane, coloured by series."""
+    formatting, generic = formatting or {}, generic or {}
+    colors = _series_colors(theme, 3)
+    parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Scatter Chart")
+    pts_by_series = [
+        [(0.15, 0.30), (0.30, 0.55), (0.45, 0.40), (0.60, 0.70), (0.80, 0.62)],
+        [(0.20, 0.65), (0.38, 0.35), (0.55, 0.52), (0.70, 0.30), (0.88, 0.45)],
+        [(0.25, 0.20), (0.50, 0.80), (0.65, 0.60), (0.82, 0.78), (0.35, 0.72)],
+    ]
+    labels_on = _labels_on(formatting, generic)
+    for si, pts in enumerate(pts_by_series):
+        for fx, fy in pts:
+            cx = pl + fx * (pr - pl)
+            cy = pb - fy * (pb - pt)
+            parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="4" fill="{colors[si]}" opacity="0.85"/>')
+            if labels_on and si == 0:
+                parts += _data_label(cx, cy - 6, round(fy * 100), formatting, generic)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_waterfall_chart_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Waterfall: floating step bars (increase / decrease / total) with connectors."""
+    formatting, generic = formatting or {}, generic or {}
+    parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Waterfall")
+    steps = [("start", 40), ("inc", 25), ("dec", -15), ("inc", 20), ("total", None)]
+    span = (pr - pl) / len(steps)
+    bw = span * 0.55
+    scale = (pb - pt) / 100.0
+    running = 0
+    prev_top = None
+    for i, (kind, delta) in enumerate(steps):
+        x = pl + span * i + (span - bw) / 2
+        if kind == "total":
+            bottom, top = pb, pb - running * scale
+            color = theme.table_accent
+        else:
+            start = running
+            running += delta
+            lo, hi = min(start, running), max(start, running)
+            bottom, top = pb - lo * scale, pb - hi * scale
+            color = theme.good if (kind == "inc" or kind == "start") else theme.bad
+        parts.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="{bw:.1f}" height="{max(1, bottom - top):.1f}" fill="{color}" opacity="0.9"/>')
+        if prev_top is not None:
+            parts.append(f'<line x1="{x - (span - bw):.1f}" y1="{prev_top:.1f}" x2="{x:.1f}" y2="{prev_top:.1f}" stroke="{theme.foreground}" stroke-width="0.7" stroke-dasharray="2,2"/>')
+        if _labels_on(formatting, generic):
+            val = round(running) if kind != "total" else round(running)
+            parts += _data_label(x + bw / 2, top - 3, val, formatting, generic)
+        prev_top = top
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_ribbon_chart_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Ribbon: stacked columns per category with ribbons connecting categories."""
+    formatting, generic = formatting or {}, generic or {}
+    colors = _series_colors(theme, 3)
+    parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Ribbon Chart")
+    groups = [[40, 30, 25], [25, 45, 30], [35, 25, 40], [30, 40, 30]]
+    span = (pr - pl) / len(groups)
+    bw = span * 0.5
+    full = pb - pt
+    tops = []  # per group: list of (series, y_top, y_bottom)
+    for gi, vals in enumerate(groups):
+        total = sum(vals)
+        x = pl + span * gi + (span - bw) / 2
+        y0 = pb
+        seg = {}
+        for si, v in enumerate(vals):
+            h = full * (v / total)
+            parts.append(f'<rect x="{x:.1f}" y="{y0 - h:.1f}" width="{bw:.1f}" height="{h:.1f}" fill="{colors[si]}" opacity="0.95"/>')
+            if _labels_on(formatting, generic) and si == 0:
+                parts += _data_label(x + bw / 2, y0 - h / 2 + 3, v, formatting, generic)
+            seg[si] = (x, y0 - h, y0)
+            y0 -= h
+        tops.append(seg)
+    # ribbons between adjacent categories
+    for gi in range(len(groups) - 1):
+        for si in range(3):
+            x1, t1, b1 = tops[gi][si]
+            x2, t2, b2 = tops[gi + 1][si]
+            rx1, rx2 = x1 + bw, x2
+            parts.append(
+                f'<path d="M{rx1:.1f},{t1:.1f} C{(rx1 + rx2) / 2:.1f},{t1:.1f} {(rx1 + rx2) / 2:.1f},{t2:.1f} {rx2:.1f},{t2:.1f} '
+                f'L{rx2:.1f},{b2:.1f} C{(rx1 + rx2) / 2:.1f},{b2:.1f} {(rx1 + rx2) / 2:.1f},{b1:.1f} {rx1:.1f},{b1:.1f} Z" '
+                f'fill="{colors[si]}" opacity="0.30"/>'
+            )
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_pie_chart_svg(theme, formatting=None, generic=None, width=300, height=200,
+                           donut=False):
+    """Pie / donut with wedges, slice labels and a legend (no cartesian axes)."""
+    formatting, generic = formatting or {}, generic or {}
+    colors = _series_colors(theme, 4)
+    vals = [35, 25, 22, 18]
+    title_text = "Donut Chart" if donut else "Pie Chart"
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, title_text, theme.foreground, generic)
+
+    legend_pos = _legend_position(formatting, generic)
+    cx = width * (0.42 if legend_pos == "Right" else 0.58 if legend_pos == "Left" else 0.5)
+    cy = top + (height - top) * 0.52
+    r = min(width, height - top) * 0.36
+    inner = r * 0.55 if donut else 0.0
+
+    total = sum(vals)
+    show_labels = _flag(formatting, "showDataLabels", True)
+    dl_color = _col(formatting, "dataLabelColor", "#FFFFFF")
+    dl_size = int(_num(formatting, "dataLabelFontSize", 9))
+    angle = 90.0  # start at top
+    for i, v in enumerate(vals):
+        sweep = 360.0 * v / total
+        parts.append(_wedge(cx, cy, r, angle, angle + sweep, colors[i], inner))
+        if show_labels:
+            mid = angle + sweep / 2
+            lx, ly = _pt(cx, cy, (r + inner) / 2 if donut else r * 0.62, mid)
+            parts.append(
+                f'<text x="{lx:.1f}" y="{ly + dl_size / 3:.1f}" font-size="{dl_size}" fill="{dl_color}" '
+                f'text-anchor="middle">{round(100 * v / total)}%</text>'
+            )
+        angle += sweep
+
+    if legend_pos == "Top":
+        parts += _legend(int(width * 0.35), top + 12, colors, formatting, generic, horizontal=True)
+    elif legend_pos == "Bottom":
+        parts += _legend(int(width * 0.35), height - 10, colors, formatting, generic, horizontal=True)
+    elif legend_pos == "Left":
+        parts += _legend(6, top + 20, colors, formatting, generic, horizontal=False)
+    else:  # Right
+        parts += _legend(int(width - 70), top + 20, colors, formatting, generic, horizontal=False)
+
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_gauge_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Radial gauge: value arc, target tick, min/max scale and callout value."""
+    formatting, generic = formatting or {}, generic or {}
+    fg = theme.foreground
+    vmin = _num(formatting, "minValue", 0)
+    vmax = _num(formatting, "maxValue", 100)
+    if vmax <= vmin:
+        vmax = vmin + 1
+    value = vmin + (vmax - vmin) * 0.68
+    target = vmin + (vmax - vmin) * 0.85
+    fill = _col(formatting, "fillColor", theme.table_accent)
+    target_col = _col(formatting, "targetColor", "#E66C37")
+
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Gauge", fg, generic)
+
+    cx, cy = width / 2, top + (height - top) * 0.72
+    r = min(width * 0.36, (height - top) * 0.62)
+    thick = max(10, r * 0.28)
+
+    def frac_to_deg(f):
+        return 180 - 180 * f  # 180deg (left) -> 0deg (right)
+
+    # Track (background arc) then value arc, drawn as thick stroked paths.
+    def arc(f_start, f_end, color, w):
+        x1, y1 = _pt(cx, cy, r, frac_to_deg(f_start))
+        x2, y2 = _pt(cx, cy, r, frac_to_deg(f_end))
+        large = 1 if abs(f_end - f_start) > 0.5 else 0
+        return (f'<path d="M{x1:.1f},{y1:.1f} A{r:.1f},{r:.1f} 0 {large} 1 {x2:.1f},{y2:.1f}" '
+                f'fill="none" stroke="{color}" stroke-width="{w:.1f}" stroke-linecap="butt"/>')
+
+    parts.append(arc(0.0, 1.0, "#E0E0E0", thick))
+    vfrac = max(0.0, min(1.0, (value - vmin) / (vmax - vmin)))
+    parts.append(arc(0.0, vfrac, fill, thick))
+
+    # Target tick
+    tfrac = max(0.0, min(1.0, (target - vmin) / (vmax - vmin)))
+    tx1, ty1 = _pt(cx, cy, r - thick / 2, frac_to_deg(tfrac))
+    tx2, ty2 = _pt(cx, cy, r + thick / 2, frac_to_deg(tfrac))
+    parts.append(f'<line x1="{tx1:.1f}" y1="{ty1:.1f}" x2="{tx2:.1f}" y2="{ty2:.1f}" stroke="{target_col}" stroke-width="3"/>')
+
+    # Min / max labels
+    parts.append(f'<text x="{cx - r:.1f}" y="{cy + 14:.1f}" font-size="9" fill="{fg}" text-anchor="middle">{round(vmin)}</text>')
+    parts.append(f'<text x="{cx + r:.1f}" y="{cy + 14:.1f}" font-size="9" fill="{fg}" text-anchor="middle">{round(vmax)}</text>')
+
+    # Callout value
+    if _flag(formatting, "showCallout", True):
+        c_color = _col(formatting, "calloutColor", "#252423")
+        c_size = int(_num(formatting, "calloutFontSize", 24))
+        parts.append(
+            f'<text x="{cx:.1f}" y="{cy - 4:.1f}" font-size="{c_size}" fill="{c_color}" '
+            f'text-anchor="middle" font-weight="bold">{round(value)}</text>'
+        )
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_treemap_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Treemap: proportional coloured rectangles with category labels + legend."""
+    formatting, generic = formatting or {}, generic or {}
+    colors = _series_colors(theme, 5)
+    cats = [("A", 40), ("B", 24), ("C", 18), ("D", 10), ("E", 8)]
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Treemap", theme.foreground, generic)
+
+    legend_pos = _legend_position(formatting, generic)
+    area_l, area_t = 8, top + 4
+    area_r, area_b = width - 8, height - 8
+    if legend_pos == "Bottom":
+        area_b -= 16
+    elif legend_pos == "Top":
+        area_t += 16
+    elif legend_pos == "Left":
+        area_l += 66
+    elif legend_pos == "Right":
+        area_r -= 66
+
+    show_labels = _flag(formatting, "showDataLabels", True)
+    dl_color = _col(formatting, "dataLabelColor", "#FFFFFF")
+    dl_size = int(_num(formatting, "dataLabelFontSize", 9))
+
+    # Simple slice-and-dice: big box left, remainder stacked on the right.
+    total = sum(v for _, v in cats)
+    x = area_l
+    remaining = cats[:]
+    W, H = area_r - area_l, area_b - area_t
+    # First (largest) takes a left column proportional to its share.
+    first_label, first_val = remaining.pop(0)
+    fw = W * (first_val / total)
+    boxes = [(x, area_t, fw, H, first_label, colors[0])]
+    x += fw
+    rest_total = sum(v for _, v in remaining) or 1
+    y = area_t
+    for i, (lab, v) in enumerate(remaining):
+        bh = H * (v / rest_total)
+        boxes.append((x, y, W - fw, bh, lab, colors[(i + 1) % len(colors)]))
+        y += bh
+    for bx, by, bw, bh, lab, color in boxes:
+        parts.append(f'<rect x="{bx:.1f}" y="{by:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="{color}" stroke="#FFFFFF" stroke-width="1.5"/>')
+        if show_labels and bw > 16 and bh > 12:
+            parts.append(
+                f'<text x="{bx + 5:.1f}" y="{by + dl_size + 3:.1f}" font-size="{dl_size}" fill="{dl_color}">{_esc(lab)}</text>'
+            )
+
+    if legend_pos in ("Top", "Bottom"):
+        ly = (top + 12) if legend_pos == "Top" else (height - 6)
+        parts += _legend(area_l, ly, colors[:3], formatting, generic, horizontal=True)
+    elif legend_pos == "Left":
+        parts += _legend(6, area_t + 12, colors[:4], formatting, generic, horizontal=False)
+    else:
+        parts += _legend(int(width - 62), area_t + 12, colors[:4], formatting, generic, horizontal=False)
+
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_funnel_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Funnel: centred, decreasing horizontal bars with stage labels."""
+    formatting, generic = formatting or {}, generic or {}
+    stages = [("Leads", 100), ("Qualified", 72), ("Proposal", 48), ("Won", 30)]
+    bar_color = _col(formatting, "barColor", theme.table_accent)
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Funnel", theme.foreground, generic)
+
+    show_labels = _flag(formatting, "showDataLabels", True)
+    dl_color = _col(formatting, "dataLabelColor", "#FFFFFF")
+    dl_size = int(_num(formatting, "dataLabelFontSize", 9))
+
+    max_w = width * 0.8
+    cx = width / 2
+    avail = height - top - 12
+    bh = avail / len(stages) * 0.7
+    gap = avail / len(stages) * 0.3
+    y = top + 6
+    for label, v in stages:
+        bw = max_w * (v / 100.0)
+        parts.append(f'<rect x="{cx - bw / 2:.1f}" y="{y:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="{bar_color}" opacity="0.9"/>')
+        if show_labels:
+            parts.append(
+                f'<text x="{cx:.1f}" y="{y + bh / 2 + dl_size / 3:.1f}" font-size="{dl_size}" fill="{dl_color}" '
+                f'text-anchor="middle">{_esc(label)}: {v}</text>'
+            )
+        y += bh + gap
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_multirow_card_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Multi-row card: several label/value rows honoring card formatting."""
+    formatting, generic = formatting or {}, generic or {}
+    fg = theme.foreground
+    value_color = _col(formatting, "valueColor", theme.good)
+    value_size = int(_num(formatting, "valueFontSize", 20))
+    value_bold = _flag(formatting, "valueFontBold", True)
+    label_color = _col(formatting, "labelColor", fg)
+    label_size = int(_num(formatting, "labelFontSize", 11))
+    card_bg = _col(formatting, "backgroundColor", "#FFFFFF")
+    show_border = _flag(formatting, "backgroundBorder", False)
+
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Multi-row Card", fg, generic)
+
+    rows = [("Revenue", "$1.2M"), ("Orders", "8,540"), ("Avg. Value", "$141")]
+    pad = 12
+    rh = (height - top - pad) / len(rows)
+    y = top + 4
+    stroke = f' stroke="{fg}" stroke-width="1"' if show_border else ""
+    for label, val in rows:
+        parts.append(f'<rect x="{pad}" y="{y:.1f}" width="{width - pad * 2}" height="{rh - 6:.1f}" rx="3" fill="{card_bg}"{stroke}/>')
+        parts.append(f'<text x="{pad + 10}" y="{y + label_size + 4:.1f}" font-size="{label_size}" fill="{label_color}">{_esc(label)}</text>')
+        weight = "bold" if value_bold else "normal"
+        parts.append(f'<text x="{pad + 10}" y="{y + rh - 12:.1f}" font-size="{value_size}" fill="{value_color}" font-weight="{weight}">{_esc(val)}</text>')
+        y += rh
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
 # --------------------------------------------------------------------------- #
 # Table / Matrix
 # --------------------------------------------------------------------------- #
@@ -566,8 +1018,8 @@ def generate_card_kpi_svg(
 # Dispatch
 # --------------------------------------------------------------------------- #
 _TABLE_KEYS = {"matrix", "table", "tableEx", "pivotTable"}
-_CARD_KEYS = {"card", "kpi", "multiRowCard"}
-_LINE_KEYS = {"lineChart", "lineClusteredColumnComboChart", "lineStackedColumnComboChart", "areaChart"}
+_CARD_KEYS = {"card", "kpi"}
+_BAR_KEYS = {"barChart", "columnChart", "clusteredBarChart", "clusteredColumnChart"}
 
 
 def render_visual_preview(
@@ -577,18 +1029,50 @@ def render_visual_preview(
     width: int = 250,
     height: int = 200,
 ) -> str:
-    """Render the appropriate mockup for *visual_key* from a stored ``"*"`` style object."""
+    """Render the mockup that matches *visual_key* from a stored ``"*"`` style object."""
     style_obj = style_obj or {}
     formatting = style_obj.get("formatting", {}) if isinstance(style_obj, dict) else {}
     generic = extract_generic(style_obj)
+    args = (theme, formatting, generic, width, height)
 
+    # Tables & cards
     if visual_key in _TABLE_KEYS:
-        return generate_table_svg(theme, formatting, generic, width, height)
+        return generate_table_svg(*args)
     if visual_key in _CARD_KEYS:
-        return generate_card_kpi_svg(theme, formatting, generic, width, height)
-    if visual_key in _LINE_KEYS:
-        return generate_line_chart_svg(theme, formatting, generic, width, height)
-    return generate_bar_chart_svg(theme, formatting, generic, width, height)
+        return generate_card_kpi_svg(*args)
+    if visual_key == "multiRowCard":
+        return generate_multirow_card_svg(*args)
+
+    # Non-cartesian charts (own settings sets)
+    if visual_key == "pieChart":
+        return generate_pie_chart_svg(*args)
+    if visual_key == "donutChart":
+        return generate_pie_chart_svg(*args, donut=True)
+    if visual_key == "gauge":
+        return generate_gauge_svg(*args)
+    if visual_key == "treemap":
+        return generate_treemap_svg(*args)
+    if visual_key == "funnel":
+        return generate_funnel_svg(*args)
+
+    # Cartesian charts (share CHART_SECTIONS)
+    if visual_key == "lineChart":
+        return generate_line_chart_svg(*args)
+    if visual_key == "areaChart":
+        return generate_area_chart_svg(*args)
+    if visual_key in ("lineClusteredColumnComboChart", "lineStackedColumnComboChart"):
+        return generate_combo_chart_svg(*args, stacked=visual_key.startswith("lineStacked"))
+    if visual_key in ("hundredPercentStackedBarChart", "hundredPercentStackedColumnChart"):
+        return generate_stacked_chart_svg(*args, percent=True)
+    if visual_key == "scatterChart":
+        return generate_scatter_chart_svg(*args)
+    if visual_key == "waterfallChart":
+        return generate_waterfall_chart_svg(*args)
+    if visual_key == "ribbonChart":
+        return generate_ribbon_chart_svg(*args)
+
+    # Default: grouped bar/column chart
+    return generate_bar_chart_svg(*args)
 
 
 def generate_all_mockups(
