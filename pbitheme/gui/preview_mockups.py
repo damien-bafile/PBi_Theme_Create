@@ -18,6 +18,7 @@ panel go through it, so what you see always matches what will be saved.
 from __future__ import annotations
 
 import math
+import random
 from typing import Any, Dict, List, Optional, Tuple
 from xml.sax.saxutils import escape
 
@@ -1171,6 +1172,231 @@ def generate_card_kpi_svg(
 
 
 # --------------------------------------------------------------------------- #
+# Bespoke placeholders for visuals without per-visual formatting
+# --------------------------------------------------------------------------- #
+def generate_button_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Action button: a pill button with a label."""
+    generic = generic or {}
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Action Button", theme.foreground, generic)
+    bw, bh = width * 0.5, 40
+    x, y = (width - bw) / 2, top + (height - top - bh) / 2
+    parts.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{bw:.0f}" height="{bh}" rx="7" fill="{theme.table_accent}"/>')
+    parts.append(
+        f'<text x="{width / 2:.0f}" y="{y + bh / 2 + 5:.0f}" font-size="15" fill="#FFFFFF" '
+        f'text-anchor="middle" font-weight="bold">Submit  &#8594;</text>'
+    )
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_shape_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Basic shape: a few primitive shapes in the theme's data colours."""
+    generic = generic or {}
+    colors = _series_colors(theme, 3)
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Basic Shape", theme.foreground, generic)
+    cy = top + (height - top) / 2
+    parts.append(f'<rect x="{width * 0.12:.0f}" y="{cy - 26:.0f}" width="52" height="52" rx="8" fill="{colors[0]}"/>')
+    parts.append(f'<circle cx="{width * 0.5:.0f}" cy="{cy:.0f}" r="28" fill="{colors[1]}"/>')
+    tx = width * 0.82
+    parts.append(f'<polygon points="{tx:.0f},{cy - 28:.0f} {tx - 28:.0f},{cy + 24:.0f} {tx + 28:.0f},{cy + 24:.0f}" fill="{colors[2]}"/>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def _pin(cx: float, cy: float, color: str) -> str:
+    """A map marker whose point sits at (cx, cy)."""
+    return (
+        f'<path d="M{cx:.0f},{cy:.0f} C{cx - 9:.0f},{cy - 14:.0f} {cx - 9:.0f},{cy - 24:.0f} {cx:.0f},{cy - 24:.0f} '
+        f'C{cx + 9:.0f},{cy - 24:.0f} {cx + 9:.0f},{cy - 14:.0f} {cx:.0f},{cy:.0f} Z" fill="{color}"/>'
+        f'<circle cx="{cx:.0f}" cy="{cy - 16:.0f}" r="3.5" fill="#FFFFFF"/>'
+    )
+
+
+def _map_regions(pl, pt, pr, pb):
+    w, h = pr - pl, pb - pt
+    return [
+        f"{pl + w * 0.05:.0f},{pt + h * 0.2:.0f} {pl + w * 0.45:.0f},{pt + h * 0.1:.0f} {pl + w * 0.5:.0f},{pt + h * 0.5:.0f} {pl + w * 0.15:.0f},{pt + h * 0.6:.0f}",
+        f"{pl + w * 0.5:.0f},{pt + h * 0.12:.0f} {pl + w * 0.95:.0f},{pt + h * 0.25:.0f} {pl + w * 0.8:.0f},{pt + h * 0.55:.0f} {pl + w * 0.52:.0f},{pt + h * 0.5:.0f}",
+        f"{pl + w * 0.15:.0f},{pt + h * 0.62:.0f} {pl + w * 0.52:.0f},{pt + h * 0.55:.0f} {pl + w * 0.6:.0f},{pt + h * 0.92:.0f} {pl + w * 0.2:.0f},{pt + h * 0.95:.0f}",
+        f"{pl + w * 0.6:.0f},{pt + h * 0.55:.0f} {pl + w * 0.82:.0f},{pt + h * 0.57:.0f} {pl + w * 0.88:.0f},{pt + h * 0.9:.0f} {pl + w * 0.62:.0f},{pt + h * 0.92:.0f}",
+    ]
+
+
+def generate_map_svg(theme, formatting=None, generic=None, width=300, height=200,
+                     style="pins", label="Map"):
+    """Map placeholder -- pins, filled regions (choropleth) or outlined shapes."""
+    generic = generic or {}
+    colors = _series_colors(theme, 4)
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, label, theme.foreground, generic)
+    pl, pt, pr, pb = 10, top + 4, width - 10, height - 10
+
+    if style == "azure":  # faint tile grid behind the land
+        for gx in range(int(pl), int(pr), 28):
+            parts.append(f'<line x1="{gx}" y1="{pt:.0f}" x2="{gx}" y2="{pb:.0f}" stroke="#DDE6EF" stroke-width="1"/>')
+        for gy in range(int(pt), int(pb), 28):
+            parts.append(f'<line x1="{pl}" y1="{gy}" x2="{pr}" y2="{gy}" stroke="#DDE6EF" stroke-width="1"/>')
+
+    regions = _map_regions(pl, pt, pr, pb)
+    for i, pts in enumerate(regions):
+        if style == "filled":
+            parts.append(f'<polygon points="{pts}" fill="{colors[i % len(colors)]}" opacity="0.85" stroke="#FFFFFF" stroke-width="1"/>')
+        elif style == "outline":
+            parts.append(f'<polygon points="{pts}" fill="none" stroke="{theme.foreground}" stroke-width="1.5" opacity="0.7"/>')
+        else:  # land under pins
+            parts.append(f'<polygon points="{pts}" fill="#C7D9C7" stroke="#FFFFFF" stroke-width="1"/>')
+
+    if style in ("pins", "azure"):
+        for (fx, fy), col in (((0.3, 0.45), theme.bad), ((0.62, 0.4), theme.table_accent), ((0.5, 0.78), theme.good)):
+            parts.append(_pin(pl + (pr - pl) * fx, pt + (pb - pt) * fy, col))
+
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_decomp_tree_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Decomposition tree: a root node branching to children."""
+    generic = generic or {}
+    accent = theme.table_accent
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Decomposition Tree", theme.foreground, generic)
+    nw, nh = 58, 26
+    col_x = [12, (width - nw) / 2, width - nw - 12]
+    mid = top + (height - top) / 2
+
+    def node(x, y, text, fill):
+        parts.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{nw}" height="{nh}" rx="4" fill="{fill}"/>')
+        parts.append(f'<text x="{x + nw / 2:.0f}" y="{y + nh / 2 + 4:.0f}" font-size="10" fill="#FFFFFF" text-anchor="middle">{_esc(text)}</text>')
+
+    child_ys = [top + (height - top) * 0.25, top + (height - top) * 0.7]
+    gy = [top + (height - top) * 0.14, top + (height - top) * 0.38, top + (height - top) * 0.62, top + (height - top) * 0.86]
+    # connectors
+    for cyv in child_ys:
+        parts.append(f'<line x1="{col_x[0] + nw:.0f}" y1="{mid + nh / 2:.0f}" x2="{col_x[1]:.0f}" y2="{cyv + nh / 2:.0f}" stroke="#B3B0AD" stroke-width="1.5"/>')
+    for i, gyv in enumerate(gy):
+        src = child_ys[0] if i < 2 else child_ys[1]
+        parts.append(f'<line x1="{col_x[1] + nw:.0f}" y1="{src + nh / 2:.0f}" x2="{col_x[2]:.0f}" y2="{gyv + nh / 2:.0f}" stroke="#B3B0AD" stroke-width="1"/>')
+    node(col_x[0], mid, "Total", accent)
+    node(col_x[1], child_ys[0], "North", accent)
+    node(col_x[1], child_ys[1], "South", accent)
+    labels = ["A", "B", "C", "D"]
+    cols = _series_colors(theme, 4)
+    for i, gyv in enumerate(gy):
+        node(col_x[2], gyv, labels[i], cols[i])
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_image_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Image placeholder: a classic picture icon."""
+    generic = generic or {}
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Image", theme.foreground, generic)
+    x, y = width * 0.2, top + 8
+    w, h = width * 0.6, height - top - 22
+    parts.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{w:.0f}" height="{h:.0f}" rx="4" fill="#EDEBE9" stroke="#B3B0AD" stroke-width="1.5"/>')
+    parts.append(f'<circle cx="{x + w * 0.28:.0f}" cy="{y + h * 0.3:.0f}" r="{h * 0.09:.0f}" fill="#F2C811"/>')
+    base = y + h - 6
+    parts.append(f'<polygon points="{x + 6:.0f},{base:.0f} {x + w * 0.4:.0f},{y + h * 0.45:.0f} {x + w * 0.62:.0f},{base:.0f}" fill="#8A8886"/>')
+    parts.append(f'<polygon points="{x + w * 0.45:.0f},{base:.0f} {x + w * 0.72:.0f},{y + h * 0.55:.0f} {x + w - 6:.0f},{base:.0f}" fill="#605E5C"/>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_key_influencers_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Key influencers/drivers: an influencer bubble beside contributing bars."""
+    generic = generic or {}
+    colors = _series_colors(theme, 3)
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Key Drivers", theme.foreground, generic)
+    cx, cy = width * 0.26, top + (height - top) / 2
+    parts.append(f'<circle cx="{cx:.0f}" cy="{cy:.0f}" r="{min(38, (height - top) * 0.28):.0f}" fill="{colors[0]}" opacity="0.9"/>')
+    parts.append(f'<text x="{cx:.0f}" y="{cy - 2:.0f}" font-size="18" fill="#FFFFFF" text-anchor="middle" font-weight="bold">2.6x</text>')
+    parts.append(f'<text x="{cx:.0f}" y="{cy + 16:.0f}" font-size="9" fill="#FFFFFF" text-anchor="middle">likely</text>')
+    bx = width * 0.5
+    bw = width * 0.42
+    for i, frac in enumerate((1.0, 0.72, 0.48)):
+        by = top + 14 + i * ((height - top - 20) / 3)
+        parts.append(f'<rect x="{bx:.0f}" y="{by:.0f}" width="{bw * frac:.0f}" height="16" rx="3" fill="{colors[i % 3]}" opacity="0.85"/>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_script_visual_svg(theme, formatting=None, generic=None, width=300, height=200,
+                               lang="PY", label="Script Visual"):
+    """Python/R visual: a small chart with a language badge."""
+    generic = generic or {}
+    colors = _series_colors(theme, 2)
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, label, theme.foreground, generic)
+    pl, pt, pr, pb = 24, top + 8, width - 14, height - 24
+    parts.append(f'<line x1="{pl}" y1="{pb}" x2="{pr}" y2="{pb}" stroke="{theme.foreground}" stroke-width="1"/>')
+    parts.append(f'<line x1="{pl}" y1="{pt}" x2="{pl}" y2="{pb}" stroke="{theme.foreground}" stroke-width="1"/>')
+    rng = random.Random(hash(lang) & 0xFFFF)
+    for i in range(22):
+        px = pl + (pr - pl) * rng.random()
+        py = pt + (pb - pt) * rng.random()
+        parts.append(f'<circle cx="{px:.0f}" cy="{py:.0f}" r="3.5" fill="{colors[i % 2]}" opacity="0.8"/>')
+    parts.append(f'<rect x="{pr - 30:.0f}" y="{pt:.0f}" width="28" height="18" rx="4" fill="{theme.table_accent}"/>')
+    parts.append(f'<text x="{pr - 16:.0f}" y="{pt + 13:.0f}" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">{_esc(lang)}</text>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_qna_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Q&A: a question input box with a suggestion chip."""
+    generic = generic or {}
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Q&A", theme.foreground, generic)
+    bx, bw = width * 0.1, width * 0.8
+    by = top + (height - top) * 0.34
+    parts.append(f'<rect x="{bx:.0f}" y="{by:.0f}" width="{bw:.0f}" height="34" rx="17" fill="#FFFFFF" stroke="{theme.table_accent}" stroke-width="1.5"/>')
+    mx, my = bx + 22, by + 17
+    parts.append(f'<circle cx="{mx:.0f}" cy="{my - 1:.0f}" r="6" fill="none" stroke="{theme.foreground}" stroke-width="2"/>')
+    parts.append(f'<line x1="{mx + 4:.0f}" y1="{my + 3:.0f}" x2="{mx + 9:.0f}" y2="{my + 8:.0f}" stroke="{theme.foreground}" stroke-width="2"/>')
+    parts.append(f'<text x="{bx + 40:.0f}" y="{by + 22:.0f}" font-size="12" fill="#8A8886">Ask a question about your data</text>')
+    parts.append(f'<rect x="{bx:.0f}" y="{by + 46:.0f}" width="{bw * 0.5:.0f}" height="22" rx="11" fill="{theme.table_accent}" opacity="0.15"/>')
+    parts.append(f'<text x="{bx + 14:.0f}" y="{by + 61:.0f}" font-size="10" fill="{theme.table_accent}">total sales by region</text>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_text_svg(theme, formatting=None, generic=None, width=300, height=200,
+                      kind="text", label="Text Box"):
+    """Text box / smart narrative: simulated lines of text."""
+    generic = generic or {}
+    fg = theme.foreground
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, label, fg, generic)
+    x = 16
+    y = top + 10
+    if kind == "narrative":
+        parts.append(f'<rect x="{x}" y="{y}" width="{width * 0.55:.0f}" height="12" rx="3" fill="{theme.table_accent}" opacity="0.8"/>')
+        y += 22
+    widths = [0.9, 0.82, 0.86, 0.6, 0.78, 0.5]
+    for i, frac in enumerate(widths):
+        if y > height - 16:
+            break
+        parts.append(f'<rect x="{x}" y="{y:.0f}" width="{(width - 2 * x) * frac:.0f}" height="9" rx="3" fill="#C8C6C4"/>')
+        y += 18
+    if kind == "text":  # a text cursor
+        parts.append(f'<rect x="{x + (width - 2 * x) * 0.5:.0f}" y="{top + 8:.0f}" width="2" height="14" fill="{fg}"/>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+# --------------------------------------------------------------------------- #
 # Dispatch
 # --------------------------------------------------------------------------- #
 _TABLE_KEYS = {"matrix", "table", "tableEx", "pivotTable"}
@@ -1230,6 +1456,36 @@ def render_visual_preview(
         return generate_waterfall_chart_svg(*args)
     if visual_key == "ribbonChart":
         return generate_ribbon_chart_svg(*args)
+
+    # Non-customizable visuals: bespoke placeholders
+    if visual_key == "actionButton":
+        return generate_button_svg(*args)
+    if visual_key == "basicShape":
+        return generate_shape_svg(*args)
+    if visual_key == "map":
+        return generate_map_svg(*args, style="pins", label="Map")
+    if visual_key == "azureMapVisual":
+        return generate_map_svg(*args, style="azure", label="Azure Maps")
+    if visual_key == "filledMap":
+        return generate_map_svg(*args, style="filled", label="Filled Map")
+    if visual_key == "shapeMap":
+        return generate_map_svg(*args, style="outline", label="Shape Map")
+    if visual_key == "decompositionTreeVisual":
+        return generate_decomp_tree_svg(*args)
+    if visual_key == "image":
+        return generate_image_svg(*args)
+    if visual_key == "keyDriversVisual":
+        return generate_key_influencers_svg(*args)
+    if visual_key == "pythonVisual":
+        return generate_script_visual_svg(*args, lang="PY", label="Python Visual")
+    if visual_key == "rVisual":
+        return generate_script_visual_svg(*args, lang="R", label="R Visual")
+    if visual_key == "qnaVisual":
+        return generate_qna_svg(*args)
+    if visual_key == "smartNarrative":
+        return generate_text_svg(*args, kind="narrative", label="Smart Narrative")
+    if visual_key == "textbox":
+        return generate_text_svg(*args, kind="text", label="Text Box")
 
     # Default: grouped bar/column chart
     return generate_bar_chart_svg(*args)
