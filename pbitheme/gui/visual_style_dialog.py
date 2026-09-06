@@ -37,6 +37,7 @@ from ..model import (
     merge_visual_style_entry,
 )
 from .widgets import ColorButton
+from . import theme
 
 
 class VisualStyleDialog(QDialog):
@@ -64,7 +65,7 @@ class VisualStyleDialog(QDialog):
         self._bg_check = QCheckBox("Override")
         self._bg_check.setAccessibleName("Override background")
         self._bg_check.setAccessibleDescription("Check to customize background color and transparency")
-        self._bg_color = ColorButton("#FFFFFF", label="Background color")
+        self._bg_color = ColorButton(theme.SURFACE_BACKGROUND, label="Background color")
         self._bg_alpha = QSpinBox()
         self._bg_alpha.setRange(0, 100)
         self._bg_alpha.setSuffix("%")
@@ -87,7 +88,7 @@ class VisualStyleDialog(QDialog):
         border_layout = QFormLayout(border_box)
         self._border_check = QCheckBox("Override")
         self._border_check.setAccessibleName("Override border")
-        self._border_color = ColorButton("#000000", label="Border color")
+        self._border_color = ColorButton(theme.TEXT_STRONG, label="Border color")
         border_show, border_color = unpack_border_object(existing_obj)
         self._border_color.set_color(border_color)
         border_layout.addRow(self._border_check, QLabel())
@@ -107,7 +108,7 @@ class VisualStyleDialog(QDialog):
         self._title_size = QSpinBox()
         self._title_size.setRange(4, 120)
         self._title_size.setSuffix(" pt")
-        self._title_color = ColorButton("#252423")
+        self._title_color = ColorButton(theme.TEXT_PRIMARY)
         title_show, title_font, title_size, title_color = unpack_title_object(existing_obj)
         self._title_font.setCurrentText(title_font)
         self._title_size.setValue(title_size)
@@ -128,7 +129,7 @@ class VisualStyleDialog(QDialog):
         labels_box = QGroupBox("Data Labels")
         labels_layout = QFormLayout(labels_box)
         self._labels_check = QCheckBox("Override")
-        self._labels_color = ColorButton("#252423")
+        self._labels_color = ColorButton(theme.TEXT_PRIMARY)
         self._labels_size = QSpinBox()
         self._labels_size.setRange(4, 120)
         self._labels_size.setSuffix(" pt")
@@ -150,7 +151,7 @@ class VisualStyleDialog(QDialog):
         self._legend_check = QCheckBox("Override")
         self._legend_pos = QComboBox()
         self._legend_pos.addItems(LEGEND_POSITIONS)
-        self._legend_color = ColorButton("#252423")
+        self._legend_color = ColorButton(theme.TEXT_PRIMARY)
         legend_show, legend_pos, legend_color = unpack_legend_object(existing_obj)
         self._legend_pos.setCurrentText(legend_pos)
         self._legend_color.set_color(legend_color)

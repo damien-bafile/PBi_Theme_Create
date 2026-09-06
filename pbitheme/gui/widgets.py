@@ -40,6 +40,7 @@ from ..model import (
     unpack_data_labels_object, unpack_legend_object,
     merge_visual_style_entry
 )
+from . import theme
 
 
 class ColorButton(QPushButton):
@@ -75,11 +76,11 @@ class ColorButton(QPushButton):
         # Choose readable text colour based on luminance.
         c = QColor(self._color)
         luminance = 0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()
-        text = "#000000" if luminance > 140 else "#FFFFFF"
+        text = theme.TEXT_STRONG if luminance > theme.LUMINANCE_THRESHOLD else theme.SURFACE_BACKGROUND
         self.setText(self._color)
         self.setStyleSheet(
             f"background-color: {self._color}; color: {text};"
-            "border: 1px solid #888; border-radius: 4px; font-family: monospace;"
+            f"border: 1px solid {theme.BORDER_SUBTLE}; border-radius: 4px; font-family: monospace;"
         )
         # Set accessible name and description for screen readers
         self.setAccessibleName(f"{self._label} color button")
@@ -233,12 +234,12 @@ class VisualStylesChecklist(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(scroll)
 
-    def set_theme(self, theme: PowerBITheme) -> None:
+    def set_theme(self, pbi_theme: PowerBITheme) -> None:
         """Update the checklist based on which visuals are customised."""
         for key, label in self._status_labels.items():
-            if theme.is_visual_customised(key):
+            if pbi_theme.is_visual_customised(key):
                 label.setText("✓ Custom")
-                label.setStyleSheet("color: #005620; font-weight: bold; min-width: 80px;")
+                label.setStyleSheet(f"color: {theme.STATUS_CUSTOM_COLOR}; font-weight: bold; min-width: 80px;")
             else:
                 label.setText("✗ Default")
-                label.setStyleSheet("color: #8b0000; font-weight: bold; min-width: 80px;")
+                label.setStyleSheet(f"color: {theme.STATUS_DEFAULT_COLOR}; font-weight: bold; min-width: 80px;")
