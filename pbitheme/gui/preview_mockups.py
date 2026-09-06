@@ -439,6 +439,17 @@ def _chart_base(
     elif legend_pos == "Right":
         parts += _legend(plot_r + 8, plot_t + 10, colors, formatting, generic, horizontal=False)
 
+    # Reference line (horizontal at a value) and trend line (diagonal).
+    if _flag(formatting, "refLineShow", False):
+        rv = max(0.0, min(1.0, _num(formatting, "refLineValue", 50) / 100.0))
+        ry = plot_b - rv * (plot_b - plot_t)
+        parts.append(f'<line x1="{plot_l}" y1="{ry:.1f}" x2="{plot_r}" y2="{ry:.1f}" '
+                     f'stroke="{_col(formatting, "refLineColor", "#E66C37")}" stroke-width="1.5" stroke-dasharray="5,3"/>')
+    if _flag(formatting, "trendShow", False):
+        span = plot_b - plot_t
+        parts.append(f'<line x1="{plot_l}" y1="{plot_b - 0.25 * span:.1f}" x2="{plot_r}" y2="{plot_b - 0.8 * span:.1f}" '
+                     f'stroke="{_col(formatting, "trendColor", "#605E5C")}" stroke-width="2" stroke-dasharray="4,3"/>')
+
     parts.append(title_svg)
     return parts, plot_l, plot_t, plot_r, plot_b
 
@@ -623,13 +634,15 @@ def generate_scatter_chart_svg(theme, formatting=None, generic=None, width=300, 
         [(0.25, 0.20), (0.50, 0.80), (0.65, 0.60), (0.82, 0.78), (0.35, 0.72)],
     ]
     labels_on = _labels_on(formatting, generic)
+    radius = 2 + _num(formatting, "bubbleSize", 20) * 0.12
+    border = _col(formatting, "markerBorderColor", "#FFFFFF")
     for si, pts in enumerate(pts_by_series):
         for fx, fy in pts:
             cx = pl + fx * (pr - pl)
             cy = pb - fy * (pb - pt)
-            parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="4" fill="{colors[si]}" opacity="0.85"/>')
+            parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{radius:.1f}" fill="{colors[si]}" opacity="0.85" stroke="{border}" stroke-width="1"/>')
             if labels_on and si == 0:
-                parts += _data_label(cx, cy - 6, round(fy * 100), formatting, generic)
+                parts += _data_label(cx, cy - radius - 3, round(fy * 100), formatting, generic)
     parts.append("</svg>")
     return "\n".join(parts)
 
@@ -721,13 +734,14 @@ def generate_pie_chart_svg(theme, formatting=None, generic=None, width=300, heig
     cx = width * (0.42 if legend_pos == "Right" else 0.58 if legend_pos == "Left" else 0.5)
     cy = top + (height - top) * 0.52
     r = min(width, height - top) * 0.36
-    inner = r * 0.55 if donut else 0.0
+    inner_pct = _num(formatting, "sliceInnerRadius", 0)
+    inner = r * (inner_pct / 100.0) if inner_pct > 0 else (r * 0.55 if donut else 0.0)
 
     total = sum(vals)
     show_labels = _flag(formatting, "showDataLabels", True)
     dl_color = _col(formatting, "dataLabelColor", "#FFFFFF")
     dl_size = int(_num(formatting, "dataLabelFontSize", 9))
-    angle = 90.0  # start at top
+    angle = 90.0 - _num(formatting, "sliceStartAngle", 0)  # start at top, offset by start angle
     for i, v in enumerate(vals):
         sweep = 360.0 * v / total
         parts.append(_wedge(cx, cy, r, angle, angle + sweep, colors[i], inner))

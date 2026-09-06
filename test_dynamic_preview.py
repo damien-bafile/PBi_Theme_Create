@@ -96,6 +96,10 @@ def main() -> int:
             panel.set_values({"legendShowTitle": True})
         if "yAxisSetRange" in panel._field_widgets:
             panel.set_values({"yAxisSetRange": True})
+        if "refLineShow" in panel._field_widgets:
+            panel.set_values({"refLineShow": True})
+        if "trendShow" in panel._field_widgets:
+            panel.set_values({"trendShow": True})
         cap = _instrument(dlg)
 
         # --- Formatting fields ---

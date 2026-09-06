@@ -64,7 +64,7 @@ Most fields update the **live preview**; a few (marked *export-only* in the
 stages below) are exported as valid Power BI cards but can't be meaningfully
 shown in a simplified mockup (e.g. font family, word wrap).
 
-**Current overall card coverage: ~53%** (394 / 749 themeable cards across all visuals).
+**Current overall card coverage: ~56%** (426 / 749 themeable cards across all visuals).
 
 ### Stages
 
@@ -91,10 +91,12 @@ shown in a simplified mockup (e.g. font family, word wrap).
   `stylePreset` (enum names not in the schema), per-column `columnFormatting`
   (data bars — needs per-column ids), `columnWidth`, `columnTotal`/`rowTotal`,
   `blankRows`, sparklines.
-- **Stage 4 — Reference lines & analytics — ☐.** X / Y reference lines, trend
-  line, ratio line, error bars, markers, scatter bubbles / fill, waterfall
-  sentiment colours & breakdown, ribbon bands, pie slices (start angle / inner
-  radius).
+- **Stage 4 — Reference lines & analytics — ◐ mostly done.** Done: **Y-axis
+  reference line** (show / value / colour), **trend line** (show / colour) on
+  every chart that supports it, **pie / donut slices** (start angle + inner
+  radius), **scatter bubble size + marker border**, and waterfall sentiment
+  colours (Stage 3). Still to do: ratio line, error bars, `plotArea` shading,
+  ribbon bands, small multiples.
 - **Stage 5 — Slicer & non-chart visuals — ☐.** Slicer slider / date / date
   range / numeric input / selection / search box / dropdown; decomposition tree
   nodes; action-button fill / text / icon / outline + states; image scaling;
@@ -102,26 +104,34 @@ shown in a simplified mockup (e.g. font family, word wrap).
 - **Stage 6 — Containers, tooltips & misc — ☐.** Report tooltip & visual-header
   tooltip styling, divider, spacing, subheader, `general` (alt text / responsive),
   small multiples, zoom slider.
+- **Backlog — Advanced-JSON-only (no structured field yet).** Items that need
+  per-column identity, in-cell chart rendering, or enum values Microsoft doesn't
+  publish, so they stay in the Advanced JSON tab: table/matrix
+  `columnFormatting` (per-column colour / **data bars**), `columnWidth`,
+  `columnTotal` / `rowTotal`, `blankRows`, **sparklines**, and the built-in table
+  **`stylePreset`**; chart `plotArea` (image / transparency only); `ratioLine`;
+  and the per-visual tooltip family (`visualTooltip`, `visualHeaderTooltip`,
+  `visualLink`).
 
 ### Coverage matrix
 
 | Visual | Frame | Axes | Legend | Labels | Colors | Table | Card/KPI/Gauge | Slicer | Refs/Analytics | % |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
-| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
-| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 48% |
-| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 48% |
-| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
-| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
-| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 46% |
-| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 46% |
-| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 46% |
-| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 50% |
-| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 48% |
-| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ☐ | 41% |
-| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ☐ | 61% |
-| Pie Chart | ✅ | — | ✅ | ✅ | ☐ | — | — | — | ☐ | 56% |
-| Donut Chart | ✅ | — | ✅ | ✅ | ☐ | — | — | — | ☐ | 56% |
+| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
+| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
+| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 56% |
+| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 56% |
+| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
+| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
+| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 57% |
+| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 57% |
+| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 57% |
+| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 58% |
+| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 56% |
+| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 55% |
+| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 65% |
+| Pie Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ☐ | 62% |
+| Donut Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ☐ | 62% |
 | Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 56% |
 | Funnel | ✅ | ☐ | — | ✅ | ✅ | — | — | — | ☐ | 60% |
 | Gauge | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | — | ☐ | 70% |

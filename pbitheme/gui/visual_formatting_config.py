@@ -199,6 +199,32 @@ CHART_SECTIONS = [
             FormatField("defaultColor", "Default Color", "color", default="#118DFF"),
         ],
     ),
+    FormatSection(
+        "Reference Line",
+        [
+            FormatField("refLineShow", "Show", "boolean", default=False),
+            FormatField("refLineValue", "Value", "number", min_val=0, max_val=100, default=50),
+            FormatField("refLineColor", "Color", "color", default="#E66C37"),
+        ],
+    ),
+    FormatSection(
+        "Trend Line",
+        [
+            FormatField("trendShow", "Show", "boolean", default=False),
+            FormatField("trendColor", "Color", "color", default="#605E5C"),
+        ],
+    ),
+]
+
+# Scatter = chart sections plus marker / bubble options.
+SCATTER_SECTIONS = CHART_SECTIONS + [
+    FormatSection(
+        "Markers",
+        [
+            FormatField("bubbleSize", "Bubble Size", "number", min_val=0, max_val=100, default=20),
+            FormatField("markerBorderColor", "Border Color", "color", default="#FFFFFF"),
+        ],
+    ),
 ]
 
 # Waterfall = chart sections plus sentiment (increase / decrease / total) colours.
@@ -256,6 +282,13 @@ PIE_SECTIONS = [
             FormatField("showDataLabels", "Show Labels", "boolean", default=True),
             FormatField("dataLabelColor", "Color", "color", default="#FFFFFF"),
             FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=6, max_val=16, suffix="pt"),
+        ],
+    ),
+    FormatSection(
+        "Slices",
+        [
+            FormatField("sliceStartAngle", "Start Angle (deg)", "number", min_val=0, max_val=359, default=0),
+            FormatField("sliceInnerRadius", "Inner Radius (%)", "number", min_val=0, max_val=90, default=0),
         ],
     ),
 ]
@@ -396,7 +429,7 @@ VISUAL_FORMATTING = {
     "lineClusteredColumnComboChart": CHART_SECTIONS,
     "lineStackedColumnComboChart": CHART_SECTIONS,
     "areaChart": CHART_SECTIONS,
-    "scatterChart": CHART_SECTIONS,
+    "scatterChart": SCATTER_SECTIONS,
     "ribbonChart": CHART_SECTIONS,
     "waterfallChart": WATERFALL_SECTIONS,
 

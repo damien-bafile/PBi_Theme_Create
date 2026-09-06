@@ -37,6 +37,8 @@ _CARTESIAN = {
     "lineStackedColumnComboChart", "ribbonChart", "waterfallChart",
 }
 _SCATTER = {"scatterChart"}
+# Cartesian visuals that have a `trend` card (waterfall & line+stacked combo don't).
+_TREND_VISUALS = (_CARTESIAN | _SCATTER) - {"waterfallChart", "lineStackedColumnComboChart"}
 _PIE = {"pieChart", "donutChart"}
 _TREEMAP = {"treemap"}
 _FUNNEL = {"funnel"}
@@ -155,6 +157,26 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if not lab:
             cards.pop(label_card, None)
 
+        # Reference line (all cartesian have y1AxisReferenceLine).
+        if "refLineShow" in fmt:
+            ref = card("y1AxisReferenceLine")
+            ref["show"] = bool(fmt["refLineShow"])
+            if "refLineValue" in fmt:
+                ref["value"] = fmt["refLineValue"]
+            _set(ref, "lineColor", _fill(fmt.get("refLineColor", "")))
+        # Trend line (not on waterfall / line+stacked combo).
+        if "trendShow" in fmt and app_key in _TREND_VISUALS:
+            tr = card("trend")
+            tr["show"] = bool(fmt["trendShow"])
+            _set(tr, "lineColor", _fill(fmt.get("trendColor", "")))
+        # Scatter markers / bubbles.
+        if app_key in _SCATTER:
+            if "bubbleSize" in fmt:
+                card("bubbles")["bubbleSize"] = fmt["bubbleSize"]
+            mb = _fill(fmt.get("markerBorderColor", ""))
+            if mb is not None:
+                card("markers").update({"borderShow": True, "borderColor": mb})
+
     # ---- Pie / donut / treemap: legend + slice labels ---- #
     elif app_key in _PIE | _TREEMAP:
         leg = card("legend")
@@ -169,6 +191,13 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(lab, "color", _fill(fmt.get("dataLabelColor", "")))
         if "dataLabelFontSize" in fmt:
             lab["fontSize"] = fmt["dataLabelFontSize"]
+        # Slices (pie/donut only -- treemap has no slices card).
+        if app_key in _PIE:
+            sl = card("slices")
+            if "sliceStartAngle" in fmt:
+                sl["startAngle"] = fmt["sliceStartAngle"]
+            if "sliceInnerRadius" in fmt:
+                sl["innerRadiusRatio"] = fmt["sliceInnerRadius"]
 
     # ---- Funnel: bar colour + data labels ---- #
     elif app_key in _FUNNEL:
@@ -498,9 +527,10 @@ def _axis_gridlines_inv(fmt: Dict[str, Any], c: Dict[str, Any]) -> None:
 # stays as a real card the generic-override section reads.
 def _consumed_cards(app_key: str) -> set:
     if app_key in _CARTESIAN | _SCATTER:
-        return {"categoryAxis", "valueAxis", "legend", "labels", "categoryLabels", "dataPoint"}
+        return {"categoryAxis", "valueAxis", "legend", "labels", "categoryLabels", "dataPoint",
+                "y1AxisReferenceLine", "trend", "sentimentColors", "bubbles", "markers"}
     if app_key in _PIE | _TREEMAP:
-        return {"legend", "labels"}
+        return {"legend", "labels", "slices"}
     if app_key in _FUNNEL:
         return {"dataPoint", "labels"}
     if app_key in _GAUGE:
@@ -582,6 +612,21 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             _put(fmt, "totalColor", _hex(sc, "totalFill"))
         else:
             _put(fmt, "defaultColor", _hex(c("dataPoint"), "defaultColor"))
+        ref = c("y1AxisReferenceLine")
+        if "show" in ref:
+            fmt["refLineShow"] = bool(ref["show"])
+        if "value" in ref:
+            fmt["refLineValue"] = ref["value"]
+        _put(fmt, "refLineColor", _hex(ref, "lineColor"))
+        tr = c("trend")
+        if "show" in tr:
+            fmt["trendShow"] = bool(tr["show"])
+        _put(fmt, "trendColor", _hex(tr, "lineColor"))
+        if app_key in _SCATTER:
+            bub = c("bubbles")
+            if "bubbleSize" in bub:
+                fmt["bubbleSize"] = bub["bubbleSize"]
+            _put(fmt, "markerBorderColor", _hex(c("markers"), "borderColor"))
 
     elif app_key in _PIE | _TREEMAP:
         leg = c("legend")
@@ -596,6 +641,12 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "dataLabelColor", _hex(lab, "color"))
         if "fontSize" in lab:
             fmt["dataLabelFontSize"] = lab["fontSize"]
+        if app_key in _PIE:
+            sl = c("slices")
+            if "startAngle" in sl:
+                fmt["sliceStartAngle"] = sl["startAngle"]
+            if "innerRadiusRatio" in sl:
+                fmt["sliceInnerRadius"] = sl["innerRadiusRatio"]
 
     elif app_key in _FUNNEL:
         _put(fmt, "barColor", _hex(c("dataPoint"), "defaultColor"))
