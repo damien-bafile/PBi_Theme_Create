@@ -21,6 +21,7 @@ class FormatField:
     min_val: int | None = None  # For numbers
     max_val: int | None = None
     suffix: str | None = None  # For numbers: "px", "%", "pt"
+    preview: bool = True  # False = exported to the theme but not shown in the live preview
 
 
 @dataclass
@@ -30,6 +31,14 @@ class FormatSection:
     name: str
     fields: list[FormatField]
 
+
+# Common font families offered by dropdowns (export-only where used).
+FONT_OPTIONS = [
+    ("Segoe UI", "Segoe UI"), ("Segoe UI Semibold", "Segoe UI Semibold"),
+    ("Arial", "Arial"), ("Calibri", "Calibri"), ("Tahoma", "Tahoma"),
+    ("Verdana", "Verdana"), ("Georgia", "Georgia"), ("Times New Roman", "Times New Roman"),
+    ("Trebuchet MS", "Trebuchet MS"), ("Courier New", "Courier New"), ("DIN", "DIN"),
+]
 
 # Matrix and Table formatting sections
 MATRIX_TABLE_SECTIONS = [
@@ -56,6 +65,7 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("rowHeaderAlignment", "Alignment", "dropdown",
                        options=[("Left", "Left"), ("Center", "Center"), ("Right", "Right")]),
             FormatField("rowHeaderStepped", "Stepped Layout", "boolean", default=True),
+            FormatField("rowHeaderFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
     FormatSection(
@@ -68,6 +78,8 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("columnHeaderItalic", "Italic", "boolean", default=False),
             FormatField("columnHeaderAlignment", "Alignment", "dropdown",
                        options=[("Left", "Left"), ("Center", "Center"), ("Right", "Right")]),
+            FormatField("columnHeaderFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+            FormatField("columnHeaderWordWrap", "Word Wrap", "boolean", default=False, preview=False),
         ],
     ),
     FormatSection(
@@ -82,6 +94,8 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("cellPadding", "Cell Padding (px)", "number", min_val=2, max_val=20, suffix="px"),
             FormatField("bandedRows", "Banded Rows", "boolean", default=False),
             FormatField("alternateRowColor", "Alternate Row Color", "color", default="#F5F5F5"),
+            FormatField("valuesFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+            FormatField("valuesWordWrap", "Word Wrap", "boolean", default=False, preview=False),
         ],
     ),
     FormatSection(
@@ -92,6 +106,7 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("totalsTextColor", "Text Color", "color", default="#000000"),
             FormatField("totalsFontBold", "Bold", "boolean", default=True),
             FormatField("totalsItalic", "Italic", "boolean", default=False),
+            FormatField("totalsFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
     FormatSection(
@@ -100,6 +115,7 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("showSubtotals", "Show Subtotals", "boolean", default=True),
             FormatField("subtotalsBackgroundColor", "Background Color", "color", default="#F0F0F0"),
             FormatField("subtotalsFontBold", "Bold", "boolean", default=True),
+            FormatField("columnSubtotals", "Show Column Subtotals", "boolean", default=True, preview=False),
         ],
     ),
 ]

@@ -60,6 +60,10 @@ can still be set through the **Advanced JSON** tab and exports validly.
 
 **Legend:** ✅ done &nbsp;·&nbsp; ◐ partial &nbsp;·&nbsp; ☐ planned &nbsp;·&nbsp; — not applicable to this visual
 
+Most fields update the **live preview**; a few (marked *export-only* in the
+stages below) are exported as valid Power BI cards but can't be meaningfully
+shown in a simplified mockup (e.g. font family, word wrap).
+
 **Current overall card coverage: ~53%** (394 / 749 themeable cards across all visuals).
 
 ### Stages
@@ -77,12 +81,14 @@ can still be set through the **Advanced JSON** tab and exports validly.
   (show + text), and a **subtitle** generic override (all visuals). (Data-label
   *orientation* is column/bar-only in the schema, and `plotArea` offers only an
   image + transparency — no fill colour — so both are intentionally skipped.)
-- **Stage 3 — Table & matrix depth — ◐ in progress.** Done: grid **outer
-  outline** (colour + weight) for table & matrix, matrix **row-header
-  alignment** + **stepped layout**, and **italic** for column headers / values /
-  row headers / totals. Still to do: built-in table `stylePreset`,
-  `columnFormatting` (per-column colour / alignment / data bars), `columnWidth`,
-  column / row totals, blank rows, sparklines, word wrap.
+- **Stage 3 — Table & matrix depth — ◐ mostly done.** Previewed: grid **outer
+  outline** (colour + weight), matrix **row-header alignment** + **stepped
+  layout**, **italic** for column headers / values / row headers / totals.
+  Export-only (valid, no live preview): **font family** for headers / values /
+  row headers / totals, **word wrap** for headers & values, matrix **column
+  subtotals**. Still to do: built-in table `stylePreset`, per-column
+  `columnFormatting` (colour / data bars), `columnWidth`, sparklines — these
+  need per-column ids or uncertain enums, so they remain in Advanced JSON.
 - **Stage 4 — Reference lines & analytics — ☐.** X / Y reference lines, trend
   line, ratio line, error bars, markers, scatter bubbles / fill, waterfall
   sentiment colours & breakdown, ribbon bands, pie slices (start angle / inner

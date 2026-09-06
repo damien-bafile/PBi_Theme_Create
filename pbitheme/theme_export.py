@@ -231,6 +231,10 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             ch["italic"] = bool(fmt["columnHeaderItalic"])
         if "columnHeaderAlignment" in fmt:
             ch["alignment"] = fmt["columnHeaderAlignment"]
+        if fmt.get("columnHeaderFontFamily"):
+            ch["fontFamily"] = fmt["columnHeaderFontFamily"]
+        if "columnHeaderWordWrap" in fmt:
+            ch["wordWrap"] = bool(fmt["columnHeaderWordWrap"])
 
         vals = card("values")
         _set(vals, "fontColor", _fill(fmt.get("valuesTextColor", "")))
@@ -238,6 +242,10 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             vals["fontSize"] = fmt["valuesFontSize"]
         if "valuesItalic" in fmt:
             vals["italic"] = bool(fmt["valuesItalic"])
+        if fmt.get("valuesFontFamily"):
+            vals["fontFamily"] = fmt["valuesFontFamily"]
+        if "valuesWordWrap" in fmt:
+            vals["wordWrap"] = bool(fmt["valuesWordWrap"])
         if fmt.get("bandedRows"):
             # Alternating row colours use the primary/secondary value backgrounds.
             _set(vals, "backColorPrimary", _fill(fmt.get("valuesBackgroundColor", "")))
@@ -254,6 +262,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             tot["bold"] = bool(fmt["totalsFontBold"])
         if "totalsItalic" in fmt:
             tot["italic"] = bool(fmt["totalsItalic"])
+        if fmt.get("totalsFontFamily"):
+            tot["fontFamily"] = fmt["totalsFontFamily"]
 
         if is_matrix:
             rh = card("rowHeaders")
@@ -269,9 +279,13 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
                 rh["alignment"] = fmt["rowHeaderAlignment"]
             if "rowHeaderStepped" in fmt:
                 rh["stepped"] = bool(fmt["rowHeaderStepped"])
+            if fmt.get("rowHeaderFontFamily"):
+                rh["fontFamily"] = fmt["rowHeaderFontFamily"]
             st = card("subTotals")
             if "showSubtotals" in fmt:
                 st["rowSubtotals"] = bool(fmt["showSubtotals"])
+            if "columnSubtotals" in fmt:
+                st["columnSubtotals"] = bool(fmt["columnSubtotals"])
             _set(st, "backColor", _fill(fmt.get("subtotalsBackgroundColor", "")))
             if "subtotalsFontBold" in fmt:
                 st["bold"] = bool(fmt["subtotalsFontBold"])
@@ -604,12 +618,20 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["columnHeaderItalic"] = bool(ch["italic"])
         if "alignment" in ch:
             fmt["columnHeaderAlignment"] = ch["alignment"]
+        if "fontFamily" in ch:
+            fmt["columnHeaderFontFamily"] = ch["fontFamily"]
+        if "wordWrap" in ch:
+            fmt["columnHeaderWordWrap"] = bool(ch["wordWrap"])
         vals = c("values")
         _put(fmt, "valuesTextColor", _hex(vals, "fontColor"))
         if "fontSize" in vals:
             fmt["valuesFontSize"] = vals["fontSize"]
         if "italic" in vals:
             fmt["valuesItalic"] = bool(vals["italic"])
+        if "fontFamily" in vals:
+            fmt["valuesFontFamily"] = vals["fontFamily"]
+        if "wordWrap" in vals:
+            fmt["valuesWordWrap"] = bool(vals["wordWrap"])
         if "backColorSecondary" in vals:
             fmt["bandedRows"] = True
             _put(fmt, "alternateRowColor", _hex(vals, "backColorSecondary"))
@@ -625,6 +647,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["totalsFontBold"] = bool(tot["bold"])
         if "italic" in tot:
             fmt["totalsItalic"] = bool(tot["italic"])
+        if "fontFamily" in tot:
+            fmt["totalsFontFamily"] = tot["fontFamily"]
         if app_key in _MATRIX:
             rh = c("rowHeaders")
             _put(fmt, "rowHeaderBackgroundColor", _hex(rh, "backColor"))
@@ -639,9 +663,13 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
                 fmt["rowHeaderAlignment"] = rh["alignment"]
             if "stepped" in rh:
                 fmt["rowHeaderStepped"] = bool(rh["stepped"])
+            if "fontFamily" in rh:
+                fmt["rowHeaderFontFamily"] = rh["fontFamily"]
             st = c("subTotals")
             if "rowSubtotals" in st:
                 fmt["showSubtotals"] = bool(st["rowSubtotals"])
+            if "columnSubtotals" in st:
+                fmt["columnSubtotals"] = bool(st["columnSubtotals"])
             _put(fmt, "subtotalsBackgroundColor", _hex(st, "backColor"))
             if "bold" in st:
                 fmt["subtotalsFontBold"] = bool(st["bold"])

@@ -80,9 +80,13 @@ def main() -> int:
     generic_failures: list[str] = []
     n_fields = 0
 
+    from pbitheme.gui.visual_formatting_config import get_formatting_sections
+
     for key, label in customizable:
         dlg = driver.open_visual_dialog(key)
         panel = dlg._formatter_panel
+        # Fields flagged preview=False are exported but not shown in the preview.
+        export_only = {f.key for s in (get_formatting_sections(key) or []) for f in s.fields if not f.preview}
         # Enable gated features so dependent colours are visible in the preview.
         if "gridlineStyle" in panel._field_widgets:
             panel.set_values({"gridlineStyle": "Solid"})
@@ -103,7 +107,7 @@ def main() -> int:
             n_fields += 1
             if panel.get_values().get(field_key) != new_val:
                 field_failures.append(f"{key}.{field_key}: not captured in data")
-            if baseline is None or after is None or baseline == after:
+            if field_key not in export_only and (baseline is None or after is None or baseline == after):
                 field_failures.append(f"{key}.{field_key}: preview did not update")
             restore()
 
