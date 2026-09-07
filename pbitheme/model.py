@@ -79,14 +79,23 @@ class TextClass:
     color: str = "#252423"
     # Any properties we do not model, preserved verbatim on round-trip.
     extra: Dict[str, Any] = field(default_factory=dict)
+    # Which of the standard keys to emit.  ``None`` means "all three" (the
+    # default for new themes); a set restricts output to the keys that were
+    # present in the source file, so opening a partial class and saving keeps
+    # it partial.
+    present: Optional[set] = None
 
     def to_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {}
-        if self.font_face:
+
+        def want(key: str) -> bool:
+            return self.present is None or key in self.present
+
+        if self.font_face and want("fontFace"):
             data["fontFace"] = self.font_face
-        if self.font_size:
+        if self.font_size and want("fontSize"):
             data["fontSize"] = int(self.font_size)
-        if self.color:
+        if self.color and want("color"):
             data["color"] = normalise_hex(self.color)
         for key, value in self.extra.items():
             data.setdefault(key, value)
@@ -96,12 +105,14 @@ class TextClass:
     def from_dict(cls, name: str, data: Dict[str, Any]) -> "TextClass":
         known = {"fontFace", "fontSize", "color"}
         extra = {k: copy.deepcopy(v) for k, v in data.items() if k not in known}
+        present = {k for k in known if k in data}
         return cls(
             name=name,
             font_face=data.get("fontFace", "Segoe UI"),
             font_size=int(data.get("fontSize", 12)),
             color=data.get("color", "#252423"),
             extra=extra,
+            present=present,
         )
 
 

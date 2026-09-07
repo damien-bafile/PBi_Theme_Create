@@ -110,6 +110,22 @@ class ConformanceTests(unittest.TestCase):
         self.assertEqual(out["visualStyles"]["customVisualGuid"],
                          {"*": {"weird": [{"x": 1}]}})
 
+    def test_modelled_text_class_keeps_original_fields(self):
+        # A partial class stays partial; editing a field adds just that field.
+        theme = PowerBITheme.from_dict(
+            {"name": "P", "textClasses": {"title": {"fontSize": 9}}}
+        )
+        title = theme.text_classes["title"]
+        self.assertEqual(title.to_dict(), {"fontSize": 9})
+        title.color = "#ABCDEF"
+        title.present.add("color")
+        self.assertEqual(sorted(title.to_dict()), ["color", "fontSize"])
+        # A brand-new theme fully specifies its text classes.
+        self.assertEqual(
+            sorted(PowerBITheme("New").text_classes["title"].to_dict()),
+            ["color", "fontFace", "fontSize"],
+        )
+
     def test_slicer_orientation_is_integer(self):
         style = VisualStyle("slicer")
         style.enabled["general"] = True

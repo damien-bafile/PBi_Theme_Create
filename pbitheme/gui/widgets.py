@@ -152,40 +152,61 @@ class TextClassEditor(QWidget):
         super().__init__(parent)
         self._name = text_class.name
         self._extra = dict(text_class.extra)
+        self._present = None if text_class.present is None else set(text_class.present)
+        self._touched: set = set()
+        self._suppress = False
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self._font = QFontComboBox()
         self._font.setCurrentText(text_class.font_face)
-        self._font.currentFontChanged.connect(lambda _f: self.changed.emit())
+        self._font.currentFontChanged.connect(lambda _f: self._on_change("fontFace"))
 
         self._size = QSpinBox()
         self._size.setRange(4, 120)
         self._size.setValue(text_class.font_size)
         self._size.setSuffix(" pt")
-        self._size.valueChanged.connect(lambda _v: self.changed.emit())
+        self._size.valueChanged.connect(lambda _v: self._on_change("fontSize"))
 
         self._color = ColorButton(text_class.color)
-        self._color.colorChanged.connect(lambda _c: self.changed.emit())
+        self._color.colorChanged.connect(lambda _c: self._on_change("color"))
 
         layout.addWidget(self._font, 2)
         layout.addWidget(self._size)
         layout.addWidget(self._color)
 
+    def _on_change(self, key: str) -> None:
+        # Ignore changes made programmatically by set_value.
+        if self._suppress:
+            return
+        self._touched.add(key)
+        self.changed.emit()
+
     def set_value(self, text_class: TextClass) -> None:
         self._extra = dict(text_class.extra)
-        self._font.setCurrentText(text_class.font_face)
-        self._size.setValue(text_class.font_size)
-        self._color.set_color(text_class.color)
+        self._present = None if text_class.present is None else set(text_class.present)
+        self._touched = set()
+        self._suppress = True
+        try:
+            self._font.setCurrentText(text_class.font_face)
+            self._size.setValue(text_class.font_size)
+            self._color.set_color(text_class.color)
+        finally:
+            self._suppress = False
 
     def value(self) -> TextClass:
+        if self._present is None:
+            present = None  # a new/default class emits all standard fields
+        else:
+            present = self._present | self._touched
         return TextClass(
             name=self._name,
             font_face=self._font.currentFont().family(),
             font_size=self._size.value(),
             color=self._color.color(),
             extra=dict(self._extra),
+            present=present,
         )
 
 
