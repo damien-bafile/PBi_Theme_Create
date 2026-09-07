@@ -4,6 +4,13 @@ on:
   workflow_dispatch:
   push:
     tags: ["v*"]
+  pull_request:
+    paths:
+      - "pbitheme/**"
+      - "main.py"
+      - "build_exe.spec"
+      - "pyproject.toml"
+      - ".github/workflows/build.yml"
 
 jobs:
   windows-exe:
