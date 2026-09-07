@@ -152,6 +152,15 @@ class ConformanceTests(unittest.TestCase):
             theme.visual_styles = [style]
             self.assertEqual(validate_theme(theme.to_dict()), [], visual)
 
+    def test_all_visuals_have_dedicated_schema(self):
+        schema_visuals = set(VISUAL_TARGETS) - {"*"}
+        self.assertEqual(schema_visuals, set(VISUAL_CARD_SCHEMA))
+
+    def test_page_and_report_cards(self):
+        self.assertIn("filterCard", cards_for("page"))
+        self.assertIn("outspace", cards_for("page"))
+        self.assertIn("filterCard", cards_for("report"))
+
     def test_more_visuals_have_dedicated_cards(self):
         expected = {
             "multiRowCard": {"dataLabels", "cardTitle", "card"},

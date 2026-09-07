@@ -743,6 +743,118 @@ FILLED_MAP_CARD_SCHEMA = _schema(
     ),
 )
 
+# -- New card / new slicers --------------------------------------------- #
+CARD_NEW_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    CardSpec(
+        "calloutValue",
+        "Callout value",
+        [
+            PropSpec("color", "Colour", "color", "#252423"),
+            PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
+            PropSpec("labelPrecision", "Decimal places", "int", 0),
+            PropSpec("fontSize", "Font size", "int", 27),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+    CardSpec(
+        "categoryLabels",
+        "Category label",
+        [
+            PropSpec("show", "Show", "bool", True),
+            PropSpec("color", "Colour", "color", "#666666"),
+            PropSpec("fontSize", "Font size", "int", 10),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+    CardSpec(
+        "accentBar",
+        "Accent bar",
+        [
+            PropSpec("show", "Show", "bool", False),
+            PropSpec("color", "Colour", "color", "#118DFF"),
+        ],
+    ),
+)
+
+
+def _slicer_text_card(key: str, label: str, default_size: int) -> CardSpec:
+    return CardSpec(
+        key,
+        label,
+        [
+            PropSpec("show", "Show", "bool", True),
+            PropSpec("fontColor", "Font colour", "color", "#252423"),
+            PropSpec("background", "Background", "color", "#FFFFFF"),
+            PropSpec("fontSize", "Font size", "int", default_size),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    )
+
+
+NEW_SLICER_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    _slicer_text_card("header", "Header", 10),
+    _slicer_text_card("items", "Items", 11),
+)
+
+# -- Page & report level ------------------------------------------------ #
+_CARD_WALLPAPER = CardSpec(
+    "outspace",
+    "Wallpaper",
+    [
+        PropSpec("color", "Colour", "color", "#EAEAEA"),
+        PropSpec("transparency", "Transparency %", "int", 0),
+    ],
+)
+
+
+def _filter_pane_card() -> CardSpec:
+    return CardSpec(
+        "outspacePane",
+        "Filter pane",
+        [
+            PropSpec("backgroundColor", "Background", "color", "#FFFFFF"),
+            PropSpec("foregroundColor", "Text colour", "color", "#252423"),
+            PropSpec("transparency", "Transparency %", "int", 0),
+            PropSpec("titleSize", "Title size", "int", 12),
+            PropSpec("headerSize", "Header size", "int", 10),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+            PropSpec("border", "Border", "bool", False),
+            PropSpec("borderColor", "Border colour", "color", "#CCCCCC"),
+            PropSpec("checkboxAndApplyColor", "Control colour", "color", "#118DFF"),
+            PropSpec("inputBoxColor", "Input box colour", "color", "#252423"),
+        ],
+    )
+
+
+def _filter_card_card() -> CardSpec:
+    return CardSpec(
+        "filterCard",
+        "Filter cards",
+        [
+            PropSpec("backgroundColor", "Background", "color", "#FFFFFF"),
+            PropSpec("foregroundColor", "Text colour", "color", "#252423"),
+            PropSpec("borderColor", "Border colour", "color", "#CCCCCC"),
+            PropSpec("border", "Border", "bool", False),
+            PropSpec("transparency", "Transparency %", "int", 0),
+            PropSpec("inputBoxColor", "Input box colour", "color", "#252423"),
+        ],
+    )
+
+
+PAGE_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_WALLPAPER,
+    _filter_pane_card(),
+    _filter_card_card(),
+)
+REPORT_CARD_SCHEMA = _schema(_filter_pane_card(), _filter_card_card())
+
 # -- Element / navigation visuals: common cards only -------------------- #
 COMMON_CARD_SCHEMA = _schema(_CARD_BACKGROUND, _CARD_BORDER, _CARD_TITLE)
 _ELEMENT_VISUALS = [
@@ -754,6 +866,20 @@ _ELEMENT_VISUALS = [
     "bookmarkNavigator",
     "group",
 ]
+# Service / AI / script visuals with no meaningful colour-and-font cards
+# beyond the common three.
+_COMMON_ONLY_VISUALS = [
+    "scorecard",
+    "filter",
+    "keyDriversVisual",
+    "decompositionTreeVisual",
+    "aiNarratives",
+    "qnaVisual",
+    "pythonVisual",
+    "scriptVisual",
+    "rdlVisual",
+]
+_NEW_SLICER_VISUALS = ["advancedSlicerVisual", "listSlicer", "textSlicer"]
 
 # Visuals with a dedicated, detailed card schema; others use CARD_SCHEMA.
 VISUAL_CARD_SCHEMA: "OrderedDict[str, OrderedDict[str, CardSpec]]" = OrderedDict(
@@ -769,13 +895,20 @@ VISUAL_CARD_SCHEMA: "OrderedDict[str, OrderedDict[str, CardSpec]]" = OrderedDict
         ("filledMap", FILLED_MAP_CARD_SCHEMA),
         ("shapeMap", FILLED_MAP_CARD_SCHEMA),
         ("azureMap", MAP_CARD_SCHEMA),
+        ("cardVisual", CARD_NEW_SCHEMA),
+        ("page", PAGE_CARD_SCHEMA),
+        ("report", REPORT_CARD_SCHEMA),
     ]
 )
 for _vis in _CARTESIAN_VISUALS:
     VISUAL_CARD_SCHEMA[_vis] = CARTESIAN_CARD_SCHEMA
 for _vis in _CIRCULAR_VISUALS:
     VISUAL_CARD_SCHEMA[_vis] = CIRCULAR_CARD_SCHEMA
+for _vis in _NEW_SLICER_VISUALS:
+    VISUAL_CARD_SCHEMA[_vis] = NEW_SLICER_SCHEMA
 for _vis in _ELEMENT_VISUALS:
+    VISUAL_CARD_SCHEMA[_vis] = COMMON_CARD_SCHEMA
+for _vis in _COMMON_ONLY_VISUALS:
     VISUAL_CARD_SCHEMA[_vis] = COMMON_CARD_SCHEMA
 
 

@@ -131,13 +131,17 @@ schema rejects.
   - **Gauge**: fill/target colours, callout value, axis labels.
   - **Map / Azure map**: legend, data colours. **Filled / Shape map**: legend,
     default colour.
-  - **Buttons, text boxes, images, shapes and navigators** expose the common
+  - **New card** (`cardVisual`): callout value, category label, accent bar.
+  - **New slicers** (advanced / list / text): header, items.
+  - **Page**: page background, wallpaper, filter pane, filter cards.
+  - **Report**: filter pane, filter cards.
+  - **Buttons, text boxes, images, shapes, navigators**, and service/AI/script
+    visuals (scorecard, filter, key influencers, decomposition tree, smart
+    narrative, Q&A, Python/R, paginated) expose the common
     background / border / title cards only.
 
-  New/complex visuals (new card & slicers, scorecard, AI, Python/R, page &
-  report) fall back to the generic five-card set. The model is schema-driven
-  (`CARD_SCHEMA` / `VISUAL_CARD_SCHEMA`), so any of these can be given a
-  dedicated set the same way.
+  **All 52 visuals now have a tailored card set.** The model is schema-driven
+  (`CARD_SCHEMA` / `VISUAL_CARD_SCHEMA`), so any card set is easy to extend.
 
 Run the conformance tests with:
 
