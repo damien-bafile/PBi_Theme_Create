@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-06T00:00:00Z",
+  "title": "Design System: Power BI Theme Creator",
+  "extensions": {
+    "colorMeta": {
+      "accent-red": {
+        "role": "secondary",
+        "displayName": "Accent Red",
+        "canonical": "#D64550",
+        "tonalRamp": [
+          "#3D1F26",
+          "#6B3540",
+          "#99495A",
+          "#C75D74",
+          "#D64550",
+          "#E06B7F",
+          "#EB91A1",
+          "#F5B7C3"
+        ]
+      },
+      "accent-green": {
+        "role": "primary",
+        "displayName": "Accent Green",
+        "canonical": "#1AAB40",
+        "tonalRamp": [
+          "#0D3D1B",
+          "#146628",
+          "#1B8F35",
+          "#18A03D",
+          "#1AAB40",
+          "#4ABF68",
+          "#7ED295",
+          "#B0E5BC"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Text Primary",
+        "canonical": "#252423",
+        "tonalRamp": [
+          "#0A0A0A",
+          "#1A1918",
+          "#2B2927",
+          "#3C3935",
+          "#4D4A47",
+          "#7D7B79",
+          "#ADADAB",
+          "#DDDCDB"
+        ]
+      },
+      "border-subtle": {
+        "role": "neutral",
+        "displayName": "Border Subtle",
+        "canonical": "#888888",
+        "tonalRamp": [
+          "#2D2D2D",
+          "#4A4A4A",
+          "#656565",
+          "#777777",
+          "#888888",
+          "#A5A5A5",
+          "#C0C0C0",
+          "#DCDCDC"
+        ]
+      },
+      "surface-background": {
+        "role": "neutral",
+        "displayName": "Surface Background",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#F5F5F5",
+          "#F9F9F9",
+          "#FBFBFB",
+          "#FCFCFC",
+          "#FDFDFD",
+          "#FEFEFE",
+          "#FFFFFF",
+          "#FFFFFF"
+        ]
+      },
+      "text-strong": {
+        "role": "neutral",
+        "displayName": "Text Strong",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "#000000",
+          "#1A1A1A",
+          "#333333",
+          "#4D4D4D",
+          "#666666",
+          "#999999",
+          "#CCCCCC",
+          "#E6E6E6"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Body",
+        "purpose": "Labels, form text, dialog content. Main UI copy for interactive controls."
+      },
+      "monospace": {
+        "displayName": "Monospace",
+        "purpose": "JSON preview pane. Fixed-width for technical accuracy and hex-value alignment."
+      }
+    },
+    "breakpoints": [
+      {
+        "name": "window-min-width",
+        "value": "1000px",
+        "purpose": "Minimum window width; splitter with 3:2 ratio requires at least this much space"
+      },
+      {
+        "name": "window-min-height",
+        "value": "720px",
+        "purpose": "Minimum window height; form and preview need vertical scroll space"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Color Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Signature component: a button that displays the current hex value and a live color swatch as its background. Opens a native color picker on click.",
+      "html": "<button class=\"ds-color-btn\" style=\"background-color: #1AAB40;\">#{' #1AAB40'.substring(1)}</button>",
+      "css": ".ds-color-btn { background-color: #1AAB40; color: #FFFFFF; width: 120px; height: 28px; border: 1px solid #888888; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10pt; font-weight: 400; padding: 4px 8px; cursor: pointer; transition: filter 0.1s; } .ds-color-btn:hover { filter: brightness(1.1); } .ds-color-btn:active { filter: brightness(0.95); }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action button for save, add, or confirm. Green accent, white text, minimal radius.",
+      "html": "<button class=\"ds-btn-primary\">Save</button>",
+      "css": ".ds-btn-primary { background-color: #1AAB40; color: #FFFFFF; border: none; border-radius: 4px; padding: 6px 16px; font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 400; cursor: pointer; transition: background-color 0.15s; } .ds-btn-primary:hover { background-color: #148B36; } .ds-btn-primary:active { background-color: #0F6B2A; } .ds-btn-primary:focus-visible { outline: 2px solid #4ABF68; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Text button for add/remove or cancel. Minimal styling, text only or text + subtle border.",
+      "html": "<button class=\"ds-btn-secondary\">+ Add colour</button>",
+      "css": ".ds-btn-secondary { background-color: transparent; color: #252423; border: 1px solid #CCCCCC; border-radius: 4px; padding: 6px 16px; font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 400; cursor: pointer; transition: background-color 0.15s, border-color 0.15s; } .ds-btn-secondary:hover { background-color: #F5F5F5; border-color: #888888; } .ds-btn-secondary:active { background-color: #EEEEEE; } .ds-btn-secondary:focus-visible { outline: 2px solid #A0D0B0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Indicator (Custom)",
+      "kind": "custom",
+      "refersTo": "status-custom",
+      "description": "Green checkmark (✓) indicating a customized or active element. High contrast on light backgrounds.",
+      "html": "<span class=\"ds-status-custom\">✓</span>",
+      "css": ".ds-status-custom { color: #1AAB40; font-weight: bold; font-size: 11pt; }"
+    },
+    {
+      "name": "Status Indicator (Default)",
+      "kind": "custom",
+      "refersTo": "status-default",
+      "description": "Red cross (✗) indicating an uncustomized or default element. Draws attention for action.",
+      "html": "<span class=\"ds-status-default\">✗</span>",
+      "css": ".ds-status-default { color: #D64550; font-weight: bold; font-size: 11pt; }"
+    },
+    {
+      "name": "Form Group",
+      "kind": "card",
+      "description": "A grouped section containing related form fields. Used for General, Structural colours, Data colours, Text classes, and Visual styles sections.",
+      "html": "<fieldset class=\"ds-form-group\"><legend>Structural colours</legend><div class=\"ds-form-field\"><label for=\"foreground\">Foreground</label><button id=\"foreground\" class=\"ds-color-btn\" style=\"background-color: #252423;\">#252423</button></div></fieldset>",
+      "css": ".ds-form-group { border: 1px solid #CCCCCC; border-radius: 4px; padding: 12px 16px; margin-bottom: 16px; font-family: 'Segoe UI', Arial, sans-serif; } .ds-form-group legend { font-size: 11pt; font-weight: 700; color: #252423; padding: 0 4px; } .ds-form-field { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; } .ds-form-field:last-child { margin-bottom: 0; } .ds-form-field label { font-size: 11pt; color: #252423; }"
+    },
+    {
+      "name": "Modal Dialog",
+      "kind": "custom",
+      "description": "Full-screen modal overlay for editing visual styles. Contains grouped sections and a JSON editor.",
+      "html": "<div class=\"ds-modal-overlay\"><div class=\"ds-modal\"><h2>Edit cardVisual Style</h2><fieldset class=\"ds-form-group\"><legend>Background</legend><label><input type=\"checkbox\" class=\"ds-override-check\"> Override</label><div class=\"ds-form-field\"><label>Color</label><button class=\"ds-color-btn\" style=\"background-color: #FFFFFF;\">#FFFFFF</button></div></fieldset><div class=\"ds-modal-buttons\"><button class=\"ds-btn-secondary\">Clear All</button><button class=\"ds-btn-primary\">OK</button><button class=\"ds-btn-secondary\">Cancel</button></div></div></div>",
+      "css": ".ds-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; } .ds-modal { background-color: #FFFFFF; border-radius: 8px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); } .ds-modal h2 { margin-top: 0; margin-bottom: 16px; font-size: 13pt; font-weight: 700; color: #252423; } .ds-override-check { margin-right: 8px; cursor: pointer; } .ds-modal-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Craftsperson's Workshop",
+    "overview": "This is a focused, utilitarian workspace where theme designers work with precision and clarity. Like a well-organized craftsperson's bench, every tool has its place and purpose. The interface prioritizes function over flourish: clean layouts, clear groupings, and immediate visual feedback so users stay immersed in their creative task. The editing experience is tactile and responsive—every color pick, every font choice registers instantly in the live preview.",
+    "keyCharacteristics": [
+      "Immediate feedback — Users see changes in real-time; no delays between edit and preview",
+      "Clear visual hierarchy — Information grouped logically (General, Structural colours, Data colours, Text classes, Visual styles)",
+      "Functional transparency — JSON preview always visible; users understand what their theme will export",
+      "Precise controls — Color swatches, font dropdowns, size spinners are direct and purposeful",
+      "Status at a glance — Visual checklist shows which elements are customized (✓) and which use defaults (✗)"
+    ],
+    "rules": [
+      {
+        "name": "The Status Rule",
+        "body": "Customized = green (✓, #1AAB40), Unchecked = red (✗, #D64550). No other uses of these colors. They are diagnostic, not decorative.",
+        "section": "colors"
+      },
+      {
+        "name": "The Clarity Rule",
+        "body": "No font weights beyond regular (400) and bold (700). No sizes below 10pt. Typography serves legibility, not decoration.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do show the live JSON preview on every edit. The user never wonders what their theme will look like exported.",
+      "Do use green (✓, #1AAB40) and red (✗, #D64550) only for status indicators. Don't use them elsewhere.",
+      "Do arrange form controls horizontally when grouped (e.g., font + size + color on one row).",
+      "Do group related fields in QGroupBox with a clear label (General, Structural colours, etc.).",
+      "Do keep text size ≥10pt and line-height ≥1.2 for readability in monospace preview.",
+      "Do enable/disable related controls together (e.g., if 'Override' checkbox is unchecked, disable the color and transparency fields)."
+    ],
+    "donts": [
+      "Don't add shadows or blur effects. Depth comes from grouping and borders.",
+      "Don't use decorative colors or accents beyond green/red status. The focus is the user's data.",
+      "Don't change font weights beyond regular (400) and bold (700).",
+      "Don't hide or defer the JSON preview. It's the contract with the user: 'this is what you're exporting.'",
+      "Don't add animations or transitions. Immediate, instant feedback is more important than polish.",
+      "Don't expand the UI beyond the defined sections (General, Structural, Data colours, Text, Visual styles). Avoid feature creep in the interface."
+    ]
+  }
+}

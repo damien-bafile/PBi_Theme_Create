@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import copy
 import os
-from typing import Dict
+from typing import Any, Dict
 
 from PySide6.QtGui import QAction, QFont
 from PySide6.QtWidgets import (
@@ -16,21 +17,22 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
-    QPushButton,
     QScrollArea,
     QSplitter,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
+    QDialog,
 )
 from PySide6.QtCore import Qt
 
-from ..model import PowerBITheme
-from .widgets import (
-    ColorButton,
-    DataColorsEditor,
-    TextClassEditor,
-    VisualStyleEditor,
-)
+from ..model import PowerBITheme, VISUAL_TYPES
+from ..pbix_import import extract_theme_from_pbix, NoThemeFoundError
+from ..screenshot import capture_widget
+from .widgets import ColorButton, DataColorsEditor, TextClassEditor, VisualStylesChecklist
+from .visual_style_dialog import VisualStyleDialog
+from .preview_panel import PreviewPanel
+from .history import ThemeHistory
 
 
 class MainWindow(QMainWindow):
@@ -42,8 +44,11 @@ class MainWindow(QMainWindow):
         self._current_path: str | None = None
         self._structural_buttons: Dict[str, ColorButton] = {}
         self._text_editors: Dict[str, TextClassEditor] = {}
-        self._extra_top: Dict[str, object] = {}
-        self._extra_text_classes: Dict[str, object] = {}
+        self._visual_styles: Dict[str, Dict[str, Any]] = {}
+        self._history = ThemeHistory(max_size=20)
+        self._undo_action: QAction | None = None
+        self._redo_action: QAction | None = None
+        self._skip_history_record = False  # Flag to prevent recording during undo/redo
 
         self.setWindowTitle("Power BI Theme Creator")
         self.resize(1000, 720)
@@ -57,6 +62,7 @@ class MainWindow(QMainWindow):
     # UI construction
     # ------------------------------------------------------------------ #
     def _build_menu(self) -> None:
+        # File menu
         file_menu = self.menuBar().addMenu("&File")
 
         new_action = QAction("&New", self)
@@ -71,6 +77,9 @@ class MainWindow(QMainWindow):
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self._on_save)
 
+        screenshot_action = QAction("Save &Screenshot...", self)
+        screenshot_action.triggered.connect(self._on_save_screenshot)
+
         validate_action = QAction("&Validate against Power BI schema", self)
         validate_action.setShortcut("Ctrl+L")
         validate_action.triggered.connect(self._on_validate)
@@ -79,12 +88,29 @@ class MainWindow(QMainWindow):
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
 
-        for action in (new_action, open_action, save_action):
+        for action in (new_action, open_action, save_action, screenshot_action):
             file_menu.addAction(action)
         file_menu.addSeparator()
         file_menu.addAction(validate_action)
         file_menu.addSeparator()
         file_menu.addAction(quit_action)
+
+        # Edit menu with undo/redo
+        edit_menu = self.menuBar().addMenu("&Edit")
+
+        self._undo_action = QAction("&Undo", self)
+        self._undo_action.setShortcut("Ctrl+Z")
+        self._undo_action.triggered.connect(self._on_undo)
+        self._undo_action.setEnabled(False)
+        edit_menu.addAction(self._undo_action)
+
+        self._redo_action = QAction("&Redo", self)
+        self._redo_action.setShortcut("Ctrl+Y")
+        self._redo_action.triggered.connect(self._on_redo)
+        self._redo_action.setEnabled(False)
+        edit_menu.addAction(self._redo_action)
+
+        edit_menu.addSeparator()
 
     def _build_ui(self) -> None:
         splitter = QSplitter(Qt.Horizontal)
@@ -105,11 +131,21 @@ class MainWindow(QMainWindow):
         struct_box = QGroupBox("Structural colours")
         struct_layout = QFormLayout(struct_box)
         for attr, _key, label, default in PowerBITheme.STRUCTURAL_FIELDS:
-            button = ColorButton(default)
+            button = ColorButton(default, label=label)
             button.colorChanged.connect(lambda _c: self._refresh_preview())
             self._structural_buttons[attr] = button
             struct_layout.addRow(label, button)
         form.addWidget(struct_box)
+
+        # Conditional-formatting gradient colours
+        gradient_box = QGroupBox("Conditional formatting colours")
+        gradient_layout = QFormLayout(gradient_box)
+        for attr, _key, label, default in PowerBITheme.GRADIENT_FIELDS:
+            button = ColorButton(default, label=label)
+            button.colorChanged.connect(lambda _c: self._refresh_preview())
+            self._structural_buttons[attr] = button
+            gradient_layout.addRow(label, button)
+        form.addWidget(gradient_box)
 
         # Data colours
         data_box = QGroupBox("Data colours")
@@ -129,18 +165,12 @@ class MainWindow(QMainWindow):
             text_layout.addRow(name.capitalize(), editor)
         form.addWidget(text_box)
 
-        # Visual styles (detailed per-visual formatting -> visualStyles)
+        # Visual styles
         visual_box = QGroupBox("Visual styles")
         visual_layout = QVBoxLayout(visual_box)
-        visual_layout.addWidget(
-            QLabel(
-                "Enable a card to include it in visualStyles. Add tabs to target "
-                "specific visuals; \"All visuals (*)\" applies to everything."
-            )
-        )
-        self._visual_editor = VisualStyleEditor(self._theme.visual_styles)
-        self._visual_editor.changed.connect(self._refresh_preview)
-        visual_layout.addWidget(self._visual_editor)
+        self._visual_checklist = VisualStylesChecklist()
+        self._visual_checklist.visualRequested.connect(self._on_edit_visual_style)
+        visual_layout.addWidget(self._visual_checklist)
         form.addWidget(visual_box)
 
         form.addStretch(1)
@@ -150,22 +180,23 @@ class MainWindow(QMainWindow):
         scroll.setWidget(form_host)
         splitter.addWidget(scroll)
 
-        # -- Right: JSON preview ---------------------------------------- #
-        preview_host = QWidget()
-        preview_layout = QVBoxLayout(preview_host)
-        header_row = QHBoxLayout()
-        header_row.addWidget(QLabel("JSON preview"))
-        header_row.addStretch(1)
-        validate_btn = QPushButton("Validate")
-        validate_btn.setToolTip("Validate against the official Power BI theme schema")
-        validate_btn.clicked.connect(self._on_validate)
-        header_row.addWidget(validate_btn)
-        preview_layout.addLayout(header_row)
+        # -- Right: Preview tabs (Visual + JSON) ---------------------- #
+        preview_tabs = QTabWidget()
+
+        # Visual preview tab
+        self._visual_preview = PreviewPanel(self._theme)
+        preview_tabs.addTab(self._visual_preview, "Visual Preview")
+
+        # JSON preview tab
+        json_host = QWidget()
+        json_layout = QVBoxLayout(json_host)
         self._preview = QPlainTextEdit()
         self._preview.setReadOnly(True)
         self._preview.setFont(QFont("monospace", 10))
-        preview_layout.addWidget(self._preview)
-        splitter.addWidget(preview_host)
+        json_layout.addWidget(self._preview)
+        preview_tabs.addTab(json_host, "JSON Preview")
+
+        splitter.addWidget(preview_tabs)
 
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
@@ -176,6 +207,23 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
         self.statusBar().showMessage("Ready")
+
+        # Set up keyboard navigation (tab order)
+        self._setup_tab_order()
+
+    def _setup_tab_order(self) -> None:
+        """Define keyboard tab order for accessibility."""
+        # Start with theme name, then structural colors, then data colors, then text, then visuals
+        current_widget = self._name_edit
+        for button in self._structural_buttons.values():
+            QWidget.setTabOrder(current_widget, button)
+            current_widget = button
+        QWidget.setTabOrder(current_widget, self._data_editor)
+        current_widget = self._data_editor
+        for editor in self._text_editors.values():
+            QWidget.setTabOrder(current_widget, editor)
+            current_widget = editor
+        QWidget.setTabOrder(current_widget, self._visual_checklist)
 
     # ------------------------------------------------------------------ #
     # Model <-> widgets
@@ -188,11 +236,11 @@ class MainWindow(QMainWindow):
         self._data_editor.set_colors(theme.data_colors)
         for name, editor in self._text_editors.items():
             if name in theme.text_classes:
-                editor.set_value(theme.text_classes[name])
-        self._visual_editor.set_styles(theme.visual_styles)
-        # Carry passthrough (keys/classes we do not edit) so Save keeps them.
-        self._extra_top = dict(theme.extra_top)
-        self._extra_text_classes = dict(theme.extra_text_classes)
+                tc = theme.text_classes[name]
+                editor._font.setCurrentText(tc.font_face)
+                editor._size.setValue(tc.font_size)
+                editor._color.set_color(tc.color)
+        self._visual_styles = copy.deepcopy(theme.visual_styles)
 
     def _collect_theme(self) -> PowerBITheme:
         """Build a fresh :class:`PowerBITheme` from the current widget state."""
@@ -203,36 +251,66 @@ class MainWindow(QMainWindow):
         theme.text_classes = {
             name: editor.value() for name, editor in self._text_editors.items()
         }
-        theme.visual_styles = self._visual_editor.styles()
-        theme.extra_top = dict(self._extra_top)
-        theme.extra_text_classes = dict(self._extra_text_classes)
+        theme.visual_styles = copy.deepcopy(self._visual_styles)
         return theme
 
     def _refresh_preview(self) -> None:
         self._theme = self._collect_theme()
         self._preview.setPlainText(self._theme.to_json())
+        self._visual_checklist.set_theme(self._theme)
+        self._visual_preview.update_preview(self._theme, self._visual_styles)
+        self._update_history_actions()
+
+    def _record_history(self) -> None:
+        """Record current theme state for undo (unless skipped during undo/redo)."""
+        if self._skip_history_record:
+            return
+        self._history.push(self._collect_theme())
+        self._update_history_actions()
+
+    def _update_history_actions(self) -> None:
+        """Update undo/redo menu items based on history availability."""
+        if self._undo_action:
+            self._undo_action.setEnabled(self._history.can_undo())
+        if self._redo_action:
+            self._redo_action.setEnabled(self._history.can_redo())
 
     # ------------------------------------------------------------------ #
     # Menu actions
     # ------------------------------------------------------------------ #
     def _on_new(self) -> None:
         self._current_path = None
+        self._visual_styles = {}
+        self._history.clear()
         self._load_from_theme(PowerBITheme())
         self._refresh_preview()
         self.statusBar().showMessage("New theme")
 
     def _on_open(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open theme", "", "JSON files (*.json);;All files (*)"
+            self, "Open theme or Power BI file", "",
+            "Power BI files (*.pbix *.pbit *.json);;All files (*)"
         )
         if not path:
             return
+
+        self.statusBar().showMessage(f"Opening {os.path.basename(path)}...")
         try:
-            theme = PowerBITheme.load(path)
+            if path.lower().endswith((".pbix", ".pbit")):
+                theme = extract_theme_from_pbix(path)
+            else:
+                theme = PowerBITheme.load(path)
+        except NoThemeFoundError as exc:
+            QMessageBox.warning(self, "No custom theme", str(exc))
+            self.statusBar().showMessage("Ready")
+            return
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self, "Open failed", f"Could not load theme:\n{exc}")
+            self.statusBar().showMessage("Ready")
             return
+
         self._current_path = path
+        self._history.clear()
         self._load_from_theme(theme)
         self._refresh_preview()
         self.statusBar().showMessage(f"Opened {os.path.basename(path)}")
@@ -247,15 +325,18 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".json"):
             path += ".json"
+        self.statusBar().showMessage(f"Saving {os.path.basename(path)}...")
         try:
             theme.save(path)
         except OSError as exc:
             QMessageBox.critical(self, "Save failed", f"Could not save theme:\n{exc}")
+            self.statusBar().showMessage("Ready")
             return
         self._current_path = path
         self.statusBar().showMessage(f"Saved {os.path.basename(path)}")
 
     def _on_validate(self) -> None:
+        """Validate the current theme against the bundled Power BI schema."""
         from ..validate import schema_version, validate_theme
 
         theme = self._collect_theme()
@@ -286,3 +367,71 @@ class MainWindow(QMainWindow):
         box.setDetailedText(preview)
         box.exec()
         self.statusBar().showMessage(f"{len(errors)} schema issue(s)")
+
+    def _on_edit_visual_style(self, visual_key: str) -> None:
+        """Open the style editor dialog for the selected visual type."""
+        label = dict(VISUAL_TYPES).get(visual_key, visual_key)
+        presets = self._visual_styles.get(visual_key) or {}
+        existing_obj = presets.get("*", {})
+        dialog = VisualStyleDialog(
+            visual_key, label, existing_obj, self, self._theme, presets=presets or None
+        )
+        if dialog.exec() == QDialog.Accepted:
+            # Keep the default plus any non-empty named presets.
+            updated = {
+                name: obj for name, obj in dialog.result_presets().items()
+                if obj or name == "*"
+            }
+            has_content = any(obj for obj in updated.values())
+            if has_content:
+                self._visual_styles[visual_key] = updated
+            else:
+                self._visual_styles.pop(visual_key, None)
+            self._record_history()
+            self._refresh_preview()
+
+    def _on_undo(self) -> None:
+        """Undo the last theme change."""
+        if not self._history.can_undo():
+            return
+        # Save current state for redo
+        self._history.save_for_redo(self._theme)
+        # Get previous state
+        prev_theme = self._history.undo()
+        if prev_theme:
+            self._skip_history_record = True
+            self._load_from_theme(prev_theme)
+            self._refresh_preview()
+            self._skip_history_record = False
+            self.statusBar().showMessage("Undo")
+
+    def _on_redo(self) -> None:
+        """Redo the last undone change."""
+        if not self._history.can_redo():
+            return
+        # Get next state
+        next_theme = self._history.redo()
+        if next_theme:
+            self._skip_history_record = True
+            self._load_from_theme(next_theme)
+            self._refresh_preview()
+            self._skip_history_record = False
+            self.statusBar().showMessage("Redo")
+
+    def _on_save_screenshot(self) -> None:
+        """Save a PNG screenshot of the current window."""
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save screenshot", "theme_editor.png", "PNG images (*.png);;All files (*)"
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".png"):
+            path += ".png"
+        self.statusBar().showMessage(f"Saving screenshot {os.path.basename(path)}...")
+        try:
+            capture_widget(self, path)
+        except OSError as exc:
+            QMessageBox.critical(self, "Screenshot failed", f"Could not save screenshot:\n{exc}")
+            self.statusBar().showMessage("Ready")
+            return
+        self.statusBar().showMessage(f"Saved screenshot {os.path.basename(path)}")

@@ -3,21 +3,14 @@
 This module is completely independent of any GUI toolkit so that the theme
 can be created, serialised and validated from scripts as well as from the Qt
 application.  Everything is expressed with small, well encapsulated classes.
-
-Besides the top-level colours and text classes it also models the detailed
-``visualStyles`` block used by the deldersveld / MattRudy theme templates,
-where each formatting card is an array with a single object and colours are
-wrapped as ``{"solid": {"color": "#RRGGBB"}}``.
 """
 
 from __future__ import annotations
 
-import copy
 import json
 import re
-from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Tuple
 
 # A default Power BI-flavoured qualitative palette.
 DEFAULT_DATA_COLORS: List[str] = [
@@ -29,6 +22,52 @@ DEFAULT_DATA_COLORS: List[str] = [
     "#744EC2",
     "#D9B300",
     "#D64550",
+]
+
+# All valid Power BI visual types that can be customised in a theme.
+# Each tuple is (JSON key, human label).
+VISUAL_TYPES: List[tuple[str, str]] = [
+    ("*", "All visuals (wildcard)"),
+    ("areaChart", "Area Chart"),
+    ("actionButton", "Action Button"),
+    ("azureMapVisual", "Azure Maps"),
+    ("barChart", "Bar Chart"),
+    ("basicShape", "Basic Shape"),
+    ("card", "Card"),
+    ("clusteredBarChart", "Clustered Bar Chart"),
+    ("clusteredColumnChart", "Clustered Column Chart"),
+    ("columnChart", "Column Chart"),
+    ("decompositionTreeVisual", "Decomposition Tree"),
+    ("donutChart", "Donut Chart"),
+    ("filledMap", "Filled Map"),
+    ("funnel", "Funnel"),
+    ("gauge", "Gauge"),
+    ("hundredPercentStackedBarChart", "100% Stacked Bar Chart"),
+    ("hundredPercentStackedColumnChart", "100% Stacked Column Chart"),
+    ("image", "Image"),
+    ("keyDriversVisual", "Key Drivers"),
+    ("kpi", "KPI"),
+    ("lineChart", "Line Chart"),
+    ("lineClusteredColumnComboChart", "Line & Clustered Column Chart"),
+    ("lineStackedColumnComboChart", "Line & Stacked Column Chart"),
+    ("map", "Map"),
+    ("matrix", "Matrix"),
+    ("multiRowCard", "Multi-row Card"),
+    ("pivotTable", "Pivot Table"),
+    ("pieChart", "Pie Chart"),
+    ("pythonVisual", "Python Visual"),
+    ("qnaVisual", "Q&A"),
+    ("ribbonChart", "Ribbon Chart"),
+    ("rVisual", "R Visual"),
+    ("scatterChart", "Scatter Chart"),
+    ("shapeMap", "Shape Map"),
+    ("slicer", "Slicer"),
+    ("smartNarrative", "Smart Narrative"),
+    ("table", "Table"),
+    ("tableEx", "Table (Extended)"),
+    ("textbox", "Text Box"),
+    ("treemap", "Treemap"),
+    ("waterfallChart", "Waterfall Chart"),
 ]
 
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
@@ -53,22 +92,6 @@ def normalise_hex(value: str) -> str:
     return value
 
 
-def solid(color: str) -> Dict[str, Any]:
-    """Wrap a hex colour in Power BI's ``{"solid": {"color": ...}}`` form."""
-    return {"solid": {"color": normalise_hex(color)}}
-
-
-def unwrap_solid(value: Any) -> Optional[str]:
-    """Extract the hex colour from a ``{"solid": {"color": ...}}`` value."""
-    try:
-        return value["solid"]["color"]
-    except (KeyError, TypeError):
-        return None
-
-
-# --------------------------------------------------------------------------- #
-# Text classes (typography)
-# --------------------------------------------------------------------------- #
 @dataclass
 class TextClass:
     """A single Power BI text class (title, header, callout, label, ...)."""
@@ -77,1075 +100,107 @@ class TextClass:
     font_face: str = "Segoe UI"
     font_size: int = 12
     color: str = "#252423"
-    # Any properties we do not model, preserved verbatim on round-trip.
-    extra: Dict[str, Any] = field(default_factory=dict)
-    # Which of the standard keys to emit.  ``None`` means "all three" (the
-    # default for new themes); a set restricts output to the keys that were
-    # present in the source file, so opening a partial class and saving keeps
-    # it partial.
-    present: Optional[set] = None
 
     def to_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {}
-
-        def want(key: str) -> bool:
-            return self.present is None or key in self.present
-
-        if self.font_face and want("fontFace"):
+        if self.font_face:
             data["fontFace"] = self.font_face
-        if self.font_size and want("fontSize"):
-            data["fontSize"] = int(self.font_size)
-        if self.color and want("color"):
+        if self.font_size:
+            # Power BI's schema constrains font sizes to 8-60.
+            data["fontSize"] = max(8, min(60, int(self.font_size)))
+        if self.color:
             data["color"] = normalise_hex(self.color)
-        for key, value in self.extra.items():
-            data.setdefault(key, value)
         return data
 
     @classmethod
     def from_dict(cls, name: str, data: Dict[str, Any]) -> "TextClass":
-        known = {"fontFace", "fontSize", "color"}
-        extra = {k: copy.deepcopy(v) for k, v in data.items() if k not in known}
-        present = {k for k in known if k in data}
         return cls(
             name=name,
             font_face=data.get("fontFace", "Segoe UI"),
             font_size=int(data.get("fontSize", 12)),
             color=data.get("color", "#252423"),
-            extra=extra,
-            present=present,
         )
 
 
-def _default_text_classes() -> "OrderedDict[str, TextClass]":
-    return OrderedDict(
-        [
-            ("title", TextClass("title", "Segoe UI Semibold", 12, "#252423")),
-            ("header", TextClass("header", "Segoe UI Semibold", 12, "#252423")),
-            ("callout", TextClass("callout", "Segoe UI", 45, "#252423")),
-            ("label", TextClass("label", "Segoe UI", 10, "#252423")),
-        ]
-    )
+def _default_text_classes() -> Dict[str, TextClass]:
+    return {
+        "title": TextClass("title", "Segoe UI Semibold", 12, "#252423"),
+        "header": TextClass("header", "Segoe UI Semibold", 12, "#252423"),
+        "callout": TextClass("callout", "Segoe UI", 45, "#252423"),
+        "label": TextClass("label", "Segoe UI", 10, "#252423"),
+    }
 
 
-# --------------------------------------------------------------------------- #
-# visualStyles schema
-# --------------------------------------------------------------------------- #
-@dataclass
-class PropSpec:
-    """Describes a single formatting property inside a card."""
+class PowerBITheme:
+    """In-memory representation of a Power BI report theme.
 
-    key: str
-    label: str
-    kind: str  # bool | color | int | float | font | choice
-    default: Any
-    choices: Optional[List[tuple]] = None  # list of (value, label) for 'choice'
-
-    def to_json_value(self, value: Any) -> Any:
-        """Convert an editor value into its Power BI JSON representation."""
-        if self.kind == "color":
-            return solid(value)
-        if self.kind == "int":
-            return int(value)
-        if self.kind == "float":
-            return float(value)
-        if self.kind == "bool":
-            return bool(value)
-        return value  # font / choice / text -> plain string
-
-    def from_json_value(self, value: Any) -> Any:
-        """Convert a Power BI JSON value back into an editor value."""
-        if self.kind == "color":
-            return unwrap_solid(value) or self.default
-        return value
-
-
-# Power BI requires labelDisplayUnits as an integer (schema oneOf enum).
-_DISPLAY_UNITS = [
-    (0, "Auto"),
-    (1, "None"),
-    (1000, "Thousands"),
-    (1000000, "Millions"),
-    (1000000000, "Billions"),
-    (1000000000000, "Trillions"),
-]
-
-_ALIGNMENTS = [("left", "Left"), ("center", "Center"), ("right", "Right")]
-# Table / matrix headers use a capitalised alignment enum (distinct from title).
-_ALIGNMENTS_CAP = [("Left", "Left"), ("Center", "Center"), ("Right", "Right")]
-_TITLE_ALIGNMENTS = [
-    ("Auto", "Auto"),
-    ("Left", "Left"),
-    ("Center", "Center"),
-    ("Right", "Right"),
-]
-# Slicer orientation is an integer enum in the current schema.
-_ORIENTATION = [(1, "Vertical"), (2, "Horizontal"), (0, "Grid")]
-_SUBTOTAL_POSITION = [("Top", "Top"), ("Bottom", "Bottom")]
-# Built-in table / matrix style presets (internal names).
-_TABLE_PRESETS = [
-    ("None", "None"),
-    ("Default", "Default"),
-    ("Minimal", "Minimal"),
-    ("BoldHeader", "Bold header"),
-    ("AlternatingRows", "Alternating rows"),
-    ("ContrastAlternatingRows", "Contrast alternating rows"),
-    ("FlashyRows", "Flashy rows"),
-    ("BoldHeaderFlashyRows", "Bold header flashy rows"),
-    ("Sparse", "Sparse"),
-    ("Condensed", "Condensed"),
-    ("NumbersOnLeft", "Numbers on left"),
-]
-
-
-@dataclass
-class CardSpec:
-    """A named formatting card (e.g. background, title) and its properties."""
-
-    key: str
-    label: str
-    props: List[PropSpec]
-
-
-# -- Common cards, reused across visuals -------------------------------- #
-_CARD_BACKGROUND = CardSpec(
-    "background",
-    "Background",
-    [
-        PropSpec("show", "Show", "bool", True),
-        PropSpec("color", "Colour", "color", "#FFFFFF"),
-        PropSpec("transparency", "Transparency %", "int", 0),
-    ],
-)
-_CARD_BORDER = CardSpec(
-    "border",
-    "Border",
-    [
-        PropSpec("show", "Show", "bool", True),
-        PropSpec("color", "Colour", "color", "#CCCCCC"),
-        PropSpec("radius", "Radius", "int", 0),
-    ],
-)
-_CARD_TITLE = CardSpec(
-    "title",
-    "Title",
-    [
-        PropSpec("show", "Show", "bool", True),
-        PropSpec("fontColor", "Font colour", "color", "#FFFFFF"),
-        PropSpec("background", "Background", "color", "#062B60"),
-        PropSpec("alignment", "Alignment", "choice", "left", _ALIGNMENTS),
-        PropSpec("fontSize", "Font size", "int", 12),
-        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-    ],
-)
-_CARD_LABELS = CardSpec(
-    "labels",
-    "Data labels",
-    [
-        PropSpec("color", "Colour", "color", "#000000"),
-        PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
-        PropSpec("labelPrecision", "Decimal places", "int", 0),
-        PropSpec("fontSize", "Font size", "int", 10),
-        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-    ],
-)
-_CARD_CATEGORY_LABELS = CardSpec(
-    "categoryLabels",
-    "Category labels",
-    [
-        PropSpec("show", "Show", "bool", True),
-        PropSpec("color", "Colour", "color", "#01B8AA"),
-        PropSpec("fontSize", "Font size", "int", 10),
-        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-    ],
-)
-
-
-def _schema(*cards: CardSpec) -> "OrderedDict[str, CardSpec]":
-    return OrderedDict((c.key, c) for c in cards)
-
-
-# The generic set of cards used for any visual without a specific schema.
-CARD_SCHEMA: "OrderedDict[str, CardSpec]" = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    _CARD_LABELS,
-    _CARD_CATEGORY_LABELS,
-)
-
-# -- Table / matrix shared cards ---------------------------------------- #
-_CARD_GRID = CardSpec(
-    "grid",
-    "Grid",
-    [
-        PropSpec("gridVertical", "Vertical gridlines", "bool", False),
-        PropSpec("gridVerticalColor", "Vertical colour", "color", "#CCCCCC"),
-        PropSpec("gridVerticalWeight", "Vertical thickness", "int", 1),
-        PropSpec("gridHorizontal", "Horizontal gridlines", "bool", True),
-        PropSpec("gridHorizontalColor", "Horizontal colour", "color", "#CCCCCC"),
-        PropSpec("gridHorizontalWeight", "Horizontal thickness", "int", 1),
-        PropSpec("rowPadding", "Row padding", "int", 2),
-        PropSpec("outlineColor", "Outline colour", "color", "#CCCCCC"),
-        PropSpec("outlineWeight", "Outline thickness", "int", 1),
-        PropSpec("textSize", "Text size", "int", 10),
-        PropSpec("imageHeight", "Image height", "int", 75),
-    ],
-)
-
-
-def _values_card(extra: List[PropSpec]) -> CardSpec:
-    props = [
-        PropSpec("fontColorPrimary", "Font colour", "color", "#000000"),
-        PropSpec("backColorPrimary", "Background", "color", "#FFFFFF"),
-        PropSpec("fontColorSecondary", "Alt font colour", "color", "#000000"),
-        PropSpec("backColorSecondary", "Alt background", "color", "#EEEEEE"),
-    ]
-    props += extra
-    props += [
-        PropSpec("urlIcon", "URL icon", "bool", False),
-        PropSpec("wordWrap", "Word wrap", "bool", False),
-        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        PropSpec("fontSize", "Font size", "int", 10),
-    ]
-    return CardSpec("values", "Values", props)
-
-
-# -- Table (tableEx) ---------------------------------------------------- #
-TABLE_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    _CARD_GRID,
-    CardSpec(
-        "columnHeaders",
-        "Column headers",
-        [
-            PropSpec("fontColor", "Font colour", "color", "#000000"),
-            PropSpec("backColor", "Background", "color", "#FFFFFF"),
-            PropSpec("autoSizeColumnWidth", "Auto-size width", "bool", True),
-            PropSpec("alignment", "Alignment", "choice", "Left", _ALIGNMENTS_CAP),
-            PropSpec("wordWrap", "Word wrap", "bool", False),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-            PropSpec("fontSize", "Font size", "int", 10),
-        ],
-    ),
-    _values_card([]),
-    CardSpec(
-        "total",
-        "Total",
-        [
-            PropSpec("totals", "Show totals", "bool", True),
-            PropSpec("fontColor", "Font colour", "color", "#000000"),
-            PropSpec("backColor", "Background", "color", "#FFFFFF"),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-            PropSpec("fontSize", "Font size", "int", 10),
-        ],
-    ),
-    CardSpec(
-        "stylePreset",
-        "Style preset",
-        [PropSpec("name", "Preset", "choice", "Default", _TABLE_PRESETS)],
-    ),
-)
-
-# -- Matrix (pivotTable) ------------------------------------------------ #
-MATRIX_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    _CARD_GRID,
-    CardSpec(
-        "columnHeaders",
-        "Column headers",
-        [
-            PropSpec("fontColor", "Font colour", "color", "#000000"),
-            PropSpec("backColor", "Background", "color", "#FFFFFF"),
-            PropSpec("autoSizeColumnWidth", "Auto-size width", "bool", True),
-            PropSpec("alignment", "Alignment", "choice", "Left", _ALIGNMENTS_CAP),
-            PropSpec("titleAlignment", "Title alignment", "choice", "Auto", _TITLE_ALIGNMENTS),
-            PropSpec("urlIcon", "URL icon", "bool", False),
-            PropSpec("wordWrap", "Word wrap", "bool", False),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-            PropSpec("fontSize", "Font size", "int", 10),
-        ],
-    ),
-    CardSpec(
-        "rowHeaders",
-        "Row headers",
-        [
-            PropSpec("fontColor", "Font colour", "color", "#000000"),
-            PropSpec("backColor", "Background", "color", "#FFFFFF"),
-            PropSpec("stepped", "Stepped layout", "bool", True),
-            PropSpec("steppedLayoutIndentation", "Indentation", "int", 10),
-            PropSpec("showExpandCollapseButtons", "+/- buttons", "bool", True),
-            PropSpec("urlIcon", "URL icon", "bool", False),
-            PropSpec("wordWrap", "Word wrap", "bool", False),
-            PropSpec("alignment", "Alignment", "choice", "Left", _ALIGNMENTS_CAP),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-            PropSpec("fontSize", "Font size", "int", 10),
-        ],
-    ),
-    _values_card(
-        [
-            PropSpec("bandedRowHeaders", "Banded rows", "bool", False),
-            PropSpec("valuesOnRow", "Values on rows", "bool", False),
-        ]
-    ),
-    CardSpec(
-        "subTotals",
-        "Subtotals",
-        [
-            PropSpec("rowSubtotals", "Row subtotals", "bool", True),
-            PropSpec("columnSubtotals", "Column subtotals", "bool", True),
-            PropSpec("rowSubtotalsPosition", "Row position", "choice", "Bottom", _SUBTOTAL_POSITION),
-            PropSpec("applyToHeaders", "Apply to headers", "bool", False),
-            PropSpec("perRowLevel", "Per row level", "bool", False),
-            PropSpec("perColumnLevel", "Per column level", "bool", False),
-            PropSpec("fontColor", "Font colour", "color", "#000000"),
-            PropSpec("backColor", "Background", "color", "#FFFFFF"),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-            PropSpec("fontSize", "Font size", "int", 10),
-        ],
-    ),
-    CardSpec(
-        "total",
-        "Grand total",
-        [
-            PropSpec("applyToHeaders", "Apply to headers", "bool", False),
-            PropSpec("fontColor", "Font colour", "color", "#000000"),
-            PropSpec("backColor", "Background", "color", "#FFFFFF"),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-            PropSpec("fontSize", "Font size", "int", 10),
-        ],
-    ),
-    CardSpec(
-        "stylePreset",
-        "Style preset",
-        [PropSpec("name", "Preset", "choice", "Default", _TABLE_PRESETS)],
-    ),
-)
-
-# -- Slicer ------------------------------------------------------------- #
-SLICER_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    CardSpec(
-        "general",
-        "General",
-        [
-            PropSpec("orientation", "Orientation", "choice", 1, _ORIENTATION),
-            PropSpec("outlineColor", "Outline colour", "color", "#444444"),
-            PropSpec("outlineWeight", "Outline thickness", "int", 1),
-        ],
-    ),
-    CardSpec(
-        "header",
-        "Header",
-        [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("fontColor", "Font colour", "color", "#000000"),
-            PropSpec("background", "Background", "color", "#FFFFFF"),
-            PropSpec("textSize", "Text size", "int", 10),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "items",
-        "Items",
-        [
-            PropSpec("fontColor", "Font colour", "color", "#000000"),
-            PropSpec("background", "Background", "color", "#FFFFFF"),
-            PropSpec("textSize", "Text size", "int", 11),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "selection",
-        "Selection controls",
-        [
-            PropSpec("selectAllCheckboxEnabled", "Show 'Select all'", "bool", False),
-            PropSpec("singleSelect", "Single select", "bool", True),
-        ],
-    ),
-    CardSpec(
-        "slider",
-        "Slider",
-        [PropSpec("color", "Colour", "color", "#118DFF")],
-    ),
-)
-
-# -- Chart cards, shared across cartesian / circular charts ------------- #
-_LEGEND_POSITIONS = [
-    ("Top", "Top"),
-    ("Bottom", "Bottom"),
-    ("Left", "Left"),
-    ("Right", "Right"),
-    ("TopCenter", "Top (centre)"),
-    ("BottomCenter", "Bottom (centre)"),
-    ("LeftCenter", "Left (centre)"),
-    ("RightCenter", "Right (centre)"),
-]
-_GRIDLINE_STYLES = [("solid", "Solid"), ("dashed", "Dashed"), ("dotted", "Dotted")]
-
-_CARD_LEGEND = CardSpec(
-    "legend",
-    "Legend",
-    [
-        PropSpec("show", "Show", "bool", True),
-        PropSpec("position", "Position", "choice", "Top", _LEGEND_POSITIONS),
-        PropSpec("showTitle", "Show title", "bool", True),
-        PropSpec("titleText", "Title text", "text", ""),
-        PropSpec("labelColor", "Text colour", "color", "#252423"),
-        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        PropSpec("fontSize", "Font size", "int", 9),
-    ],
-)
-_CARD_DATA_POINT = CardSpec(
-    "dataPoint",
-    "Data colours",
-    [
-        PropSpec("defaultColor", "Default colour", "color", "#118DFF"),
-        PropSpec("showAllDataPoints", "Show all data points", "bool", False),
-    ],
-)
-_CARD_CHART_LABELS = CardSpec(
-    "labels",
-    "Data labels",
-    [
-        PropSpec("show", "Show", "bool", False),
-        PropSpec("color", "Colour", "color", "#000000"),
-        PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
-        PropSpec("labelPrecision", "Decimal places", "int", 0),
-        PropSpec("fontSize", "Font size", "int", 9),
-        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-    ],
-)
-
-
-def _axis_card(key: str, label: str) -> CardSpec:
-    return CardSpec(
-        key,
-        label,
-        [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("labelColor", "Label colour", "color", "#252423"),
-            PropSpec("fontSize", "Font size", "int", 9),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-            PropSpec("showAxisTitle", "Show axis title", "bool", True),
-            PropSpec("titleColor", "Title colour", "color", "#252423"),
-            PropSpec("gridlineShow", "Gridlines", "bool", True),
-            PropSpec("gridlineColor", "Gridline colour", "color", "#EAEAEA"),
-            PropSpec("gridlineThickness", "Gridline thickness", "int", 1),
-            PropSpec("gridlineStyle", "Gridline style", "choice", "solid", _GRIDLINE_STYLES),
-        ],
-    )
-
-
-_CARD_CATEGORY_AXIS = _axis_card("categoryAxis", "X axis")
-_CARD_VALUE_AXIS = _axis_card("valueAxis", "Y axis")
-
-# Cartesian charts: axes + legend + data colours + labels.
-CARTESIAN_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    _CARD_LEGEND,
-    _CARD_CATEGORY_AXIS,
-    _CARD_VALUE_AXIS,
-    _CARD_DATA_POINT,
-    _CARD_CHART_LABELS,
-)
-
-# Circular / part-to-whole charts: legend + data colours + labels (no axes).
-CIRCULAR_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    _CARD_LEGEND,
-    _CARD_DATA_POINT,
-    _CARD_CHART_LABELS,
-)
-
-_CARTESIAN_VISUALS = [
-    "columnChart",
-    "clusteredColumnChart",
-    "hundredPercentStackedColumnChart",
-    "barChart",
-    "clusteredBarChart",
-    "hundredPercentStackedBarChart",
-    "lineChart",
-    "areaChart",
-    "stackedAreaChart",
-    "hundredPercentStackedAreaChart",
-    "lineClusteredColumnComboChart",
-    "lineStackedColumnComboChart",
-    "ribbonChart",
-    "waterfallChart",
-    "scatterChart",
-]
-_CIRCULAR_VISUALS = ["pieChart", "donutChart", "treemap", "funnel"]
-
-# -- Cards, KPIs and gauges --------------------------------------------- #
-CARD_VISUAL_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    CardSpec(
-        "labels",
-        "Data label",
-        [
-            PropSpec("color", "Colour", "color", "#252423"),
-            PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
-            PropSpec("labelPrecision", "Decimal places", "int", 0),
-            PropSpec("fontSize", "Font size", "int", 27),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    _CARD_CATEGORY_LABELS,
-    CardSpec("wordWrap", "Word wrap", [PropSpec("show", "Show", "bool", True)]),
-)
-
-_OUTLINE_CHOICES = [
-    ("None", "None"),
-    ("Bottom only", "Bottom only"),
-    ("Top only", "Top only"),
-    ("Left only", "Left only"),
-    ("Right only", "Right only"),
-    ("TopBottom", "Top + bottom"),
-    ("LeftRight", "Left + right"),
-    ("Frame", "Frame"),
-]
-
-MULTIROW_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    CardSpec(
-        "dataLabels",
-        "Data labels",
-        [
-            PropSpec("color", "Colour", "color", "#252423"),
-            PropSpec("fontSize", "Font size", "int", 12),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "categoryLabels",
-        "Category labels",
-        [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("color", "Colour", "color", "#666666"),
-            PropSpec("fontSize", "Font size", "int", 10),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "cardTitle",
-        "Card title",
-        [
-            PropSpec("color", "Colour", "color", "#252423"),
-            PropSpec("fontSize", "Font size", "int", 12),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "card",
-        "Card style",
-        [
-            PropSpec("outline", "Outline", "choice", "None", _OUTLINE_CHOICES),
-            PropSpec("outlineColor", "Outline colour", "color", "#CCCCCC"),
-            PropSpec("outlineWeight", "Outline thickness", "int", 1),
-            PropSpec("barShow", "Show bar", "bool", False),
-            PropSpec("barColor", "Bar colour", "color", "#118DFF"),
-            PropSpec("barWeight", "Bar thickness", "int", 3),
-            PropSpec("cardPadding", "Padding", "int", 5),
-            PropSpec("cardBackground", "Card background", "color", "#FFFFFF"),
-        ],
-    ),
-)
-
-KPI_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    CardSpec(
-        "indicator",
-        "Indicator",
-        [
-            PropSpec("color", "Colour", "color", "#252423"),
-            PropSpec("fontSize", "Font size", "int", 27),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec("trendline", "Trend axis", [PropSpec("show", "Show", "bool", True)]),
-    CardSpec(
-        "goals",
-        "Goals",
-        [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("label", "Show label", "bool", True),
-        ],
-    ),
-)
-
-GAUGE_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    CardSpec(
-        "dataPoint",
-        "Colours",
-        [
-            PropSpec("fillColor", "Fill colour", "color", "#118DFF"),
-            PropSpec("targetColor", "Target colour", "color", "#333333"),
-        ],
-    ),
-    CardSpec(
-        "calloutValue",
-        "Callout value",
-        [
-            PropSpec("color", "Colour", "color", "#252423"),
-            PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
-            PropSpec("labelPrecision", "Decimal places", "int", 0),
-            PropSpec("fontSize", "Font size", "int", 20),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "labels",
-        "Axis labels",
-        [
-            PropSpec("color", "Colour", "color", "#252423"),
-            PropSpec("fontSize", "Font size", "int", 10),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-)
-
-# -- Maps --------------------------------------------------------------- #
-MAP_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    _CARD_LEGEND,
-    _CARD_DATA_POINT,
-)
-FILLED_MAP_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    _CARD_LEGEND,
-    CardSpec(
-        "dataPoint",
-        "Data colours",
-        [PropSpec("defaultColor", "Default colour", "color", "#118DFF")],
-    ),
-)
-
-# -- New card / new slicers --------------------------------------------- #
-CARD_NEW_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    CardSpec(
-        "calloutValue",
-        "Callout value",
-        [
-            PropSpec("color", "Colour", "color", "#252423"),
-            PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
-            PropSpec("labelPrecision", "Decimal places", "int", 0),
-            PropSpec("fontSize", "Font size", "int", 27),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "categoryLabels",
-        "Category label",
-        [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("color", "Colour", "color", "#666666"),
-            PropSpec("fontSize", "Font size", "int", 10),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    ),
-    CardSpec(
-        "accentBar",
-        "Accent bar",
-        [
-            PropSpec("show", "Show", "bool", False),
-            PropSpec("color", "Colour", "color", "#118DFF"),
-        ],
-    ),
-)
-
-
-def _slicer_text_card(key: str, label: str, default_size: int) -> CardSpec:
-    return CardSpec(
-        key,
-        label,
-        [
-            PropSpec("show", "Show", "bool", True),
-            PropSpec("fontColor", "Font colour", "color", "#252423"),
-            PropSpec("background", "Background", "color", "#FFFFFF"),
-            PropSpec("fontSize", "Font size", "int", default_size),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-        ],
-    )
-
-
-NEW_SLICER_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_BORDER,
-    _CARD_TITLE,
-    _slicer_text_card("header", "Header", 10),
-    _slicer_text_card("items", "Items", 11),
-)
-
-# -- Page & report level ------------------------------------------------ #
-_CARD_WALLPAPER = CardSpec(
-    "outspace",
-    "Wallpaper",
-    [
-        PropSpec("color", "Colour", "color", "#EAEAEA"),
-        PropSpec("transparency", "Transparency %", "int", 0),
-    ],
-)
-
-
-def _filter_pane_card() -> CardSpec:
-    return CardSpec(
-        "outspacePane",
-        "Filter pane",
-        [
-            PropSpec("backgroundColor", "Background", "color", "#FFFFFF"),
-            PropSpec("foregroundColor", "Text colour", "color", "#252423"),
-            PropSpec("transparency", "Transparency %", "int", 0),
-            PropSpec("titleSize", "Title size", "int", 12),
-            PropSpec("headerSize", "Header size", "int", 10),
-            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
-            PropSpec("border", "Border", "bool", False),
-            PropSpec("borderColor", "Border colour", "color", "#CCCCCC"),
-            PropSpec("checkboxAndApplyColor", "Control colour", "color", "#118DFF"),
-            PropSpec("inputBoxColor", "Input box colour", "color", "#252423"),
-        ],
-    )
-
-
-def _filter_card_card() -> CardSpec:
-    return CardSpec(
-        "filterCard",
-        "Filter cards",
-        [
-            PropSpec("backgroundColor", "Background", "color", "#FFFFFF"),
-            PropSpec("foregroundColor", "Text colour", "color", "#252423"),
-            PropSpec("borderColor", "Border colour", "color", "#CCCCCC"),
-            PropSpec("border", "Border", "bool", False),
-            PropSpec("transparency", "Transparency %", "int", 0),
-            PropSpec("inputBoxColor", "Input box colour", "color", "#252423"),
-        ],
-    )
-
-
-PAGE_CARD_SCHEMA = _schema(
-    _CARD_BACKGROUND,
-    _CARD_WALLPAPER,
-    _filter_pane_card(),
-    _filter_card_card(),
-)
-REPORT_CARD_SCHEMA = _schema(_filter_pane_card(), _filter_card_card())
-
-# -- Element / navigation visuals: common cards only -------------------- #
-COMMON_CARD_SCHEMA = _schema(_CARD_BACKGROUND, _CARD_BORDER, _CARD_TITLE)
-_ELEMENT_VISUALS = [
-    "actionButton",
-    "textbox",
-    "image",
-    "shape",
-    "pageNavigator",
-    "bookmarkNavigator",
-    "group",
-]
-# Service / AI / script visuals with no meaningful colour-and-font cards
-# beyond the common three.
-_COMMON_ONLY_VISUALS = [
-    "scorecard",
-    "filter",
-    "keyDriversVisual",
-    "decompositionTreeVisual",
-    "aiNarratives",
-    "qnaVisual",
-    "pythonVisual",
-    "scriptVisual",
-    "rdlVisual",
-]
-_NEW_SLICER_VISUALS = ["advancedSlicerVisual", "listSlicer", "textSlicer"]
-
-# Visuals with a dedicated, detailed card schema; others use CARD_SCHEMA.
-VISUAL_CARD_SCHEMA: "OrderedDict[str, OrderedDict[str, CardSpec]]" = OrderedDict(
-    [
-        ("tableEx", TABLE_CARD_SCHEMA),
-        ("pivotTable", MATRIX_CARD_SCHEMA),
-        ("slicer", SLICER_CARD_SCHEMA),
-        ("card", CARD_VISUAL_SCHEMA),
-        ("multiRowCard", MULTIROW_CARD_SCHEMA),
-        ("kpi", KPI_CARD_SCHEMA),
-        ("gauge", GAUGE_CARD_SCHEMA),
-        ("map", MAP_CARD_SCHEMA),
-        ("filledMap", FILLED_MAP_CARD_SCHEMA),
-        ("shapeMap", FILLED_MAP_CARD_SCHEMA),
-        ("azureMap", MAP_CARD_SCHEMA),
-        ("cardVisual", CARD_NEW_SCHEMA),
-        ("page", PAGE_CARD_SCHEMA),
-        ("report", REPORT_CARD_SCHEMA),
-    ]
-)
-for _vis in _CARTESIAN_VISUALS:
-    VISUAL_CARD_SCHEMA[_vis] = CARTESIAN_CARD_SCHEMA
-for _vis in _CIRCULAR_VISUALS:
-    VISUAL_CARD_SCHEMA[_vis] = CIRCULAR_CARD_SCHEMA
-for _vis in _NEW_SLICER_VISUALS:
-    VISUAL_CARD_SCHEMA[_vis] = NEW_SLICER_SCHEMA
-for _vis in _ELEMENT_VISUALS:
-    VISUAL_CARD_SCHEMA[_vis] = COMMON_CARD_SCHEMA
-for _vis in _COMMON_ONLY_VISUALS:
-    VISUAL_CARD_SCHEMA[_vis] = COMMON_CARD_SCHEMA
-
-
-def cards_for(visual: str) -> "OrderedDict[str, CardSpec]":
-    """Return the card schema for *visual* (specific if defined, else generic)."""
-    return VISUAL_CARD_SCHEMA.get(visual, CARD_SCHEMA)
-
-
-# Friendly names for the visuals a style can target.  "*" means "all visuals".
-# This covers every visual defined by the Power BI report theme schema
-# (v2.157), ordered by category for usability.
-VISUAL_TARGETS: "OrderedDict[str, str]" = OrderedDict(
-    [
-        ("*", "All visuals (*)"),
-        # Cards & KPIs
-        ("card", "Card"),
-        ("cardVisual", "Card (new)"),
-        ("multiRowCard", "Multi-row card"),
-        ("kpi", "KPI"),
-        ("gauge", "Gauge"),
-        ("scorecard", "Scorecard (goals)"),
-        # Column / bar charts
-        ("columnChart", "Stacked column"),
-        ("clusteredColumnChart", "Clustered column"),
-        ("hundredPercentStackedColumnChart", "100% stacked column"),
-        ("barChart", "Stacked bar"),
-        ("clusteredBarChart", "Clustered bar"),
-        ("hundredPercentStackedBarChart", "100% stacked bar"),
-        ("ribbonChart", "Ribbon chart"),
-        ("waterfallChart", "Waterfall"),
-        ("funnel", "Funnel"),
-        # Line / area / combo charts
-        ("lineChart", "Line chart"),
-        ("areaChart", "Area chart"),
-        ("stackedAreaChart", "Stacked area"),
-        ("hundredPercentStackedAreaChart", "100% stacked area"),
-        ("lineClusteredColumnComboChart", "Line & clustered column"),
-        ("lineStackedColumnComboChart", "Line & stacked column"),
-        # Part-to-whole / distribution
-        ("pieChart", "Pie chart"),
-        ("donutChart", "Donut chart"),
-        ("treemap", "Treemap"),
-        ("scatterChart", "Scatter chart"),
-        # Tables
-        ("tableEx", "Table"),
-        ("pivotTable", "Matrix"),
-        # Maps
-        ("map", "Map"),
-        ("filledMap", "Filled map"),
-        ("shapeMap", "Shape map"),
-        ("azureMap", "Azure map"),
-        # Slicers & filters
-        ("slicer", "Slicer"),
-        ("advancedSlicerVisual", "Slicer (new)"),
-        ("listSlicer", "List slicer"),
-        ("textSlicer", "Text slicer"),
-        ("filter", "Filter"),
-        # AI & analytics
-        ("keyDriversVisual", "Key influencers"),
-        ("decompositionTreeVisual", "Decomposition tree"),
-        ("aiNarratives", "Smart narrative"),
-        ("qnaVisual", "Q&A"),
-        # Script visuals
-        ("pythonVisual", "Python visual"),
-        ("scriptVisual", "R visual"),
-        ("rdlVisual", "Paginated report (RDL)"),
-        # Elements & navigation
-        ("actionButton", "Button"),
-        ("textbox", "Text box"),
-        ("image", "Image"),
-        ("shape", "Shape"),
-        ("pageNavigator", "Page navigator"),
-        ("bookmarkNavigator", "Bookmark navigator"),
-        ("group", "Group"),
-        # Page & report level
-        ("page", "Page"),
-        ("report", "Report"),
-    ]
-)
-
-
-class VisualStyle:
-    """Formatting for one visual target (``visualStyles[visual]["*"]``).
-
-    Holds, per card, whether it is enabled and the editor values for its
-    properties.  Only enabled cards are emitted.
+    The class owns all editable state and knows how to (de)serialise itself to
+    the JSON structure that Power BI Desktop expects.
     """
 
-    def __init__(self, visual: str = "*") -> None:
-        self.visual = visual
-        schema = cards_for(visual)
-        self.enabled: Dict[str, bool] = {key: False for key in schema}
-        self.values: Dict[str, Dict[str, Any]] = {
-            key: {p.key: p.default for p in spec.props}
-            for key, spec in schema.items()
-        }
-        # Original ``visualStyles[visual]`` dict from a loaded file, kept so
-        # selectors, cards and properties we do not model survive a round-trip.
-        self.raw: Dict[str, Any] = {}
-
-    @property
-    def schema(self) -> "OrderedDict[str, CardSpec]":
-        return cards_for(self.visual)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Return the full ``visualStyles[visual]`` dict.
-
-        Unmodelled selectors, cards and properties from a loaded file are
-        preserved; modelled cards under the ``*`` selector reflect the current
-        editor values.
-        """
-        result: Dict[str, Any] = copy.deepcopy(self.raw) if self.raw else OrderedDict()
-
-        star = result.get("*")
-        if not isinstance(star, dict):
-            star = OrderedDict()
-
-        for key, spec in self.schema.items():
-            original = star.get(key)
-            original_list = original if isinstance(original, list) else []
-            original_obj = (
-                original_list[0]
-                if original_list and isinstance(original_list[0], dict)
-                else {}
-            )
-            if not self.enabled.get(key):
-                star.pop(key, None)
-                continue
-            obj: Dict[str, Any] = OrderedDict()
-            for prop in spec.props:
-                value = self.values[key].get(prop.key, prop.default)
-                obj[prop.key] = prop.to_json_value(value)
-            # Preserve any properties on the original card that we do not model.
-            modelled = {p.key for p in spec.props}
-            for k, v in original_obj.items():
-                if k not in modelled:
-                    obj[k] = v
-            star[key] = [obj] + list(original_list[1:])
-
-        if star:
-            result["*"] = star
-        else:
-            result.pop("*", None)
-        return result
-
-    @classmethod
-    def from_dict(cls, visual: str, raw: Dict[str, Any]) -> "VisualStyle":
-        style = cls(visual)
-        style.raw = copy.deepcopy(raw) if isinstance(raw, dict) else {}
-        star = raw.get("*") if isinstance(raw, dict) else None
-        if isinstance(star, dict):
-            for key, spec in style.schema.items():
-                if key not in star:
-                    continue
-                entries = star[key]
-                obj = entries[0] if isinstance(entries, list) and entries else {}
-                if not isinstance(obj, dict):
-                    continue
-                style.enabled[key] = True
-                for prop in spec.props:
-                    if prop.key in obj:
-                        style.values[key][prop.key] = prop.from_json_value(obj[prop.key])
-        return style
-
-
-# --------------------------------------------------------------------------- #
-# The theme itself
-# --------------------------------------------------------------------------- #
-class PowerBITheme:
-    """In-memory representation of a Power BI report theme."""
-
-    #: Structural colour fields -> (attr, JSON key, human label, default value).
+    #: Structural colour fields -> (JSON key, human label, default value).
+    # (attribute, theme JSON key, UI label, default) -- structural colour classes.
+    # These map to Power BI's named colour classes and sentiment colours, all of
+    # which are top-level theme properties.
     STRUCTURAL_FIELDS = [
         ("foreground", "foreground", "Foreground", "#252423"),
+        ("second_level", "secondLevelElements", "Secondary text", "#605E5C"),
+        ("third_level", "thirdLevelElements", "Gridlines / grid", "#F3F2F1"),
+        ("fourth_level", "fourthLevelElements", "Dimmed / category", "#B3B0AD"),
         ("background", "background", "Background", "#FFFFFF"),
+        ("secondary_background", "secondaryBackground", "Secondary background", "#C8C6C4"),
         ("table_accent", "tableAccent", "Table accent", "#118DFF"),
         ("good", "good", "Good", "#1AAB40"),
         ("neutral", "neutral", "Neutral", "#F2C811"),
         ("bad", "bad", "Bad", "#D64550"),
     ]
 
+    # Conditional-formatting gradient colours (also top-level theme properties).
+    GRADIENT_FIELDS = [
+        ("gradient_min", "minimum", "Minimum", "#DEEFFF"),
+        ("gradient_center", "center", "Center", "#D9B300"),
+        ("gradient_max", "maximum", "Maximum", "#118DFF"),
+        ("gradient_null", "null", "Null / N/A", "#FF7F48"),
+    ]
+
     def __init__(self, name: str = "My Theme") -> None:
         self.name: str = name
         self.data_colors: List[str] = list(DEFAULT_DATA_COLORS)
-        self.foreground: str = "#252423"
-        self.background: str = "#FFFFFF"
-        self.table_accent: str = "#118DFF"
-        self.good: str = "#1AAB40"
-        self.neutral: str = "#F2C811"
-        self.bad: str = "#D64550"
+        for attr, _key, _label, default in self.STRUCTURAL_FIELDS + self.GRADIENT_FIELDS:
+            setattr(self, attr, default)
         self.text_classes: Dict[str, TextClass] = _default_text_classes()
-        # Start with a single, empty "all visuals" target.
-        self.visual_styles: List[VisualStyle] = [VisualStyle("*")]
-        # Top-level keys we do not model (e.g. $schema, firstLevelElements),
-        # preserved verbatim on round-trip.
-        self.extra_top: Dict[str, Any] = {}
-        # Text classes other than the modelled ones, preserved verbatim.
-        self.extra_text_classes: Dict[str, Any] = {}
+        self.visual_styles: Dict[str, Dict[str, Any]] = {}
 
     # ------------------------------------------------------------------ #
     # Serialisation
     # ------------------------------------------------------------------ #
     def to_dict(self) -> Dict[str, Any]:
         """Build the JSON-ready dict, omitting empty/optional values."""
-        theme: Dict[str, Any] = OrderedDict()
-        theme["name"] = self.name or "My Theme"
+        theme: Dict[str, Any] = {"name": self.name or "My Theme"}
 
         colors = [normalise_hex(c) for c in self.data_colors if is_valid_hex(c)]
         if colors:
             theme["dataColors"] = colors
 
-        for attr, key, _label, _default in self.STRUCTURAL_FIELDS:
+        for attr, key, _label, _default in self.STRUCTURAL_FIELDS + self.GRADIENT_FIELDS:
             value = getattr(self, attr)
             if is_valid_hex(value):
                 theme[key] = normalise_hex(value)
 
-        text_classes = OrderedDict(
-            (name, tc.to_dict())
+        text_classes = {
+            name: tc.to_dict()
             for name, tc in self.text_classes.items()
             if tc.to_dict()
-        )
-        for name, value in self.extra_text_classes.items():
-            text_classes.setdefault(name, value)
+        }
         if text_classes:
             theme["textClasses"] = text_classes
 
-        visual_styles: Dict[str, Any] = OrderedDict()
-        for style in self.visual_styles:
-            vdict = style.to_dict()
-            if vdict:
-                visual_styles[style.visual] = vdict
-        if visual_styles:
-            theme["visualStyles"] = visual_styles
-
-        # Re-attach any top-level keys we do not model.
-        for key, value in self.extra_top.items():
-            theme.setdefault(key, value)
+        if self.visual_styles:
+            # Translate the app's internal formatting into valid Power BI cards.
+            from .theme_export import build_visual_styles
+            visual_styles = build_visual_styles(self.visual_styles)
+            if visual_styles:
+                theme["visualStyles"] = visual_styles
 
         return theme
 
@@ -1166,38 +221,23 @@ class PowerBITheme:
         if isinstance(data.get("dataColors"), list):
             theme.data_colors = [str(c) for c in data["dataColors"]]
 
-        for attr, key, _label, _default in cls.STRUCTURAL_FIELDS:
+        for attr, key, _label, _default in cls.STRUCTURAL_FIELDS + cls.GRADIENT_FIELDS:
             if key in data:
                 setattr(theme, attr, str(data[key]))
 
         raw_classes = data.get("textClasses")
         if isinstance(raw_classes, dict):
-            modelled = set(_default_text_classes())
-            theme.text_classes = OrderedDict(
-                (name, TextClass.from_dict(name, value))
+            theme.text_classes = {
+                name: TextClass.from_dict(name, value)
                 for name, value in raw_classes.items()
-                if isinstance(value, dict) and name in modelled
-            )
-            theme.extra_text_classes = {
-                name: copy.deepcopy(value)
-                for name, value in raw_classes.items()
-                if name not in modelled
+                if isinstance(value, dict)
             }
 
-        raw_visuals = data.get("visualStyles")
-        if isinstance(raw_visuals, dict) and raw_visuals:
-            styles: List[VisualStyle] = []
-            for visual, selectors in raw_visuals.items():
-                styles.append(VisualStyle.from_dict(visual, selectors or {}))
-            if styles:
-                theme.visual_styles = styles
-
-        # Capture top-level keys we do not model, to re-emit them on save.
-        known_top = {"name", "dataColors", "textClasses", "visualStyles"}
-        known_top |= {key for _attr, key, _label, _default in cls.STRUCTURAL_FIELDS}
-        theme.extra_top = {
-            k: copy.deepcopy(v) for k, v in data.items() if k not in known_top
-        }
+        if isinstance(data.get("visualStyles"), dict):
+            # Convert real Power BI cards back into the app's internal form so the
+            # editor's per-visual formatter repopulates on open/import.
+            from .theme_export import import_visual_styles
+            theme.visual_styles = import_visual_styles(data["visualStyles"])
 
         return theme
 
@@ -1205,3 +245,283 @@ class PowerBITheme:
     def load(cls, path: str) -> "PowerBITheme":
         with open(path, "r", encoding="utf-8") as fh:
             return cls.from_dict(json.load(fh))
+
+    # ------------------------------------------------------------------ #
+    # Visual styles
+    # ------------------------------------------------------------------ #
+    def is_visual_customised(self, visual_key: str) -> bool:
+        """Return True if *visual_key* or the wildcard "*" has style overrides."""
+        return bool(
+            self.visual_styles.get(visual_key)
+            or self.visual_styles.get("*")
+        )
+
+
+# ====================================================================== #
+# Visual style builders and unpackers (for interactive editor)
+# ====================================================================== #
+
+LEGEND_POSITIONS: List[str] = [
+    "Top", "Bottom", "Left", "Right",
+    "TopCenter", "BottomCenter", "LeftCenter", "RightCenter"
+]
+
+def _solid_color(hex_color: str) -> Dict[str, Any]:
+    """Wrap a hex color in the Power BI solid color format."""
+    return {"solid": {"color": normalise_hex(hex_color)}}
+
+
+def _first(items: Any) -> Dict[str, Any]:
+    """Extract first dict from a list, or return empty dict."""
+    return items[0] if isinstance(items, list) and items and isinstance(items[0], dict) else {}
+
+
+def _extract_solid_color(value: Any, default: str) -> str:
+    """Extract and normalise a hex color from a solid-color object."""
+    color = (value or {}).get("solid", {}).get("color") if isinstance(value, dict) else None
+    if isinstance(color, str):
+        c = color if color.startswith("#") else f"#{color}"
+        if is_valid_hex(c):
+            return normalise_hex(c)
+    return default
+
+
+def build_background_object(show: bool, color: str, transparency: int) -> List[Dict[str, Any]]:
+    """Build a background visual-style object from picker state."""
+    return [{"show": show, "color": _solid_color(color), "transparency": int(transparency)}]
+
+
+def build_border_object(show: bool, color: str, radius: int = 0, width: int = 1) -> List[Dict[str, Any]]:
+    """Build a border visual-style object from picker state."""
+    return [{"show": show, "color": _solid_color(color), "radius": int(radius), "width": int(width)}]
+
+
+def build_drop_shadow_object(show: bool, color: str) -> List[Dict[str, Any]]:
+    """Build a drop-shadow visual-style object from picker state."""
+    return [{"show": show, "color": _solid_color(color), "position": "Outer"}]
+
+
+def build_visual_header_object(show: bool, background: str, foreground: str) -> List[Dict[str, Any]]:
+    """Build a visual-header visual-style object from picker state."""
+    return [{"show": show, "background": _solid_color(background), "foreground": _solid_color(foreground)}]
+
+
+def build_subtitle_object(show: bool, text: str, color: str, font_size: int) -> List[Dict[str, Any]]:
+    """Build a subtitle visual-style object from picker state."""
+    obj: Dict[str, Any] = {"show": show, "fontColor": _solid_color(color), "fontSize": int(font_size)}
+    if text:
+        obj["text"] = text
+    return [obj]
+
+
+def build_padding_object(padding: int) -> List[Dict[str, Any]]:
+    """Build a padding visual-style object (uniform on all sides)."""
+    p = int(padding)
+    return [{"top": p, "bottom": p, "left": p, "right": p}]
+
+
+def build_divider_object(show: bool, color: str, width: int, style: str) -> List[Dict[str, Any]]:
+    """Build a divider (title-area separator) visual-style object."""
+    return [{"show": show, "color": _solid_color(color), "width": int(width), "style": style}]
+
+
+def build_spacing_object(customize: bool, below_title: int, vertical: int) -> List[Dict[str, Any]]:
+    """Build a spacing visual-style object (space below title + between components)."""
+    return [{
+        "customizeSpacing": bool(customize),
+        "spaceBelowTitle": int(below_title),
+        "verticalSpacing": int(vertical),
+    }]
+
+
+def build_general_object(alt_text: str, keep_layer_order: bool) -> List[Dict[str, Any]]:
+    """Build a general visual-style object (alt text + responsive layer order)."""
+    obj: Dict[str, Any] = {"keepLayerOrder": bool(keep_layer_order)}
+    if alt_text:
+        obj["altText"] = alt_text
+    return [obj]
+
+
+def build_visual_tooltip_object(background: str, title_color: str, value_color: str,
+                                transparency: int) -> List[Dict[str, Any]]:
+    """Build a data-point tooltip visual-style object."""
+    return [{
+        "show": True,
+        "background": _solid_color(background),
+        "titleFontColor": _solid_color(title_color),
+        "valueFontColor": _solid_color(value_color),
+        "transparency": int(transparency),
+    }]
+
+
+def build_visual_header_tooltip_object(background: str, title_color: str,
+                                       transparency: int) -> List[Dict[str, Any]]:
+    """Build a visual-header (help) tooltip visual-style object."""
+    return [{
+        "background": _solid_color(background),
+        "titleFontColor": _solid_color(title_color),
+        "transparency": int(transparency),
+    }]
+
+
+def build_title_object(show: bool, font_face: str, font_size: int, color: str) -> List[Dict[str, Any]]:
+    """Build a title visual-style object from picker state."""
+    return [{"show": show, "fontColor": _solid_color(color), "fontSize": int(font_size), "fontFamily": font_face}]
+
+
+def build_data_labels_object(show: bool, color: str, font_size: int) -> List[Dict[str, Any]]:
+    """Build a data-labels visual-style object from picker state."""
+    return [{"show": show, "color": _solid_color(color), "fontSize": int(font_size)}]
+
+
+def build_legend_object(show: bool, position: str, color: str) -> List[Dict[str, Any]]:
+    """Build a legend visual-style object from picker state."""
+    return [{"show": show, "position": position, "labelColor": _solid_color(color)}]
+
+
+def unpack_background_object(obj: Dict[str, Any]) -> Tuple[bool, str, int]:
+    """Extract background picker state from an existing visual's * entry."""
+    p = _first(obj.get("background", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("color"), "#FFFFFF"),
+        int(p.get("transparency", 0) or 0)
+    )
+
+
+def unpack_border_object(obj: Dict[str, Any]) -> Tuple[bool, str, int, int]:
+    """Extract border picker state from an existing visual's * entry."""
+    p = _first(obj.get("border", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("color"), "#000000"),
+        int(p.get("radius", 0) or 0),
+        int(p.get("width", 1) or 1),
+    )
+
+
+def unpack_drop_shadow_object(obj: Dict[str, Any]) -> Tuple[bool, str]:
+    """Extract drop-shadow picker state from an existing visual's * entry."""
+    p = _first(obj.get("dropShadow", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("color"), "#000000"),
+    )
+
+
+def unpack_visual_header_object(obj: Dict[str, Any]) -> Tuple[bool, str, str]:
+    """Extract visual-header picker state from an existing visual's * entry."""
+    p = _first(obj.get("visualHeader", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("background"), "#FFFFFF"),
+        _extract_solid_color(p.get("foreground"), "#605E5C"),
+    )
+
+
+def unpack_subtitle_object(obj: Dict[str, Any]) -> Tuple[bool, str, str, int]:
+    """Extract subtitle picker state from an existing visual's * entry."""
+    p = _first(obj.get("subTitle", {}))
+    return (
+        bool(p.get("show", True)),
+        str(p.get("text", "")),
+        _extract_solid_color(p.get("fontColor"), "#605E5C"),
+        int(p.get("fontSize", 10) or 10),
+    )
+
+
+def unpack_padding_object(obj: Dict[str, Any]) -> int:
+    """Extract uniform padding (top) from an existing visual's * entry."""
+    p = _first(obj.get("padding", {}))
+    return int(p.get("top", 0) or 0)
+
+
+def unpack_divider_object(obj: Dict[str, Any]) -> Tuple[bool, str, int, str]:
+    """Extract divider picker state from an existing visual's * entry."""
+    p = _first(obj.get("divider", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("color"), "#D0D0D0"),
+        int(p.get("width", 1) or 1),
+        str(p.get("style", "solid")),
+    )
+
+
+def unpack_spacing_object(obj: Dict[str, Any]) -> Tuple[bool, int, int]:
+    """Extract spacing picker state from an existing visual's * entry."""
+    p = _first(obj.get("spacing", {}))
+    return (
+        bool(p.get("customizeSpacing", True)),
+        int(p.get("spaceBelowTitle", 4) or 0),
+        int(p.get("verticalSpacing", 4) or 0),
+    )
+
+
+def unpack_general_object(obj: Dict[str, Any]) -> Tuple[str, bool]:
+    """Extract general (alt text / layer order) picker state."""
+    p = _first(obj.get("general", {}))
+    return (str(p.get("altText", "")), bool(p.get("keepLayerOrder", False)))
+
+
+def unpack_visual_tooltip_object(obj: Dict[str, Any]) -> Tuple[str, str, str, int]:
+    """Extract data-point tooltip picker state from an existing visual's * entry."""
+    p = _first(obj.get("visualTooltip", {}))
+    return (
+        _extract_solid_color(p.get("background"), "#FFFFFF"),
+        _extract_solid_color(p.get("titleFontColor"), "#252423"),
+        _extract_solid_color(p.get("valueFontColor"), "#252423"),
+        int(p.get("transparency", 0) or 0),
+    )
+
+
+def unpack_visual_header_tooltip_object(obj: Dict[str, Any]) -> Tuple[str, str, int]:
+    """Extract visual-header tooltip picker state from an existing visual's * entry."""
+    p = _first(obj.get("visualHeaderTooltip", {}))
+    return (
+        _extract_solid_color(p.get("background"), "#FFFFFF"),
+        _extract_solid_color(p.get("titleFontColor"), "#252423"),
+        int(p.get("transparency", 0) or 0),
+    )
+
+
+def unpack_title_object(obj: Dict[str, Any]) -> Tuple[bool, str, int, str]:
+    """Extract title picker state from an existing visual's * entry."""
+    p = _first(obj.get("title", {}))
+    return (
+        bool(p.get("show", True)),
+        str(p.get("fontFamily", "Segoe UI")),
+        int(p.get("fontSize", 12) or 12),
+        _extract_solid_color(p.get("fontColor"), "#252423")
+    )
+
+
+def unpack_data_labels_object(obj: Dict[str, Any]) -> Tuple[bool, str, int]:
+    """Extract data-labels picker state from an existing visual's * entry."""
+    p = _first(obj.get("labels", {}))
+    return (
+        bool(p.get("show", False)),
+        _extract_solid_color(p.get("color"), "#252423"),
+        int(p.get("fontSize", 9) or 9)
+    )
+
+
+def unpack_legend_object(obj: Dict[str, Any]) -> Tuple[bool, str, str]:
+    """Extract legend picker state from an existing visual's * entry."""
+    p = _first(obj.get("legend", {}))
+    return (
+        bool(p.get("show", True)),
+        str(p.get("position", "Top")),
+        _extract_solid_color(p.get("labelColor"), "#252423")
+    )
+
+
+def merge_visual_style_entry(base: Dict[str, Any], overrides: Dict[str, List[Dict[str, Any]]]) -> Dict[str, Any]:
+    """Merge structured-picker overrides with the advanced-JSON base dict.
+
+    The base dict (parsed from the advanced-JSON box) is copied, then for each
+    key present in overrides, that key fully replaces the one in the base.
+    Keys absent from overrides pass through from base unchanged.
+    """
+    result = dict(base)
+    result.update(overrides)
+    return result

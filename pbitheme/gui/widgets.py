@@ -11,32 +11,36 @@ from typing import List
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QCheckBox,
     QColorDialog,
-    QComboBox,
-    QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
     QSpinBox,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
     QFontComboBox,
+    QGridLayout,
+    QScrollArea,
+    QCheckBox,
+    QComboBox,
+    QPlainTextEdit,
+    QMessageBox,
+    QGroupBox,
+    QFormLayout,
+    QDialogButtonBox,
+    QDialog,
 )
 
 from ..model import (
-    VISUAL_TARGETS,
-    CardSpec,
-    PropSpec,
-    TextClass,
-    VisualStyle,
-    cards_for,
-    is_valid_hex,
-    normalise_hex,
+    PowerBITheme, TextClass, VISUAL_TYPES, LEGEND_POSITIONS,
+    is_valid_hex, normalise_hex,
+    build_background_object, build_border_object, build_title_object,
+    build_data_labels_object, build_legend_object,
+    unpack_background_object, unpack_border_object, unpack_title_object,
+    unpack_data_labels_object, unpack_legend_object,
+    merge_visual_style_entry
 )
+from . import theme
 
 
 class ColorButton(QPushButton):
@@ -44,9 +48,10 @@ class ColorButton(QPushButton):
 
     colorChanged = Signal(str)
 
-    def __init__(self, color: str = "#FFFFFF", parent: QWidget | None = None) -> None:
+    def __init__(self, color: str = "#FFFFFF", label: str = "Color", parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._color = normalise_hex(color) if is_valid_hex(color) else "#FFFFFF"
+        self._label = label
         self.setFixedSize(120, 28)
         self.setCursor(Qt.PointingHandCursor)
         self.clicked.connect(self._choose_color)
@@ -71,12 +76,15 @@ class ColorButton(QPushButton):
         # Choose readable text colour based on luminance.
         c = QColor(self._color)
         luminance = 0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()
-        text = "#000000" if luminance > 140 else "#FFFFFF"
+        text = theme.TEXT_STRONG if luminance > theme.LUMINANCE_THRESHOLD else theme.SURFACE_BACKGROUND
         self.setText(self._color)
         self.setStyleSheet(
             f"background-color: {self._color}; color: {text};"
-            "border: 1px solid #888; border-radius: 4px; font-family: monospace;"
+            f"border: 1px solid {theme.BORDER_SUBTLE}; border-radius: 4px; font-family: monospace;"
         )
+        # Set accessible name and description for screen readers
+        self.setAccessibleName(f"{self._label} color button")
+        self.setAccessibleDescription(f"Current color: {self._color}. Click to open color picker.")
 
 
 class DataColorsEditor(QWidget):
@@ -123,7 +131,7 @@ class DataColorsEditor(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         index = len(self._buttons) + 1
         layout.addWidget(QLabel(f"{index}."))
-        button = ColorButton(color)
+        button = ColorButton(color, label=f"Data color {index}")
         button.colorChanged.connect(lambda _c: self.changed.emit())
         layout.addWidget(button)
         layout.addStretch(1)
@@ -152,262 +160,95 @@ class TextClassEditor(QWidget):
     def __init__(self, text_class: TextClass, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._name = text_class.name
-        self._extra = dict(text_class.extra)
-        self._present = None if text_class.present is None else set(text_class.present)
-        self._touched: set = set()
-        self._suppress = False
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self._font = QFontComboBox()
         self._font.setCurrentText(text_class.font_face)
-        self._font.currentFontChanged.connect(lambda _f: self._on_change("fontFace"))
+        self._font.currentFontChanged.connect(lambda _f: self.changed.emit())
+        self._font.setAccessibleName(f"{text_class.name} font")
+        self._font.setAccessibleDescription("Select font family")
 
         self._size = QSpinBox()
         self._size.setRange(4, 120)
         self._size.setValue(text_class.font_size)
         self._size.setSuffix(" pt")
-        self._size.valueChanged.connect(lambda _v: self._on_change("fontSize"))
+        self._size.valueChanged.connect(lambda _v: self.changed.emit())
+        self._size.setAccessibleName(f"{text_class.name} size")
+        self._size.setAccessibleDescription("Font size in points")
 
-        self._color = ColorButton(text_class.color)
-        self._color.colorChanged.connect(lambda _c: self._on_change("color"))
+        self._color = ColorButton(text_class.color, label=f"{text_class.name} color")
+        self._color.colorChanged.connect(lambda _c: self.changed.emit())
 
         layout.addWidget(self._font, 2)
         layout.addWidget(self._size)
         layout.addWidget(self._color)
 
-    def _on_change(self, key: str) -> None:
-        # Ignore changes made programmatically by set_value.
-        if self._suppress:
-            return
-        self._touched.add(key)
-        self.changed.emit()
-
-    def set_value(self, text_class: TextClass) -> None:
-        self._extra = dict(text_class.extra)
-        self._present = None if text_class.present is None else set(text_class.present)
-        self._touched = set()
-        self._suppress = True
-        try:
-            self._font.setCurrentText(text_class.font_face)
-            self._size.setValue(text_class.font_size)
-            self._color.set_color(text_class.color)
-        finally:
-            self._suppress = False
-
     def value(self) -> TextClass:
-        if self._present is None:
-            present = None  # a new/default class emits all standard fields
-        else:
-            present = self._present | self._touched
         return TextClass(
             name=self._name,
             font_face=self._font.currentFont().family(),
             font_size=self._size.value(),
             color=self._color.color(),
-            extra=dict(self._extra),
-            present=present,
         )
 
 
-class _PropWidget(QWidget):
-    """A single labelled editor for one :class:`PropSpec` value."""
+class VisualStylesChecklist(QWidget):
+    """Scrollable checklist of Power BI visual types with customization status. Rows are clickable."""
 
-    changed = Signal()
+    visualRequested = Signal(str)
 
-    def __init__(self, spec: PropSpec, value, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._spec = spec
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self._editor = self._build_editor(spec, value)
-        layout.addWidget(self._editor)
+        self._status_labels: dict[str, QLabel] = {}
 
-    def _build_editor(self, spec: PropSpec, value):
-        if spec.kind == "bool":
-            w = QCheckBox()
-            w.setChecked(bool(value))
-            w.toggled.connect(lambda _v: self.changed.emit())
-            return w
-        if spec.kind == "color":
-            w = ColorButton(value if is_valid_hex(value) else spec.default)
-            w.colorChanged.connect(lambda _c: self.changed.emit())
-            return w
-        if spec.kind == "int":
-            w = QSpinBox()
-            w.setRange(-1000000, 1000000)
-            w.setValue(int(value))
-            w.valueChanged.connect(lambda _v: self.changed.emit())
-            return w
-        if spec.kind == "font":
-            w = QFontComboBox()
-            w.setCurrentText(str(value))
-            w.currentFontChanged.connect(lambda _f: self.changed.emit())
-            return w
-        if spec.kind == "choice":
-            w = QComboBox()
-            for opt_value, opt_label in (spec.choices or []):
-                w.addItem(opt_label, opt_value)
-            idx = w.findData(value)
-            w.setCurrentIndex(idx if idx >= 0 else 0)
-            w.currentIndexChanged.connect(lambda _i: self.changed.emit())
-            return w
-        if spec.kind == "text":
-            w = QLineEdit(str(value))
-            w.textChanged.connect(lambda _t: self.changed.emit())
-            return w
-        # fallback: read-only label
-        return QLabel(str(value))
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
 
-    def value(self):
-        w = self._editor
-        if self._spec.kind == "bool":
-            return w.isChecked()
-        if self._spec.kind == "color":
-            return w.color()
-        if self._spec.kind == "int":
-            return w.value()
-        if self._spec.kind == "font":
-            return w.currentFont().family()
-        if self._spec.kind == "choice":
-            return w.currentData()
-        if self._spec.kind == "text":
-            return w.text()
-        return self._spec.default
+        container = QWidget()
+        grid = QGridLayout(container)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 0)
+        grid.setColumnStretch(2, 1)
+        grid.setColumnStretch(3, 0)
+        grid.setSpacing(8)
 
+        # Display in 2 columns to fit more visuals on screen
+        for idx, (key, label) in enumerate(VISUAL_TYPES):
+            row = idx // 2
+            col = (idx % 2) * 2  # 0 or 2
 
-class CardEditor(QGroupBox):
-    """A checkable group box editing one formatting card of a visual."""
+            # Escape '&' so Qt doesn't treat it as a mnemonic accelerator
+            # (e.g. "Q&A" -> "QA" with A underlined, "Line & Stacked..." -> "Line _Stacked...").
+            name_btn = QPushButton(label.replace("&", "&&"))
+            name_btn.setFlat(True)
+            name_btn.setCursor(Qt.PointingHandCursor)
+            name_btn.setStyleSheet("text-align: left; border: none; padding: 2px;")
+            name_btn.clicked.connect(lambda _c=False, k=key: self.visualRequested.emit(k))
 
-    changed = Signal()
+            status_label = QLabel("✗")
+            status_label.setStyleSheet("color: #8b0000; font-weight: bold; min-width: 30px;")
+            grid.addWidget(name_btn, row, col)
+            grid.addWidget(status_label, row, col + 1)
+            self._status_labels[key] = status_label
 
-    def __init__(self, spec: CardSpec, enabled: bool, values: dict,
-                 parent: QWidget | None = None) -> None:
-        super().__init__(spec.label, parent)
-        self._card_key = spec.key
-        self._prop_widgets = {}
+        # Add a stretch row at the end to push all items to the top
+        grid.addWidget(QWidget(), (len(VISUAL_TYPES) + 1) // 2 + 1, 0)
+        grid.setRowStretch((len(VISUAL_TYPES) + 1) // 2 + 1, 1)
 
-        self.setCheckable(True)
-        self.setChecked(bool(enabled))
-        self.toggled.connect(lambda _v: self.changed.emit())
-
-        form = QFormLayout(self)
-        for prop in spec.props:
-            widget = _PropWidget(prop, values.get(prop.key, prop.default))
-            widget.changed.connect(self.changed.emit)
-            self._prop_widgets[prop.key] = widget
-            form.addRow(prop.label, widget)
-
-    def card_key(self) -> str:
-        return self._card_key
-
-    def is_enabled(self) -> bool:
-        return self.isChecked()
-
-    def values(self) -> dict:
-        return {key: w.value() for key, w in self._prop_widgets.items()}
-
-
-class VisualTargetEditor(QWidget):
-    """All formatting cards for a single visual target (e.g. "*" or "card")."""
-
-    changed = Signal()
-
-    def __init__(self, style: VisualStyle, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._visual = style.visual
-        # Retain any unmodelled selectors/cards/properties for round-tripping.
-        self._raw = style.raw
-        self._cards = {}
+        scroll.setWidget(container)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(6, 6, 6, 6)
-        for card_key, spec in cards_for(style.visual).items():
-            editor = CardEditor(spec, style.enabled.get(card_key, False),
-                                style.values.get(card_key, {}))
-            editor.changed.connect(self.changed.emit)
-            self._cards[card_key] = editor
-            layout.addWidget(editor)
-        layout.addStretch(1)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
 
-    def visual(self) -> str:
-        return self._visual
-
-    def to_style(self) -> VisualStyle:
-        style = VisualStyle(self._visual)
-        style.raw = self._raw
-        for card_key, editor in self._cards.items():
-            style.enabled[card_key] = editor.is_enabled()
-            style.values[card_key] = editor.values()
-        return style
-
-
-class VisualStyleEditor(QWidget):
-    """Tabbed editor managing one :class:`VisualTargetEditor` per visual."""
-
-    changed = Signal()
-
-    def __init__(self, styles, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-
-        controls = QHBoxLayout()
-        controls.addWidget(QLabel("Add visual:"))
-        self._picker = QComboBox()
-        for visual, label in VISUAL_TARGETS.items():
-            self._picker.addItem(label, visual)
-        controls.addWidget(self._picker, 1)
-        add_btn = QPushButton("Add")
-        add_btn.clicked.connect(self._add_from_picker)
-        controls.addWidget(add_btn)
-        remove_btn = QPushButton("Remove current")
-        remove_btn.clicked.connect(self._remove_current)
-        controls.addWidget(remove_btn)
-
-        self._tabs = QTabWidget()
-
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.addLayout(controls)
-        outer.addWidget(self._tabs)
-
-        self.set_styles(styles)
-
-    # -- public API -------------------------------------------------------- #
-    def set_styles(self, styles) -> None:
-        self._tabs.clear()
-        styles = list(styles) or [VisualStyle("*")]
-        for style in styles:
-            self._add_tab(style)
-        self.changed.emit()
-
-    def styles(self):
-        return [self._tabs.widget(i).to_style() for i in range(self._tabs.count())]
-
-    # -- helpers ----------------------------------------------------------- #
-    def _add_tab(self, style: VisualStyle) -> None:
-        editor = VisualTargetEditor(style)
-        editor.changed.connect(self.changed.emit)
-        label = VISUAL_TARGETS.get(style.visual, style.visual)
-        self._tabs.addTab(editor, label)
-
-    def _existing_visuals(self):
-        return {self._tabs.widget(i).visual() for i in range(self._tabs.count())}
-
-    def _add_from_picker(self) -> None:
-        visual = self._picker.currentData()
-        if visual in self._existing_visuals():
-            # focus the existing tab instead of duplicating it
-            for i in range(self._tabs.count()):
-                if self._tabs.widget(i).visual() == visual:
-                    self._tabs.setCurrentIndex(i)
-                    return
-        self._add_tab(VisualStyle(visual))
-        self._tabs.setCurrentIndex(self._tabs.count() - 1)
-        self.changed.emit()
-
-    def _remove_current(self) -> None:
-        if self._tabs.count() <= 1:
-            return  # always keep at least one target
-        self._tabs.removeTab(self._tabs.currentIndex())
-        self.changed.emit()
+    def set_theme(self, pbi_theme: PowerBITheme) -> None:
+        """Update the checklist based on which visuals are customised."""
+        for key, label in self._status_labels.items():
+            if pbi_theme.is_visual_customised(key):
+                label.setText("✓ Custom")
+                label.setStyleSheet(f"color: {theme.STATUS_CUSTOM_COLOR}; font-weight: bold; min-width: 80px;")
+            else:
+                label.setText("✗ Default")
+                label.setStyleSheet(f"color: {theme.STATUS_DEFAULT_COLOR}; font-weight: bold; min-width: 80px;")
