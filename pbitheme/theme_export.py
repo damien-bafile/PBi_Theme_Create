@@ -46,6 +46,8 @@ _DECOMP = {"decompositionTreeVisual"}
 _MAP = {"map", "filledMap"}
 _SHAPE_MAP = {"shapeMap"}
 _IMAGE = {"image"}
+_TEXTBOX = {"textbox"}
+_SMART_NARRATIVE = {"smartNarrative"}
 # Cartesian visuals that have a `trend` card (waterfall & line+stacked combo don't).
 _TREND_VISUALS = (_CARTESIAN | _SCATTER) - {"waterfallChart", "lineStackedColumnComboChart"}
 _PIE = {"pieChart", "donutChart"}
@@ -70,6 +72,15 @@ def _set(card: Dict[str, Any], key: str, value: Any) -> None:
     """Set a card property, skipping None (e.g. an invalid colour)."""
     if value is not None:
         card[key] = value
+
+
+def _state_entry(entries: Any, state: str) -> Dict[str, Any]:
+    """Return the ``$id``-keyed state object (``default`` / ``hover`` ...) or ``{}``."""
+    if isinstance(entries, list):
+        for e in entries:
+            if isinstance(e, dict) and e.get("$id") == state:
+                return e
+    return {}
 
 
 def _axis_gridlines(card: Dict[str, Any], fmt: Dict[str, Any]) -> None:
@@ -427,15 +438,63 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if "itemsBold" in fmt:
             it["bold"] = bool(fmt["itemsBold"])
         _set(card("slider"), "color", _fill(fmt.get("sliderColor", "")))
+        _set(card("selectionIcon"), "color", _fill(fmt.get("selectionColor", "")))
+        sb = card("searchBox")
+        _set(sb, "background", _fill(fmt.get("searchBackground", "")))
+        _set(sb, "borderColor", _fill(fmt.get("searchBorderColor", "")))
+        dt = card("date")
+        _set(dt, "fontColor", _fill(fmt.get("dateFontColor", "")))
+        _set(dt, "background", _fill(fmt.get("dateBackground", "")))
+        if "dateTextSize" in fmt:
+            dt["textSize"] = fmt["dateTextSize"]
+        ni = card("numericInputStyle")
+        _set(ni, "fontColor", _fill(fmt.get("numericFontColor", "")))
+        _set(ni, "background", _fill(fmt.get("numericBackground", "")))
+        if "numericTextSize" in fmt:
+            ni["textSize"] = fmt["numericTextSize"]
+        dd = card("dropdown")
+        _set(dd, "iconColor", _fill(fmt.get("dropdownIconColor", "")))
+        _set(dd, "borderColor", _fill(fmt.get("dropdownBorderColor", "")))
 
-    # ---- Action button: fill / text / outline (default state) ---- #
+    # ---- Action button: fill / text / outline / icon / glow / shadow ---- #
     elif app_key in _ACTION_BUTTON:
-        _set(card("fill"), "fillColor", _fill(fmt.get("buttonFillColor", "")))
-        _set(card("text"), "fontColor", _fill(fmt.get("buttonTextColor", "")))
+        # Fill & text support a `hover` state: emit a `$id`-keyed array when set,
+        # otherwise the simple single-object card (so the common case round-trips
+        # unchanged).
+        fill_default = _fill(fmt.get("buttonFillColor", ""))
+        fill_hover = _fill(fmt.get("buttonHoverFillColor", ""))
+        if fill_hover is not None:
+            base = {"$id": "default"}
+            _set(base, "fillColor", fill_default)
+            cards["fill"] = [base, {"$id": "hover", "fillColor": fill_hover}]
+        else:
+            _set(card("fill"), "fillColor", fill_default)
+        text_default = _fill(fmt.get("buttonTextColor", ""))
+        text_hover = _fill(fmt.get("buttonHoverTextColor", ""))
+        if text_hover is not None:
+            base = {"$id": "default"}
+            _set(base, "fontColor", text_default)
+            cards["text"] = [base, {"$id": "hover", "fontColor": text_hover}]
+        else:
+            _set(card("text"), "fontColor", text_default)
         out = card("outline")
         _set(out, "lineColor", _fill(fmt.get("buttonOutlineColor", "")))
         if "buttonOutlineWeight" in fmt:
             out["weight"] = fmt["buttonOutlineWeight"]
+        ic = card("icon")
+        if fmt.get("buttonIconShape"):
+            ic["shapeType"] = fmt["buttonIconShape"]
+        _set(ic, "lineColor", _fill(fmt.get("buttonIconColor", "")))
+        if "buttonIconSize" in fmt:
+            ic["iconSize"] = fmt["buttonIconSize"]
+        gl = card("glow")
+        if "buttonGlowShow" in fmt:
+            gl["show"] = bool(fmt["buttonGlowShow"])
+        _set(gl, "color", _fill(fmt.get("buttonGlowColor", "")))
+        sh = card("shadow")
+        if "buttonShadowShow" in fmt:
+            sh["show"] = bool(fmt["buttonShadowShow"])
+        _set(sh, "color", _fill(fmt.get("buttonShadowColor", "")))
 
     # ---- Basic shape: fill + outline ---- #
     elif app_key in _SHAPE_VIS:
@@ -452,11 +511,43 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(lh, "levelTitleFontColor", _fill(fmt.get("levelTitleColor", "")))
         _set(card("dataLabels"), "dataLabelFontColor", _fill(fmt.get("treeDataLabelColor", "")))
 
-    # ---- Map / filled map: data point + category labels ---- #
+    # ---- Map / filled map: data point + category labels + style + controls ---- #
     elif app_key in _MAP:
         _set(card("dataPoint"), "defaultColor", _fill(fmt.get("mapDataColor", "")))
         if app_key == "map":  # only the base map's categoryLabels card has a colour
             _set(card("categoryLabels"), "color", _fill(fmt.get("mapLabelColor", "")))
+        if app_key == "filledMap":  # region borders
+            _set(card("stroke"), "strokeColor", _fill(fmt.get("mapStrokeColor", "")))
+        ms = card("mapStyles")
+        if fmt.get("mapTheme"):
+            ms["mapTheme"] = fmt["mapTheme"]
+        if "mapShowLabels" in fmt:
+            ms["showLabels"] = bool(fmt["mapShowLabels"])
+        mc = card("mapControls")
+        if "mapAutoZoom" in fmt:
+            mc["autoZoom"] = bool(fmt["mapAutoZoom"])
+        if "mapShowZoom" in fmt:
+            mc["showZoomButtons"] = bool(fmt["mapShowZoom"])
+
+    # ---- Text box: text colour / size / font ---- #
+    elif app_key in _TEXTBOX:
+        txt = card("text")
+        _set(txt, "color", _fill(fmt.get("textColor", "")))
+        if "textFontSize" in fmt:
+            txt["fontSize"] = fmt["textFontSize"]
+        if fmt.get("textFontFamily"):
+            txt["fontFamily"] = fmt["textFontFamily"]
+
+    # ---- Smart narrative (aiNarratives): generated-text styling ---- #
+    elif app_key in _SMART_NARRATIVE:
+        txt = card("text")
+        _set(txt, "fontColor", _fill(fmt.get("narrativeTextColor", "")))
+        if "narrativeFontSize" in fmt:
+            txt["fontSize"] = fmt["narrativeFontSize"]
+        if fmt.get("narrativeFontFamily"):
+            txt["fontFamily"] = fmt["narrativeFontFamily"]
+        if fmt.get("narrativeAlignment"):
+            txt["textAlignment"] = fmt["narrativeAlignment"]
 
     # ---- Shape map: default colours ---- #
     elif app_key in _SHAPE_MAP:
@@ -498,9 +589,10 @@ def _clamp_card_font_sizes(cards: Dict[str, Any]) -> None:
 def _style_to_cards(app_key: str, style_obj: Dict[str, Any]) -> Dict[str, Any]:
     """Turn one internal ``"*"`` style object into a dict of Power BI cards."""
     # Translated formatting is the lowest priority; explicit cards win.
-    merged: Dict[str, Any] = {
-        name: dict(props) for name, props in _translate_formatting(app_key, style_obj.get("formatting", {})).items()
-    }
+    # A card may be a single dict or, for state-keyed cards (button hover), a list.
+    merged: Dict[str, Any] = {}
+    for name, props in _translate_formatting(app_key, style_obj.get("formatting", {})).items():
+        merged[name] = [dict(p) for p in props] if isinstance(props, list) else dict(props)
     for name, value in style_obj.items():
         if name == "formatting":
             continue
@@ -595,19 +687,22 @@ def _consumed_cards(app_key: str) -> set:
     if app_key in _KPI:
         return {"indicator", "goals", "trendline", "status"}
     if app_key in _SLICER:
-        return {"header", "items", "slider"}
+        return {"header", "items", "slider", "selectionIcon", "searchBox",
+                "date", "numericInputStyle", "dropdown"}
     if app_key in _ACTION_BUTTON:
-        return {"fill", "text", "outline"}
+        return {"fill", "text", "outline", "icon", "glow", "shadow"}
     if app_key in _SHAPE_VIS:
         return {"fill", "outline"}
     if app_key in _DECOMP:
         return {"levelHeader", "dataLabels"}
     if app_key in _MAP:
-        return {"dataPoint", "categoryLabels"}
+        return {"dataPoint", "categoryLabels", "stroke", "mapStyles", "mapControls"}
     if app_key in _SHAPE_MAP:
         return {"defaultColors"}
     if app_key in _IMAGE:
         return {"imageScaling"}
+    if app_key in _TEXTBOX | _SMART_NARRATIVE:
+        return {"text"}
     return set()
 
 
@@ -888,14 +983,51 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         if "bold" in it:
             fmt["itemsBold"] = bool(it["bold"])
         _put(fmt, "sliderColor", _hex(c("slider"), "color"))
+        _put(fmt, "selectionColor", _hex(c("selectionIcon"), "color"))
+        sb = c("searchBox")
+        _put(fmt, "searchBackground", _hex(sb, "background"))
+        _put(fmt, "searchBorderColor", _hex(sb, "borderColor"))
+        dt = c("date")
+        _put(fmt, "dateFontColor", _hex(dt, "fontColor"))
+        _put(fmt, "dateBackground", _hex(dt, "background"))
+        if "textSize" in dt:
+            fmt["dateTextSize"] = dt["textSize"]
+        ni = c("numericInputStyle")
+        _put(fmt, "numericFontColor", _hex(ni, "fontColor"))
+        _put(fmt, "numericBackground", _hex(ni, "background"))
+        if "textSize" in ni:
+            fmt["numericTextSize"] = ni["textSize"]
+        dd = c("dropdown")
+        _put(fmt, "dropdownIconColor", _hex(dd, "iconColor"))
+        _put(fmt, "dropdownBorderColor", _hex(dd, "borderColor"))
 
     elif app_key in _ACTION_BUTTON:
-        _put(fmt, "buttonFillColor", _hex(c("fill"), "fillColor"))
-        _put(fmt, "buttonTextColor", _hex(c("text"), "fontColor"))
+        fill_entries = cards.get("fill", [])
+        default_fill = _state_entry(fill_entries, "default") or _first(fill_entries)
+        _put(fmt, "buttonFillColor", _hex(default_fill, "fillColor"))
+        _put(fmt, "buttonHoverFillColor", _hex(_state_entry(fill_entries, "hover"), "fillColor"))
+        text_entries = cards.get("text", [])
+        default_text = _state_entry(text_entries, "default") or _first(text_entries)
+        _put(fmt, "buttonTextColor", _hex(default_text, "fontColor"))
+        _put(fmt, "buttonHoverTextColor", _hex(_state_entry(text_entries, "hover"), "fontColor"))
         out = c("outline")
         _put(fmt, "buttonOutlineColor", _hex(out, "lineColor"))
         if "weight" in out:
             fmt["buttonOutlineWeight"] = out["weight"]
+        ic = c("icon")
+        if "shapeType" in ic:
+            fmt["buttonIconShape"] = ic["shapeType"]
+        _put(fmt, "buttonIconColor", _hex(ic, "lineColor"))
+        if "iconSize" in ic:
+            fmt["buttonIconSize"] = ic["iconSize"]
+        gl = c("glow")
+        if "show" in gl:
+            fmt["buttonGlowShow"] = bool(gl["show"])
+        _put(fmt, "buttonGlowColor", _hex(gl, "color"))
+        sh = c("shadow")
+        if "show" in sh:
+            fmt["buttonShadowShow"] = bool(sh["show"])
+        _put(fmt, "buttonShadowColor", _hex(sh, "color"))
 
     elif app_key in _SHAPE_VIS:
         _put(fmt, "shapeFillColor", _hex(c("fill"), "fillColor"))
@@ -913,6 +1045,36 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
     elif app_key in _MAP:
         _put(fmt, "mapDataColor", _hex(c("dataPoint"), "defaultColor"))
         _put(fmt, "mapLabelColor", _hex(c("categoryLabels"), "color"))
+        if app_key == "filledMap":
+            _put(fmt, "mapStrokeColor", _hex(c("stroke"), "strokeColor"))
+        ms = c("mapStyles")
+        if "mapTheme" in ms:
+            fmt["mapTheme"] = ms["mapTheme"]
+        if "showLabels" in ms:
+            fmt["mapShowLabels"] = bool(ms["showLabels"])
+        mc = c("mapControls")
+        if "autoZoom" in mc:
+            fmt["mapAutoZoom"] = bool(mc["autoZoom"])
+        if "showZoomButtons" in mc:
+            fmt["mapShowZoom"] = bool(mc["showZoomButtons"])
+
+    elif app_key in _TEXTBOX:
+        txt = c("text")
+        _put(fmt, "textColor", _hex(txt, "color"))
+        if "fontSize" in txt:
+            fmt["textFontSize"] = txt["fontSize"]
+        if "fontFamily" in txt:
+            fmt["textFontFamily"] = txt["fontFamily"]
+
+    elif app_key in _SMART_NARRATIVE:
+        txt = c("text")
+        _put(fmt, "narrativeTextColor", _hex(txt, "fontColor"))
+        if "fontSize" in txt:
+            fmt["narrativeFontSize"] = txt["fontSize"]
+        if "fontFamily" in txt:
+            fmt["narrativeFontFamily"] = txt["fontFamily"]
+        if "textAlignment" in txt:
+            fmt["narrativeAlignment"] = txt["textAlignment"]
 
     elif app_key in _SHAPE_MAP:
         dc = c("defaultColors")

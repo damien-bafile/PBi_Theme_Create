@@ -359,7 +359,13 @@ FUNNEL_SECTIONS = [
     ),
 ]
 
-# Action button -- fill / text / outline (default state).
+_ICON_SHAPES = [
+    ("blank", "Blank"), ("leftArrow", "Left arrow"), ("rightArrow", "Right arrow"),
+    ("back", "Back"), ("reset", "Reset"), ("help", "Help"), ("information", "Information"),
+    ("qna", "Q&A"), ("bookmarks", "Bookmark"),
+]
+
+# Action button -- fill / text / outline (default state) + icon, glow, shadow, hover.
 ACTION_BUTTON_SECTIONS = [
     FormatSection(
         "Button",
@@ -368,6 +374,30 @@ ACTION_BUTTON_SECTIONS = [
             FormatField("buttonTextColor", "Text Color", "color", default="#FFFFFF"),
             FormatField("buttonOutlineColor", "Outline Color", "color", default="#118DFF"),
             FormatField("buttonOutlineWeight", "Outline Weight (px)", "number", min_val=0, max_val=10, default=0, preview=False),
+        ],
+    ),
+    FormatSection(
+        "Icon",
+        [
+            FormatField("buttonIconShape", "Shape", "dropdown", options=_ICON_SHAPES, preview=False),
+            FormatField("buttonIconColor", "Line Color", "color", default="#FFFFFF", preview=False),
+            FormatField("buttonIconSize", "Size (pt)", "number", min_val=8, max_val=60, default=16, suffix="pt", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Hover State",
+        [
+            FormatField("buttonHoverFillColor", "Fill Color", "color", default="#0B6BC2", preview=False),
+            FormatField("buttonHoverTextColor", "Text Color", "color", default="#FFFFFF", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Glow & Shadow",
+        [
+            FormatField("buttonGlowShow", "Show Glow", "boolean", default=False, preview=False),
+            FormatField("buttonGlowColor", "Glow Color", "color", default="#118DFF", preview=False),
+            FormatField("buttonShadowShow", "Show Shadow", "boolean", default=False, preview=False),
+            FormatField("buttonShadowColor", "Shadow Color", "color", default="#000000", preview=False),
         ],
     ),
 ]
@@ -401,6 +431,29 @@ DECOMP_SECTIONS = [
     ),
 ]
 
+_MAP_THEMES = [
+    ("road", "Road"), ("aerial", "Aerial"), ("grayscale", "Grayscale"),
+    ("canvasLight", "Light"), ("canvasDark", "Dark"),
+]
+
+# Map style + controls, shared by the base map and the filled map.
+_MAP_STYLE_SECTIONS = [
+    FormatSection(
+        "Map Style",
+        [
+            FormatField("mapTheme", "Theme", "dropdown", options=_MAP_THEMES, preview=False),
+            FormatField("mapShowLabels", "Show Labels", "boolean", default=True, preview=False),
+        ],
+    ),
+    FormatSection(
+        "Controls",
+        [
+            FormatField("mapAutoZoom", "Auto Zoom", "boolean", default=True, preview=False),
+            FormatField("mapShowZoom", "Zoom Buttons", "boolean", default=True, preview=False),
+        ],
+    ),
+]
+
 # Map / Filled map -- data point colour + category labels.
 MAP_SECTIONS = [
     FormatSection(
@@ -415,16 +468,17 @@ MAP_SECTIONS = [
             FormatField("mapLabelColor", "Label Color", "color", default="#252423", preview=False),
         ],
     ),
-]
+] + _MAP_STYLE_SECTIONS
 
 FILLED_MAP_SECTIONS = [
     FormatSection(
         "Data Colors",
         [
             FormatField("mapDataColor", "Region Color", "color", default="#118DFF"),
+            FormatField("mapStrokeColor", "Border Color", "color", default="#FFFFFF"),
         ],
     ),
-]
+] + _MAP_STYLE_SECTIONS
 
 # Shape map -- default fill + border.
 SHAPE_MAP_SECTIONS = [
@@ -444,6 +498,33 @@ IMAGE_SECTIONS = [
         [
             FormatField("imageScaling", "Scaling", "dropdown",
                        options=[("Normal", "Fit"), ("Fit", "Stretch"), ("Fill", "Fill")], preview=False),
+        ],
+    ),
+]
+
+# Text box -- text colour / size / font.
+TEXTBOX_SECTIONS = [
+    FormatSection(
+        "Text",
+        [
+            FormatField("textColor", "Color", "color", default="#252423"),
+            FormatField("textFontSize", "Font Size (pt)", "number", min_val=8, max_val=60, default=14, suffix="pt"),
+            FormatField("textFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+        ],
+    ),
+]
+
+# Smart narrative (aiNarratives) -- generated-text colour / size / font / alignment.
+SMART_NARRATIVE_SECTIONS = [
+    FormatSection(
+        "Text",
+        [
+            FormatField("narrativeTextColor", "Color", "color", default="#252423"),
+            FormatField("narrativeFontSize", "Font Size (pt)", "number", min_val=8, max_val=60, default=12, suffix="pt"),
+            FormatField("narrativeFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+            FormatField("narrativeAlignment", "Alignment", "dropdown",
+                       options=[("Auto", "Auto"), ("Left", "Left"), ("Center", "Center"), ("Right", "Right")],
+                       preview=False),
         ],
     ),
 ]
@@ -498,9 +579,45 @@ SLICER_SECTIONS = [
         ],
     ),
     FormatSection(
+        "Selection",
+        [
+            FormatField("selectionColor", "Checkbox Color", "color", default="#118DFF"),
+        ],
+    ),
+    FormatSection(
         "Slider",
         [
             FormatField("sliderColor", "Slider Color", "color", default="#118DFF", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Search Box",
+        [
+            FormatField("searchBackground", "Background", "color", default="#FFFFFF", preview=False),
+            FormatField("searchBorderColor", "Border Color", "color", default="#C8C6C4", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Date Slicer",
+        [
+            FormatField("dateFontColor", "Font Color", "color", default="#252423", preview=False),
+            FormatField("dateBackground", "Background", "color", default="#FFFFFF", preview=False),
+            FormatField("dateTextSize", "Font Size (pt)", "number", min_val=8, max_val=28, default=11, suffix="pt", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Numeric Slicer",
+        [
+            FormatField("numericFontColor", "Font Color", "color", default="#252423", preview=False),
+            FormatField("numericBackground", "Background", "color", default="#FFFFFF", preview=False),
+            FormatField("numericTextSize", "Font Size (pt)", "number", min_val=8, max_val=28, default=11, suffix="pt", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Dropdown",
+        [
+            FormatField("dropdownIconColor", "Icon Color", "color", default="#252423", preview=False),
+            FormatField("dropdownBorderColor", "Border Color", "color", default="#C8C6C4", preview=False),
         ],
     ),
 ]
@@ -551,6 +668,8 @@ VISUAL_FORMATTING = {
     "filledMap": FILLED_MAP_SECTIONS,
     "shapeMap": SHAPE_MAP_SECTIONS,
     "image": IMAGE_SECTIONS,
+    "textbox": TEXTBOX_SECTIONS,
+    "smartNarrative": SMART_NARRATIVE_SECTIONS,
 }
 
 

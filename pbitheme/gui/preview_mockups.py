@@ -1019,6 +1019,7 @@ def generate_slicer_svg(theme, formatting=None, generic=None, width=300, height=
     item_bg = _col(formatting, "itemsBackground", "#FFFFFF")
     item_size = int(_num(formatting, "itemsTextSize", 11))
     item_bold = _flag(formatting, "itemsBold", False)
+    select_col = _col(formatting, "selectionColor", accent)
 
     parts = _frame(width, height, generic, theme.background)
     title_svg, top = _title(width, "Slicer", fg, generic)
@@ -1046,7 +1047,7 @@ def generate_slicer_svg(theme, formatting=None, generic=None, width=300, height=
         # checkbox
         parts.append(f'<rect x="{pad + 4}" y="{y + (ih - box) / 2:.1f}" width="{box}" height="{box}" fill="none" stroke="{item_fg}" stroke-width="1"/>')
         if checked:
-            parts.append(f'<rect x="{pad + 6}" y="{y + (ih - box) / 2 + 2:.1f}" width="{box - 4}" height="{box - 4}" fill="{accent}"/>')
+            parts.append(f'<rect x="{pad + 6}" y="{y + (ih - box) / 2 + 2:.1f}" width="{box - 4}" height="{box - 4}" fill="{select_col}"/>')
         parts.append(
             f'<text x="{pad + box + 12}" y="{y + item_size + 4:.1f}" font-size="{item_size}" fill="{item_fg}" '
             f'font-weight="{weight}">{_esc(label)}</text>'
@@ -1347,6 +1348,7 @@ def generate_map_svg(theme, formatting=None, generic=None, width=300, height=200
     # A single data-point / region / shape colour override.
     data_col = _col(formatting, "mapDataColor", "") or _col(formatting, "shapeMapColor", "")
     border_col = _col(formatting, "shapeMapBorderColor", "#FFFFFF")
+    stroke_col = _col(formatting, "mapStrokeColor", "#FFFFFF")
     parts = _frame(width, height, generic, theme.background)
     title_svg, top = _title(width, label, theme.foreground, generic)
     pl, pt, pr, pb = 10, top + 4, width - 10, height - 10
@@ -1360,7 +1362,7 @@ def generate_map_svg(theme, formatting=None, generic=None, width=300, height=200
     regions = _map_regions(pl, pt, pr, pb)
     for i, pts in enumerate(regions):
         if style == "filled":
-            parts.append(f'<polygon points="{pts}" fill="{data_col or colors[i % len(colors)]}" opacity="0.85" stroke="#FFFFFF" stroke-width="1"/>')
+            parts.append(f'<polygon points="{pts}" fill="{data_col or colors[i % len(colors)]}" opacity="0.85" stroke="{stroke_col}" stroke-width="1.5"/>')
         elif style == "outline":
             parts.append(f'<polygon points="{pts}" fill="{data_col or "none"}" stroke="{border_col if data_col else theme.foreground}" stroke-width="1.5" opacity="0.8"/>')
         else:  # land under pins
@@ -1491,24 +1493,41 @@ def generate_qna_svg(theme, formatting=None, generic=None, width=300, height=200
 
 def generate_text_svg(theme, formatting=None, generic=None, width=300, height=200,
                       kind="text", label="Text Box"):
-    """Text box / smart narrative: simulated lines of text."""
-    generic = generic or {}
+    """Text box / smart narrative: rendered sample text honoring colour & size."""
+    formatting, generic = formatting or {}, generic or {}
     fg = theme.foreground
+    if kind == "narrative":
+        text_col = _col(formatting, "narrativeTextColor", fg)
+        size = int(_num(formatting, "narrativeFontSize", 12))
+        align = _txt(formatting, "narrativeAlignment", "Left")
+        lines = ["Sales grew 12% this quarter,",
+                 "led by the North region with",
+                 "double-digit gains across Q4."]
+    else:
+        text_col = _col(formatting, "textColor", fg)
+        size = int(_num(formatting, "textFontSize", 14))
+        align = "Left"
+        lines = ["Heading text", "Body copy that flows", "across several lines here."]
+
+    anchor, ax = {
+        "Center": ("middle", width / 2),
+        "Right": ("end", width - 16),
+    }.get(align, ("start", 16.0))
+
     parts = _frame(width, height, generic, theme.background)
     title_svg, top = _title(width, label, fg, generic)
-    x = 16
-    y = top + 10
-    if kind == "narrative":
-        parts.append(f'<rect x="{x}" y="{y}" width="{width * 0.55:.0f}" height="12" rx="3" fill="{theme.table_accent}" opacity="0.8"/>')
-        y += 22
-    widths = [0.9, 0.82, 0.86, 0.6, 0.78, 0.5]
-    for i, frac in enumerate(widths):
-        if y > height - 16:
+    y = top + 10 + size
+    if kind == "narrative":  # a summary accent bar
+        parts.append(f'<rect x="16" y="{y - size:.0f}" width="{width * 0.5:.0f}" height="{max(6, size - 2)}" rx="3" fill="{theme.table_accent}" opacity="0.85"/>')
+        y += size + 10
+    for ln in lines:
+        if y > height - 6:
             break
-        parts.append(f'<rect x="{x}" y="{y:.0f}" width="{(width - 2 * x) * frac:.0f}" height="9" rx="3" fill="#C8C6C4"/>')
-        y += 18
-    if kind == "text":  # a text cursor
-        parts.append(f'<rect x="{x + (width - 2 * x) * 0.5:.0f}" y="{top + 8:.0f}" width="2" height="14" fill="{fg}"/>')
+        parts.append(
+            f'<text x="{ax:.0f}" y="{y:.0f}" font-size="{size}" fill="{text_col}" '
+            f'text-anchor="{anchor}">{_esc(ln)}</text>'
+        )
+        y += size + 8
     parts.append(title_svg)
     parts.append("</svg>")
     return "\n".join(parts)

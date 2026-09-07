@@ -64,7 +64,7 @@ Most fields update the **live preview**; a few (marked *export-only* in the
 stages below) are exported as valid Power BI cards but can't be meaningfully
 shown in a simplified mockup (e.g. font family, word wrap).
 
-**Current overall card coverage: ~57%** (440 / 770 themeable cards across all visuals).
+**Current overall card coverage: ~59%** (455 / 770 themeable cards across all visuals).
 
 ### Stages
 
@@ -97,13 +97,16 @@ shown in a simplified mockup (e.g. font family, word wrap).
   radius), **scatter bubble size + marker border**, and waterfall sentiment
   colours (Stage 3). Still to do: ratio line, error bars, `plotArea` shading,
   ribbon bands, small multiples.
-- **Stage 5 — Slicer & non-chart visuals — ◐ mostly done.** Made customizable:
-  **Action Button** (fill / text / outline), **Basic Shape** (fill / outline),
-  **Decomposition Tree** (level-header + data-label colours), **Map** & **Filled
-  Map** (data-point colour + category labels), **Shape Map** (default + border
-  colours), **Image** (scaling, export-only), plus a slicer **slider** colour.
-  Still to do: slicer date/numeric/search/dropdown, action-button icon + hover
-  states, map controls/styles, textbox & smart-narrative text.
+- **Stage 5 — Slicer & non-chart visuals — ✅ complete.** Made customizable:
+  **Action Button** (fill / text / outline, icon, glow & shadow, and a **hover
+  state**), **Basic Shape** (fill / outline), **Decomposition Tree** (level-header
+  + data-label colours), **Map** & **Filled Map** (data-point / region colour,
+  category labels, region **borders**, map **style** & **controls**), **Shape
+  Map** (default + border colours), **Image** (scaling), **Text Box** and **Smart
+  Narrative** (text colour / size / font), plus the slicer **selection**,
+  **slider**, **search box**, **date slicer**, **numeric slicer** and **dropdown**
+  styling. (Button hover exports as a `$id` state array; date / numeric / search /
+  dropdown and font families are valid export-only cards — no live preview.)
 - **Stage 6 — Containers, tooltips & misc — ☐.** Report tooltip & visual-header
   tooltip styling, divider, spacing, subheader, `general` (alt text / responsive),
   small multiples, zoom slider.
@@ -145,19 +148,19 @@ shown in a simplified mockup (e.g. font family, word wrap).
 | Table (Extended) | ✅ | — | — | — | — | ◐ | — | — | ☐ | 57% |
 | Matrix | ✅ | — | — | — | — | ◐ | — | — | ☐ | 54% |
 | Pivot Table | ✅ | — | — | — | — | ◐ | — | — | ☐ | 54% |
-| Slicer | ✅ | — | — | — | — | — | — | ◐ | ☐ | 41% |
-| Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ☐ | 52% |
-| Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ☐ | 57% |
+| Slicer | ✅ | — | — | — | — | — | — | ✅ | ◐ | 62% |
+| Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
+| Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ◐ | 63% |
 | Shape Map | ✅ | — | ✅ | — | ◐ | — | — | — | ☐ | 52% |
 | Azure Maps | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 52% |
 | Decomposition Tree | ✅ | — | — | ◐ | — | — | — | — | ◐ | 47% |
 | Key Drivers | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
 | Q&A | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| Smart Narrative | ✅ | — | — | — | — | — | — | — | ☐ | 43% |
-| Action Button | ✅ | — | — | — | ✅ | — | — | — | ◐ | 52% |
+| Smart Narrative | ✅ | — | — | ◐ | — | — | — | — | ☐ | 52% |
+| Action Button | ✅ | — | — | — | ✅ | — | — | — | ✅ | 64% |
 | Basic Shape | ✅ | — | — | — | ✅ | — | — | — | ◐ | 50% |
 | Image | ✅ | — | — | — | — | — | — | — | ◐ | 61% |
-| Text Box | ✅ | — | — | — | — | ☐ | — | — | ☐ | 50% |
+| Text Box | ✅ | — | — | ◐ | — | — | — | — | ☐ | 58% |
 | Python Visual | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
 | R Visual | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
 
