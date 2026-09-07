@@ -1,5 +1,7 @@
 # PBi_Theme_Create
 
+[![Tests](https://github.com/damien-bafile/PBi_Theme_Create/actions/workflows/tests.yml/badge.svg)](https://github.com/damien-bafile/PBi_Theme_Create/actions/workflows/tests.yml)
+
 A **Power BI theme creator**: a Python + Qt (PySide6) desktop app that lets you
 configure a report theme visually — with a **live preview of every visual** — and
 export it as a Power BI `*.json` theme file. The theme model is GUI-free, so you
