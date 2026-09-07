@@ -91,7 +91,8 @@ class ConformanceTests(unittest.TestCase):
                     "text": "x"}.get(f.field_type)
 
         for visual in ("cardVisual", "advancedSlicerVisual", "listSlicer",
-                       "textSlicer", "pageNavigator", "bookmarkNavigator"):
+                       "textSlicer", "pageNavigator", "bookmarkNavigator",
+                       "scorecard", "filter", "group", "rdlVisual"):
             secs = get_formatting_sections(visual)
             self.assertTrue(secs, visual)
             fmt = {f.key: _sample(f) for s in secs for f in s.fields}

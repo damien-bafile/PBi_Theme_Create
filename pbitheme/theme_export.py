@@ -71,6 +71,9 @@ _PAGE_REPORT = _PAGE | _REPORT
 _CARD_VISUAL = {"cardVisual"}
 _NEW_SLICER = {"advancedSlicerVisual", "listSlicer", "textSlicer"}
 _NAVIGATOR = {"pageNavigator", "bookmarkNavigator"}
+_SCORECARD = {"scorecard"}
+_FILTER_VIS = {"filter"}
+_CONTAINER = {"group", "rdlVisual"}  # only background/border are meaningful
 
 _GRIDLINE_STYLE = {"Solid": "solid", "Dashed": "dashed", "Dotted": "dotted"}
 
@@ -728,6 +731,59 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             tx["fontFamily"] = fmt["navTextFont"]
         _set(card("outline"), "lineColor", _fill(fmt.get("navOutlineColor", "")))
 
+    # ---- Scorecard (Goals): headers, metric name, current value, target ---- #
+    if app_key in _SCORECARD:
+        ch = card("columnHeaders")
+        _set(ch, "fontColor", _fill(fmt.get("scColHdrColor", "")))
+        _set(ch, "backColor", _fill(fmt.get("scColHdrBg", "")))
+        if "scColHdrSize" in fmt:
+            ch["fontSize"] = fmt["scColHdrSize"]
+        if fmt.get("scColHdrFont"):
+            ch["fontFamily"] = fmt["scColHdrFont"]
+        mn = card("metricName")
+        _set(mn, "fontColor", _fill(fmt.get("scMetricColor", "")))
+        if "scMetricSize" in fmt:
+            mn["fontSize"] = fmt["scMetricSize"]
+        if fmt.get("scMetricFont"):
+            mn["fontFamily"] = fmt["scMetricFont"]
+        cvv = card("currentValue")
+        _set(cvv, "fontColor", _fill(fmt.get("scCurrentColor", "")))
+        if "scCurrentSize" in fmt:
+            cvv["fontSize"] = fmt["scCurrentSize"]
+        tg = card("target")
+        _set(tg, "fontColor", _fill(fmt.get("scTargetColor", "")))
+        if "scTargetSize" in fmt:
+            tg["fontSize"] = fmt["scTargetSize"]
+
+    # ---- Filter visual: header + items ---- #
+    if app_key in _FILTER_VIS:
+        hd = card("header")
+        _set(hd, "fontColor", _fill(fmt.get("fltHeaderColor", "")))
+        if "fltHeaderSize" in fmt:
+            hd["fontSize"] = fmt["fltHeaderSize"]
+        if fmt.get("fltHeaderFont"):
+            hd["fontFamily"] = fmt["fltHeaderFont"]
+        it = card("items")
+        _set(it, "fontColor", _fill(fmt.get("fltItemsColor", "")))
+        if "fltItemsSize" in fmt:
+            it["fontSize"] = fmt["fltItemsSize"]
+        if fmt.get("fltItemsFont"):
+            it["fontFamily"] = fmt["fltItemsFont"]
+
+    # ---- Group / RDL containers: background + border ---- #
+    if app_key in _CONTAINER:
+        bg = card("background")
+        bg["show"] = True
+        prefix = "grp" if app_key == "group" else "rdl"
+        _set(bg, "color", _fill(fmt.get(prefix + "BgColor", "")))
+        if prefix + "BgTransparency" in fmt:
+            bg["transparency"] = fmt[prefix + "BgTransparency"]
+        bd = card("border")
+        bd["show"] = True
+        _set(bd, "color", _fill(fmt.get(prefix + "BorderColor", "")))
+        if app_key == "group" and "grpBorderRadius" in fmt:
+            bd["radius"] = fmt["grpBorderRadius"]
+
     # Drop any card left empty.
     return {k: v for k, v in cards.items() if v}
 
@@ -881,6 +937,12 @@ def _consumed_cards(app_key: str) -> set:
         return {"header", "items"}
     if app_key in _NAVIGATOR:
         return {"fill", "text", "outline"}
+    if app_key in _SCORECARD:
+        return {"columnHeaders", "metricName", "currentValue", "target"}
+    if app_key in _FILTER_VIS:
+        return {"header", "items"}
+    if app_key in _CONTAINER:
+        return {"background", "border"}
     return set()
 
 
@@ -1400,6 +1462,54 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         if "fontFamily" in tx:
             fmt["navTextFont"] = tx["fontFamily"]
         _put(fmt, "navOutlineColor", _hex(c("outline"), "lineColor"))
+
+    elif app_key in _SCORECARD:
+        ch = c("columnHeaders")
+        _put(fmt, "scColHdrColor", _hex(ch, "fontColor"))
+        _put(fmt, "scColHdrBg", _hex(ch, "backColor"))
+        if "fontSize" in ch:
+            fmt["scColHdrSize"] = ch["fontSize"]
+        if "fontFamily" in ch:
+            fmt["scColHdrFont"] = ch["fontFamily"]
+        mn = c("metricName")
+        _put(fmt, "scMetricColor", _hex(mn, "fontColor"))
+        if "fontSize" in mn:
+            fmt["scMetricSize"] = mn["fontSize"]
+        if "fontFamily" in mn:
+            fmt["scMetricFont"] = mn["fontFamily"]
+        cvv = c("currentValue")
+        _put(fmt, "scCurrentColor", _hex(cvv, "fontColor"))
+        if "fontSize" in cvv:
+            fmt["scCurrentSize"] = cvv["fontSize"]
+        tg = c("target")
+        _put(fmt, "scTargetColor", _hex(tg, "fontColor"))
+        if "fontSize" in tg:
+            fmt["scTargetSize"] = tg["fontSize"]
+
+    elif app_key in _FILTER_VIS:
+        hd = c("header")
+        _put(fmt, "fltHeaderColor", _hex(hd, "fontColor"))
+        if "fontSize" in hd:
+            fmt["fltHeaderSize"] = hd["fontSize"]
+        if "fontFamily" in hd:
+            fmt["fltHeaderFont"] = hd["fontFamily"]
+        it = c("items")
+        _put(fmt, "fltItemsColor", _hex(it, "fontColor"))
+        if "fontSize" in it:
+            fmt["fltItemsSize"] = it["fontSize"]
+        if "fontFamily" in it:
+            fmt["fltItemsFont"] = it["fontFamily"]
+
+    elif app_key in _CONTAINER:
+        prefix = "grp" if app_key == "group" else "rdl"
+        bg = c("background")
+        _put(fmt, prefix + "BgColor", _hex(bg, "color"))
+        if "transparency" in bg:
+            fmt[prefix + "BgTransparency"] = bg["transparency"]
+        bd = c("border")
+        _put(fmt, prefix + "BorderColor", _hex(bd, "color"))
+        if app_key == "group" and "radius" in bd:
+            fmt["grpBorderRadius"] = bd["radius"]
 
     return fmt
 

@@ -791,6 +791,60 @@ NAVIGATOR_SECTIONS = [
     ]),
 ]
 
+# Scorecard (Goals): column headers, metric name, current value, target.
+SCORECARD_SECTIONS = [
+    FormatSection("Column Headers", [
+        FormatField("scColHdrColor", "Font Color", "color", default="#252423", preview=False),
+        FormatField("scColHdrBg", "Background", "color", default="#FFFFFF", preview=False),
+        FormatField("scColHdrSize", "Font Size", "number", min_val=8, max_val=60, default=10, suffix="pt", preview=False),
+        FormatField("scColHdrFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    ]),
+    FormatSection("Metric Name", [
+        FormatField("scMetricColor", "Font Color", "color", default="#252423", preview=False),
+        FormatField("scMetricSize", "Font Size", "number", min_val=8, max_val=60, default=11, suffix="pt", preview=False),
+        FormatField("scMetricFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    ]),
+    FormatSection("Current Value", [
+        FormatField("scCurrentColor", "Font Color", "color", default="#252423", preview=False),
+        FormatField("scCurrentSize", "Font Size", "number", min_val=8, max_val=60, default=11, suffix="pt", preview=False),
+    ]),
+    FormatSection("Target", [
+        FormatField("scTargetColor", "Font Color", "color", default="#605E5C", preview=False),
+        FormatField("scTargetSize", "Font Size", "number", min_val=8, max_val=60, default=11, suffix="pt", preview=False),
+    ]),
+]
+
+# Filter visual: header + items.
+FILTER_SECTIONS = [
+    FormatSection("Header", [
+        FormatField("fltHeaderColor", "Font Color", "color", default="#252423", preview=False),
+        FormatField("fltHeaderSize", "Font Size", "number", min_val=8, max_val=60, default=10, suffix="pt", preview=False),
+        FormatField("fltHeaderFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    ]),
+    FormatSection("Items", [
+        FormatField("fltItemsColor", "Font Color", "color", default="#252423", preview=False),
+        FormatField("fltItemsSize", "Font Size", "number", min_val=8, max_val=60, default=10, suffix="pt", preview=False),
+        FormatField("fltItemsFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    ]),
+]
+
+# Group / paginated (RDL) containers only meaningfully theme background + border.
+GROUP_SECTIONS = [
+    FormatSection("Container", [
+        FormatField("grpBgColor", "Background Color", "color", default="#FFFFFF", preview=False),
+        FormatField("grpBgTransparency", "Background Transparency", "number", min_val=0, max_val=100, default=0, suffix="%", preview=False),
+        FormatField("grpBorderColor", "Border Color", "color", default="#333333", preview=False),
+        FormatField("grpBorderRadius", "Rounded Corners", "number", min_val=0, max_val=30, default=0, suffix="px", preview=False),
+    ]),
+]
+RDL_SECTIONS = [
+    FormatSection("Report Frame", [
+        FormatField("rdlBgColor", "Background Color", "color", default="#FFFFFF", preview=False),
+        FormatField("rdlBgTransparency", "Background Transparency", "number", min_val=0, max_val=100, default=0, suffix="%", preview=False),
+        FormatField("rdlBorderColor", "Border Color", "color", default="#333333", preview=False),
+    ]),
+]
+
 # Map visual types to their formatting sections
 VISUAL_FORMATTING = {
     # Matrix and Table
@@ -810,6 +864,10 @@ VISUAL_FORMATTING = {
     "textSlicer": NEW_SLICER_SECTIONS,
     "pageNavigator": NAVIGATOR_SECTIONS,
     "bookmarkNavigator": NAVIGATOR_SECTIONS,
+    "scorecard": SCORECARD_SECTIONS,
+    "filter": FILTER_SECTIONS,
+    "group": GROUP_SECTIONS,
+    "rdlVisual": RDL_SECTIONS,
 
     # Charts (cartesian charts carry the small-multiples layout card)
     "barChart": CHART_SECTIONS_SM,
