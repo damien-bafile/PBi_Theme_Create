@@ -7,6 +7,7 @@ import json
 from typing import Any, Dict
 
 from PySide6.QtCore import Qt, QByteArray
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -64,7 +65,7 @@ from ..model import (
     merge_visual_style_entry,
 )
 from .widgets import ColorButton
-from .visual_formatter import VisualFormatterPanel
+from .visual_formatter import VisualFormatterPanel, balanced_columns
 from .visual_formatting_config import is_visual_customizable
 from .preview_mockups import render_visual_preview
 from . import theme
@@ -87,7 +88,20 @@ class VisualStyleDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Edit {visual_label} Style")
-        self.resize(1000, 650)
+        # Open at a comfortable size but never larger than the screen, so the
+        # dialog always fits (some visuals have many formatting sections).
+        screen = QGuiApplication.primaryScreen()
+        avail = screen.availableGeometry() if screen else None
+        if avail:
+            width = min(1000, avail.width() - 80)
+            height = min(720, avail.height() - 80)
+            self.setMaximumSize(avail.width(), avail.height())
+        else:  # headless / no screen
+            width, height = 1000, 720
+        self.resize(max(600, width), max(400, height))
+        # Two columns of sections only when the left pane is wide enough;
+        # otherwise one column that scrolls vertically (never off-screen).
+        self._section_columns = 2 if (width - 300) >= 700 else 1
         self._visual_key = visual_key
         self._visual_label = visual_label
         self._theme = pbi_theme or PowerBITheme()
@@ -121,14 +135,22 @@ class VisualStyleDialog(QDialog):
         # Tabs
         tabs = QTabWidget()
 
-        # Tab 1: Visual-specific formatting (if available)
+        # Tab 1: Visual-specific formatting (if available), inside a scroll area
+        # so visuals with many sections never force the dialog off-screen.
         if is_visual_customizable(visual_key):
-            self._formatter_panel = VisualFormatterPanel(visual_key)
-            tabs.addTab(self._formatter_panel, "Visual Formatting")
+            self._formatter_panel = VisualFormatterPanel(
+                visual_key, max_columns=self._section_columns
+            )
+            formatter_scroll = QScrollArea()
+            formatter_scroll.setWidget(self._formatter_panel)
+            formatter_scroll.setWidgetResizable(True)
+            tabs.addTab(formatter_scroll, "Visual Formatting")
 
-        # Tab 2: Generic overrides
+        # Tab 2: Generic overrides. Sections are collected into a list and then
+        # arranged in balanced columns so the tab stays compact.
         generic_widget = QWidget()
         generic_layout = QVBoxLayout(generic_widget)
+        _generic_boxes = []
 
         # ---- Background section ---- #
         bg_box = QGroupBox("Background")
@@ -152,7 +174,7 @@ class VisualStyleDialog(QDialog):
         self._bg_check.toggled.connect(lambda c: self._bg_alpha.setEnabled(c))
         self._bg_color.setEnabled(False)
         self._bg_alpha.setEnabled(False)
-        generic_layout.addWidget(bg_box)
+        _generic_boxes.append(bg_box)
 
         # ---- Border section ---- #
         border_box = QGroupBox("Border")
@@ -177,7 +199,7 @@ class VisualStyleDialog(QDialog):
         for w in (self._border_color, self._border_width, self._border_radius):
             self._border_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
             w.setEnabled(False)
-        generic_layout.addWidget(border_box)
+        _generic_boxes.append(border_box)
 
         # ---- Drop shadow section ---- #
         shadow_box = QGroupBox("Drop Shadow")
@@ -191,7 +213,7 @@ class VisualStyleDialog(QDialog):
         shadow_layout.addRow("Color", self._shadow_color)
         self._shadow_check.toggled.connect(lambda c: self._shadow_color.setEnabled(c))
         self._shadow_color.setEnabled(False)
-        generic_layout.addWidget(shadow_box)
+        _generic_boxes.append(shadow_box)
 
         # ---- Subtitle section ---- #
         subtitle_box = QGroupBox("Subtitle")
@@ -214,7 +236,7 @@ class VisualStyleDialog(QDialog):
         for w in (self._subtitle_text, self._subtitle_color, self._subtitle_size):
             self._subtitle_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
             w.setEnabled(False)
-        generic_layout.addWidget(subtitle_box)
+        _generic_boxes.append(subtitle_box)
 
         # ---- Visual header section ---- #
         header_box = QGroupBox("Visual Header")
@@ -232,7 +254,7 @@ class VisualStyleDialog(QDialog):
         for w in (self._vh_background, self._vh_foreground):
             self._vh_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
             w.setEnabled(False)
-        generic_layout.addWidget(header_box)
+        _generic_boxes.append(header_box)
 
         # ---- Padding section ---- #
         padding_box = QGroupBox("Padding")
@@ -247,7 +269,7 @@ class VisualStyleDialog(QDialog):
         padding_layout.addRow("All sides", self._padding_value)
         self._padding_check.toggled.connect(lambda c: self._padding_value.setEnabled(c))
         self._padding_value.setEnabled(False)
-        generic_layout.addWidget(padding_box)
+        _generic_boxes.append(padding_box)
 
         # ---- Divider section ---- #
         divider_box = QGroupBox("Divider")
@@ -271,7 +293,7 @@ class VisualStyleDialog(QDialog):
         for w in (self._divider_color, self._divider_width, self._divider_style):
             self._divider_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
             w.setEnabled(False)
-        generic_layout.addWidget(divider_box)
+        _generic_boxes.append(divider_box)
 
         # ---- Spacing section (export-only) ---- #
         spacing_box = QGroupBox("Spacing")
@@ -293,7 +315,7 @@ class VisualStyleDialog(QDialog):
         for w in (self._spacing_below_title, self._spacing_vertical):
             self._spacing_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
             w.setEnabled(False)
-        generic_layout.addWidget(spacing_box)
+        _generic_boxes.append(spacing_box)
 
         # ---- General (alt text / responsive) section (export-only) ---- #
         general_box = QGroupBox("General")
@@ -311,7 +333,7 @@ class VisualStyleDialog(QDialog):
         for w in (self._general_alt, self._general_keep_order):
             self._general_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
             w.setEnabled(False)
-        generic_layout.addWidget(general_box)
+        _generic_boxes.append(general_box)
 
         # ---- Data tooltip section (export-only) ---- #
         tooltip_box = QGroupBox("Data Tooltip")
@@ -332,7 +354,7 @@ class VisualStyleDialog(QDialog):
         for w in (self._tooltip_bg, self._tooltip_title, self._tooltip_value):
             self._tooltip_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
             w.setEnabled(False)
-        generic_layout.addWidget(tooltip_box)
+        _generic_boxes.append(tooltip_box)
 
         # ---- Header tooltip section (export-only) ---- #
         htooltip_box = QGroupBox("Header Tooltip")
@@ -350,7 +372,7 @@ class VisualStyleDialog(QDialog):
         for w in (self._htooltip_bg, self._htooltip_title):
             self._htooltip_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
             w.setEnabled(False)
-        generic_layout.addWidget(htooltip_box)
+        _generic_boxes.append(htooltip_box)
 
         # ---- Title section ---- #
         title_box = QGroupBox("Title")
@@ -375,7 +397,7 @@ class VisualStyleDialog(QDialog):
         self._title_font.setEnabled(False)
         self._title_size.setEnabled(False)
         self._title_color.setEnabled(False)
-        generic_layout.addWidget(title_box)
+        _generic_boxes.append(title_box)
 
         # ---- Data labels section ---- #
         labels_box = QGroupBox("Data Labels")
@@ -395,7 +417,7 @@ class VisualStyleDialog(QDialog):
         self._labels_check.toggled.connect(lambda c: self._labels_size.setEnabled(c))
         self._labels_color.setEnabled(False)
         self._labels_size.setEnabled(False)
-        generic_layout.addWidget(labels_box)
+        _generic_boxes.append(labels_box)
 
         # ---- Legend section ---- #
         legend_box = QGroupBox("Legend")
@@ -414,7 +436,8 @@ class VisualStyleDialog(QDialog):
         self._legend_check.toggled.connect(lambda c: self._legend_color.setEnabled(c))
         self._legend_pos.setEnabled(False)
         self._legend_color.setEnabled(False)
-        generic_layout.addWidget(legend_box)
+        _generic_boxes.append(legend_box)
+        generic_layout.addLayout(balanced_columns(_generic_boxes, self._section_columns))
         generic_layout.addStretch()
 
         # Live-update the preview whenever any generic override changes.
