@@ -29,6 +29,8 @@ DEFAULT_DATA_COLORS: List[str] = [
 VISUAL_TYPES: List[tuple[str, str]] = [
     ("*", "All visuals (wildcard)"),
     ("areaChart", "Area Chart"),
+    ("stackedAreaChart", "Stacked Area Chart"),
+    ("hundredPercentStackedAreaChart", "100% Stacked Area Chart"),
     ("actionButton", "Action Button"),
     ("azureMapVisual", "Azure Maps"),
     ("barChart", "Bar Chart"),

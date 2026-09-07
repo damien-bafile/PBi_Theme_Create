@@ -718,6 +718,8 @@ VISUAL_FORMATTING = {
     "lineClusteredColumnComboChart": CHART_SECTIONS_SM,
     "lineStackedColumnComboChart": CHART_SECTIONS_SM,
     "areaChart": CHART_SECTIONS_SM,
+    "stackedAreaChart": CHART_SECTIONS_SM,
+    "hundredPercentStackedAreaChart": CHART_SECTIONS_SM,
     "scatterChart": SCATTER_SECTIONS,
     "ribbonChart": CHART_SECTIONS_SM,
     "waterfallChart": WATERFALL_SECTIONS,

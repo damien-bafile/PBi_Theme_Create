@@ -30,13 +30,16 @@ VISUAL_NAME_MAP = {
     "basicShape": "shape",
     "azureMapVisual": "azureMap",
     "smartNarrative": "aiNarratives",
+    # Power BI's R-script visual is "scriptVisual" in the theme schema.
+    "rVisual": "scriptVisual",
 }
 
 # Families (by app key) that share a translation.
 _CARTESIAN = {
     "barChart", "columnChart", "clusteredBarChart", "clusteredColumnChart",
     "hundredPercentStackedBarChart", "hundredPercentStackedColumnChart",
-    "lineChart", "areaChart", "lineClusteredColumnComboChart",
+    "lineChart", "areaChart", "stackedAreaChart", "hundredPercentStackedAreaChart",
+    "lineClusteredColumnComboChart",
     "lineStackedColumnComboChart", "ribbonChart", "waterfallChart",
 }
 _SCATTER = {"scatterChart"}
