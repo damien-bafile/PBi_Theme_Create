@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QSpinBox,
     QVBoxLayout,
@@ -66,14 +67,36 @@ class VisualFormatterPanel(QWidget):
 
         # Build one group box per section...
         boxes = []
+        style_labels = {"bold", "italic", "underline"}
         for section in sections:
             group = QGroupBox(section.name)
             form = QFormLayout(group)
 
-            for field in section.fields:
+            fields = section.fields
+            i = 0
+            while i < len(fields):
+                field = fields[i]
+                # Group a consecutive run of Bold/Italic/Underline toggles onto
+                # one row (checkbox with its label underneath) to save height.
+                if field.field_type == "boolean" and field.label.lower() in style_labels:
+                    run = []
+                    j = i
+                    while (
+                        j < len(fields)
+                        and fields[j].field_type == "boolean"
+                        and fields[j].label.lower() in style_labels
+                    ):
+                        run.append(fields[j])
+                        j += 1
+                    if len(run) >= 2:
+                        form.addRow(self._build_style_row(run))
+                        i = j
+                        continue
+
                 widget = self._create_widget_for_field(field)
                 self._field_widgets[field.key] = widget
                 form.addRow(field.label, widget)
+                i += 1
 
             boxes.append(group)
 
@@ -83,6 +106,29 @@ class VisualFormatterPanel(QWidget):
         columns = 2 if (len(boxes) > 3 and self._max_columns >= 2) else 1
         layout.addLayout(balanced_columns(boxes, columns))
         layout.addStretch()
+
+    def _build_style_row(self, fields) -> QWidget:
+        """Lay out font-style toggles (Bold/Italic/Underline) side by side,
+        each checkbox centred with its label underneath."""
+        container = QWidget()
+        row = QHBoxLayout(container)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(20)
+        for field in fields:
+            checkbox = self._create_widget_for_field(field)  # a QCheckBox
+            self._field_widgets[field.key] = checkbox
+
+            cell = QWidget()
+            cell_layout = QVBoxLayout(cell)
+            cell_layout.setContentsMargins(0, 0, 0, 0)
+            cell_layout.setSpacing(2)
+            cell_layout.addWidget(checkbox, 0, Qt.AlignHCenter)
+            caption = QLabel(field.label)
+            caption.setAlignment(Qt.AlignHCenter)
+            cell_layout.addWidget(caption)
+            row.addWidget(cell)
+        row.addStretch(1)
+        return container
 
     def _create_widget_for_field(self, field: FormatField) -> QWidget:
         """Create the appropriate widget for a formatting field."""
