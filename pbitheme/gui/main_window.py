@@ -80,12 +80,18 @@ class MainWindow(QMainWindow):
         screenshot_action = QAction("Save &Screenshot...", self)
         screenshot_action.triggered.connect(self._on_save_screenshot)
 
+        validate_action = QAction("&Validate against Power BI schema", self)
+        validate_action.setShortcut("Ctrl+L")
+        validate_action.triggered.connect(self._on_validate)
+
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
 
         for action in (new_action, open_action, save_action, screenshot_action):
             file_menu.addAction(action)
+        file_menu.addSeparator()
+        file_menu.addAction(validate_action)
         file_menu.addSeparator()
         file_menu.addAction(quit_action)
 
@@ -328,6 +334,39 @@ class MainWindow(QMainWindow):
             return
         self._current_path = path
         self.statusBar().showMessage(f"Saved {os.path.basename(path)}")
+
+    def _on_validate(self) -> None:
+        """Validate the current theme against the bundled Power BI schema."""
+        from ..validate import schema_version, validate_theme
+
+        theme = self._collect_theme()
+        try:
+            errors = validate_theme(theme.to_dict())
+        except RuntimeError as exc:
+            QMessageBox.warning(self, "Validation unavailable", str(exc))
+            return
+
+        version = schema_version() or "unknown"
+        if not errors:
+            QMessageBox.information(
+                self,
+                "Valid",
+                f"The theme conforms to the Power BI report theme schema "
+                f"(v{version}).",
+            )
+            self.statusBar().showMessage(f"Valid against schema v{version}")
+            return
+
+        preview = "\n".join(f"• {e}" for e in errors[:20])
+        if len(errors) > 20:
+            preview += f"\n... and {len(errors) - 20} more."
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Warning)
+        box.setWindowTitle("Schema issues")
+        box.setText(f"{len(errors)} issue(s) found against schema v{version}.")
+        box.setDetailedText(preview)
+        box.exec()
+        self.statusBar().showMessage(f"{len(errors)} schema issue(s)")
 
     def _on_edit_visual_style(self, visual_key: str) -> None:
         """Open the style editor dialog for the selected visual type."""

@@ -28,7 +28,7 @@ can also generate themes from scripts.
 ## Install & run
 
 ```bash
-pip install -r requirements.txt
+pip install -e .        # installs PySide6 + jsonschema
 python main.py
 ```
 
@@ -39,6 +39,27 @@ Requires Python 3.8+ and PySide6.
 1. Save your theme from the app (**File → Save As...**).
 2. In Power BI Desktop: **View → Themes → Browse for themes** and select the
    generated `.json` file.
+
+## Schema validation
+
+The exported theme can be validated against the **official Power BI report
+theme JSON schema** (bundled from Microsoft's `powerbi-desktop-samples`,
+currently **v2.157**) via **File → Validate** (Ctrl+L). It is also scriptable
+and covered by tests:
+
+```python
+from pbitheme.model import PowerBITheme
+from pbitheme.validate import validate_theme
+
+assert validate_theme(PowerBITheme("Demo").to_dict()) == []
+```
+
+Run the conformance tests (they validate the real export pipeline against the
+bundled schema):
+
+```bash
+python -m unittest discover -s tests
+```
 
 ## Generate a theme without the GUI
 
