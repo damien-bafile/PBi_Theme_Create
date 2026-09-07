@@ -3,7 +3,6 @@ name: Build
 on:
   workflow_dispatch:
   push:
-    branches: ["claude/python-json-theme-qt-gui-lxksys"]
     tags: ["v*"]
 
 jobs:
