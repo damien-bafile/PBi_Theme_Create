@@ -81,6 +81,27 @@ class ConformanceTests(unittest.TestCase):
             reimported = PowerBITheme.from_dict(json.loads(json.dumps(out)))
             self.assertEqual(reimported.to_dict()["visualStyles"], out["visualStyles"], visual)
 
+    def test_newer_visuals_are_valid(self):
+        from pbitheme.gui.visual_formatting_config import get_formatting_sections
+
+        def _sample(f):
+            return {"color": "#3A6EA5", "boolean": True,
+                    "number": int(((f.min_val or 0) + (f.max_val or 10)) // 2) or (f.min_val or 0),
+                    "dropdown": (f.options[0][0] if f.options else ""),
+                    "text": "x"}.get(f.field_type)
+
+        for visual in ("cardVisual", "advancedSlicerVisual", "listSlicer",
+                       "textSlicer", "pageNavigator", "bookmarkNavigator"):
+            secs = get_formatting_sections(visual)
+            self.assertTrue(secs, visual)
+            fmt = {f.key: _sample(f) for s in secs for f in s.fields}
+            theme = PowerBITheme("nv")
+            theme.visual_styles = {visual: {"*": {"formatting": fmt}}}
+            out = theme.to_dict()
+            self.assertEqual(validate_theme(out), [], visual)
+            reimported = PowerBITheme.from_dict(json.loads(json.dumps(out)))
+            self.assertEqual(reimported.to_dict()["visualStyles"], out["visualStyles"], visual)
+
 
 if __name__ == "__main__":
     unittest.main()

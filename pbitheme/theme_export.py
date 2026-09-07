@@ -68,6 +68,9 @@ _KPI = {"kpi"}
 _PAGE = {"page"}
 _REPORT = {"report"}
 _PAGE_REPORT = _PAGE | _REPORT
+_CARD_VISUAL = {"cardVisual"}
+_NEW_SLICER = {"advancedSlicerVisual", "listSlicer", "textSlicer"}
+_NAVIGATOR = {"pageNavigator", "bookmarkNavigator"}
 
 _GRIDLINE_STYLE = {"Solid": "solid", "Dashed": "dashed", "Dotted": "dotted"}
 
@@ -670,6 +673,61 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             fc["transparency"] = fmt["filterCardTransparency"]
         _set(fc, "inputBoxColor", _fill(fmt.get("filterCardInputColor", "")))
 
+    # ---- New card visual: callout value, category label, accent bar ---- #
+    if app_key in _CARD_VISUAL:
+        cv = card("calloutValue")
+        _set(cv, "color", _fill(fmt.get("cvCalloutColor", "")))
+        if "cvCalloutSize" in fmt:
+            cv["fontSize"] = fmt["cvCalloutSize"]
+        if fmt.get("cvCalloutFont"):
+            cv["fontFamily"] = fmt["cvCalloutFont"]
+        if "cvCalloutUnits" in fmt:
+            cv["labelDisplayUnits"] = int(fmt["cvCalloutUnits"])
+        if "cvCalloutPrecision" in fmt:
+            cv["labelPrecision"] = fmt["cvCalloutPrecision"]
+        cl = card("categoryLabels")
+        if "cvCatShow" in fmt:
+            cl["show"] = bool(fmt["cvCatShow"])
+        _set(cl, "color", _fill(fmt.get("cvCatColor", "")))
+        if "cvCatSize" in fmt:
+            cl["fontSize"] = fmt["cvCatSize"]
+        if fmt.get("cvCatFont"):
+            cl["fontFamily"] = fmt["cvCatFont"]
+        ab = card("accentBar")
+        if "cvAccentShow" in fmt:
+            ab["show"] = bool(fmt["cvAccentShow"])
+        _set(ab, "color", _fill(fmt.get("cvAccentColor", "")))
+
+    # ---- New slicer visuals: header + items ---- #
+    if app_key in _NEW_SLICER:
+        hd = card("header")
+        if "nsHeaderShow" in fmt:
+            hd["show"] = bool(fmt["nsHeaderShow"])
+        _set(hd, "fontColor", _fill(fmt.get("nsHeaderColor", "")))
+        _set(hd, "background", _fill(fmt.get("nsHeaderBg", "")))
+        if "nsHeaderSize" in fmt:
+            hd["fontSize"] = fmt["nsHeaderSize"]
+        if fmt.get("nsHeaderFont"):
+            hd["fontFamily"] = fmt["nsHeaderFont"]
+        it = card("items")
+        _set(it, "fontColor", _fill(fmt.get("nsItemsColor", "")))
+        _set(it, "background", _fill(fmt.get("nsItemsBg", "")))
+        if "nsItemsSize" in fmt:
+            it["fontSize"] = fmt["nsItemsSize"]
+        if fmt.get("nsItemsFont"):
+            it["fontFamily"] = fmt["nsItemsFont"]
+
+    # ---- Navigator visuals: button fill / text / outline ---- #
+    if app_key in _NAVIGATOR:
+        _set(card("fill"), "fillColor", _fill(fmt.get("navFillColor", "")))
+        tx = card("text")
+        _set(tx, "fontColor", _fill(fmt.get("navTextColor", "")))
+        if "navTextSize" in fmt:
+            tx["fontSize"] = fmt["navTextSize"]
+        if fmt.get("navTextFont"):
+            tx["fontFamily"] = fmt["navTextFont"]
+        _set(card("outline"), "lineColor", _fill(fmt.get("navOutlineColor", "")))
+
     # Drop any card left empty.
     return {k: v for k, v in cards.items() if v}
 
@@ -817,6 +875,12 @@ def _consumed_cards(app_key: str) -> set:
         return {"text"}
     if app_key in _PAGE_REPORT:
         return {"outspace", "outspacePane", "filterCard"}
+    if app_key in _CARD_VISUAL:
+        return {"calloutValue", "categoryLabels", "accentBar"}
+    if app_key in _NEW_SLICER:
+        return {"header", "items"}
+    if app_key in _NAVIGATOR:
+        return {"fill", "text", "outline"}
     return set()
 
 
@@ -1284,6 +1348,58 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         if "transparency" in fc:
             fmt["filterCardTransparency"] = fc["transparency"]
         _put(fmt, "filterCardInputColor", _hex(fc, "inputBoxColor"))
+
+    elif app_key in _CARD_VISUAL:
+        cv = c("calloutValue")
+        _put(fmt, "cvCalloutColor", _hex(cv, "color"))
+        if "fontSize" in cv:
+            fmt["cvCalloutSize"] = cv["fontSize"]
+        if "fontFamily" in cv:
+            fmt["cvCalloutFont"] = cv["fontFamily"]
+        if "labelDisplayUnits" in cv:
+            fmt["cvCalloutUnits"] = str(cv["labelDisplayUnits"])
+        if "labelPrecision" in cv:
+            fmt["cvCalloutPrecision"] = cv["labelPrecision"]
+        cl = c("categoryLabels")
+        if "show" in cl:
+            fmt["cvCatShow"] = cl["show"]
+        _put(fmt, "cvCatColor", _hex(cl, "color"))
+        if "fontSize" in cl:
+            fmt["cvCatSize"] = cl["fontSize"]
+        if "fontFamily" in cl:
+            fmt["cvCatFont"] = cl["fontFamily"]
+        ab = c("accentBar")
+        if "show" in ab:
+            fmt["cvAccentShow"] = ab["show"]
+        _put(fmt, "cvAccentColor", _hex(ab, "color"))
+
+    elif app_key in _NEW_SLICER:
+        hd = c("header")
+        if "show" in hd:
+            fmt["nsHeaderShow"] = hd["show"]
+        _put(fmt, "nsHeaderColor", _hex(hd, "fontColor"))
+        _put(fmt, "nsHeaderBg", _hex(hd, "background"))
+        if "fontSize" in hd:
+            fmt["nsHeaderSize"] = hd["fontSize"]
+        if "fontFamily" in hd:
+            fmt["nsHeaderFont"] = hd["fontFamily"]
+        it = c("items")
+        _put(fmt, "nsItemsColor", _hex(it, "fontColor"))
+        _put(fmt, "nsItemsBg", _hex(it, "background"))
+        if "fontSize" in it:
+            fmt["nsItemsSize"] = it["fontSize"]
+        if "fontFamily" in it:
+            fmt["nsItemsFont"] = it["fontFamily"]
+
+    elif app_key in _NAVIGATOR:
+        _put(fmt, "navFillColor", _hex(c("fill"), "fillColor"))
+        tx = c("text")
+        _put(fmt, "navTextColor", _hex(tx, "fontColor"))
+        if "fontSize" in tx:
+            fmt["navTextSize"] = tx["fontSize"]
+        if "fontFamily" in tx:
+            fmt["navTextFont"] = tx["fontFamily"]
+        _put(fmt, "navOutlineColor", _hex(c("outline"), "lineColor"))
 
     return fmt
 
