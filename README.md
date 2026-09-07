@@ -123,8 +123,21 @@ schema rejects.
   - **Circular / part-to-whole** (pie, donut, treemap, funnel): background,
     border, title, legend, data colours, data labels (no axes).
 
-  The model is schema-driven (`CARD_SCHEMA` / `VISUAL_CARD_SCHEMA`), so more
-  visuals can be given dedicated card sets the same way.
+  **Cards, KPIs, gauges and maps** also have dedicated sets:
+  - **Card**: data label, category label, word wrap.
+  - **Multi-row card**: data labels, category labels, card title, card style
+    (outline, accent bar, padding, background).
+  - **KPI**: indicator, trend axis, goals.
+  - **Gauge**: fill/target colours, callout value, axis labels.
+  - **Map / Azure map**: legend, data colours. **Filled / Shape map**: legend,
+    default colour.
+  - **Buttons, text boxes, images, shapes and navigators** expose the common
+    background / border / title cards only.
+
+  New/complex visuals (new card & slicers, scorecard, AI, Python/R, page &
+  report) fall back to the generic five-card set. The model is schema-driven
+  (`CARD_SCHEMA` / `VISUAL_CARD_SCHEMA`), so any of these can be given a
+  dedicated set the same way.
 
 Run the conformance tests with:
 

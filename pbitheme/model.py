@@ -586,18 +586,197 @@ _CARTESIAN_VISUALS = [
 ]
 _CIRCULAR_VISUALS = ["pieChart", "donutChart", "treemap", "funnel"]
 
+# -- Cards, KPIs and gauges --------------------------------------------- #
+CARD_VISUAL_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    CardSpec(
+        "labels",
+        "Data label",
+        [
+            PropSpec("color", "Colour", "color", "#252423"),
+            PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
+            PropSpec("labelPrecision", "Decimal places", "int", 0),
+            PropSpec("fontSize", "Font size", "int", 27),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+    _CARD_CATEGORY_LABELS,
+    CardSpec("wordWrap", "Word wrap", [PropSpec("show", "Show", "bool", True)]),
+)
+
+_OUTLINE_CHOICES = [
+    ("None", "None"),
+    ("Bottom only", "Bottom only"),
+    ("Top only", "Top only"),
+    ("Left only", "Left only"),
+    ("Right only", "Right only"),
+    ("TopBottom", "Top + bottom"),
+    ("LeftRight", "Left + right"),
+    ("Frame", "Frame"),
+]
+
+MULTIROW_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    CardSpec(
+        "dataLabels",
+        "Data labels",
+        [
+            PropSpec("color", "Colour", "color", "#252423"),
+            PropSpec("fontSize", "Font size", "int", 12),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+    CardSpec(
+        "categoryLabels",
+        "Category labels",
+        [
+            PropSpec("show", "Show", "bool", True),
+            PropSpec("color", "Colour", "color", "#666666"),
+            PropSpec("fontSize", "Font size", "int", 10),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+    CardSpec(
+        "cardTitle",
+        "Card title",
+        [
+            PropSpec("color", "Colour", "color", "#252423"),
+            PropSpec("fontSize", "Font size", "int", 12),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+    CardSpec(
+        "card",
+        "Card style",
+        [
+            PropSpec("outline", "Outline", "choice", "None", _OUTLINE_CHOICES),
+            PropSpec("outlineColor", "Outline colour", "color", "#CCCCCC"),
+            PropSpec("outlineWeight", "Outline thickness", "int", 1),
+            PropSpec("barShow", "Show bar", "bool", False),
+            PropSpec("barColor", "Bar colour", "color", "#118DFF"),
+            PropSpec("barWeight", "Bar thickness", "int", 3),
+            PropSpec("cardPadding", "Padding", "int", 5),
+            PropSpec("cardBackground", "Card background", "color", "#FFFFFF"),
+        ],
+    ),
+)
+
+KPI_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    CardSpec(
+        "indicator",
+        "Indicator",
+        [
+            PropSpec("color", "Colour", "color", "#252423"),
+            PropSpec("fontSize", "Font size", "int", 27),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+    CardSpec("trendline", "Trend axis", [PropSpec("show", "Show", "bool", True)]),
+    CardSpec(
+        "goals",
+        "Goals",
+        [
+            PropSpec("show", "Show", "bool", True),
+            PropSpec("label", "Show label", "bool", True),
+        ],
+    ),
+)
+
+GAUGE_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    CardSpec(
+        "dataPoint",
+        "Colours",
+        [
+            PropSpec("fillColor", "Fill colour", "color", "#118DFF"),
+            PropSpec("targetColor", "Target colour", "color", "#333333"),
+        ],
+    ),
+    CardSpec(
+        "calloutValue",
+        "Callout value",
+        [
+            PropSpec("color", "Colour", "color", "#252423"),
+            PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
+            PropSpec("labelPrecision", "Decimal places", "int", 0),
+            PropSpec("fontSize", "Font size", "int", 20),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+    CardSpec(
+        "labels",
+        "Axis labels",
+        [
+            PropSpec("color", "Colour", "color", "#252423"),
+            PropSpec("fontSize", "Font size", "int", 10),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        ],
+    ),
+)
+
+# -- Maps --------------------------------------------------------------- #
+MAP_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    _CARD_LEGEND,
+    _CARD_DATA_POINT,
+)
+FILLED_MAP_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    _CARD_LEGEND,
+    CardSpec(
+        "dataPoint",
+        "Data colours",
+        [PropSpec("defaultColor", "Default colour", "color", "#118DFF")],
+    ),
+)
+
+# -- Element / navigation visuals: common cards only -------------------- #
+COMMON_CARD_SCHEMA = _schema(_CARD_BACKGROUND, _CARD_BORDER, _CARD_TITLE)
+_ELEMENT_VISUALS = [
+    "actionButton",
+    "textbox",
+    "image",
+    "shape",
+    "pageNavigator",
+    "bookmarkNavigator",
+    "group",
+]
+
 # Visuals with a dedicated, detailed card schema; others use CARD_SCHEMA.
 VISUAL_CARD_SCHEMA: "OrderedDict[str, OrderedDict[str, CardSpec]]" = OrderedDict(
     [
         ("tableEx", TABLE_CARD_SCHEMA),
         ("pivotTable", MATRIX_CARD_SCHEMA),
         ("slicer", SLICER_CARD_SCHEMA),
+        ("card", CARD_VISUAL_SCHEMA),
+        ("multiRowCard", MULTIROW_CARD_SCHEMA),
+        ("kpi", KPI_CARD_SCHEMA),
+        ("gauge", GAUGE_CARD_SCHEMA),
+        ("map", MAP_CARD_SCHEMA),
+        ("filledMap", FILLED_MAP_CARD_SCHEMA),
+        ("shapeMap", FILLED_MAP_CARD_SCHEMA),
+        ("azureMap", MAP_CARD_SCHEMA),
     ]
 )
 for _vis in _CARTESIAN_VISUALS:
     VISUAL_CARD_SCHEMA[_vis] = CARTESIAN_CARD_SCHEMA
 for _vis in _CIRCULAR_VISUALS:
     VISUAL_CARD_SCHEMA[_vis] = CIRCULAR_CARD_SCHEMA
+for _vis in _ELEMENT_VISUALS:
+    VISUAL_CARD_SCHEMA[_vis] = COMMON_CARD_SCHEMA
 
 
 def cards_for(visual: str) -> "OrderedDict[str, CardSpec]":

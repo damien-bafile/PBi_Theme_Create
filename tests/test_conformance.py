@@ -8,7 +8,13 @@ import unittest
 
 from jsonschema import Draft7Validator
 
-from pbitheme.model import VISUAL_TARGETS, PowerBITheme, VisualStyle, cards_for
+from pbitheme.model import (
+    VISUAL_CARD_SCHEMA,
+    VISUAL_TARGETS,
+    PowerBITheme,
+    VisualStyle,
+    cards_for,
+)
 from pbitheme.validate import bundled_schema_path, validate_theme
 
 
@@ -139,6 +145,27 @@ class ConformanceTests(unittest.TestCase):
 
     def test_chart_detailed_theme_validates(self):
         for visual in ("columnChart", "lineChart", "scatterChart", "pieChart"):
+            style = VisualStyle(visual)
+            for card in style.schema:
+                style.enabled[card] = True
+            theme = PowerBITheme(visual)
+            theme.visual_styles = [style]
+            self.assertEqual(validate_theme(theme.to_dict()), [], visual)
+
+    def test_more_visuals_have_dedicated_cards(self):
+        expected = {
+            "multiRowCard": {"dataLabels", "cardTitle", "card"},
+            "kpi": {"indicator", "trendline", "goals"},
+            "gauge": {"dataPoint", "calloutValue"},
+            "map": {"legend", "dataPoint"},
+            "filledMap": {"legend", "dataPoint"},
+        }
+        for visual, cards in expected.items():
+            self.assertTrue(cards.issubset(set(cards_for(visual))), visual)
+
+    def test_every_dedicated_visual_validates(self):
+        # Enabling every card of every visual's own schema is schema-valid.
+        for visual in VISUAL_CARD_SCHEMA:
             style = VisualStyle(visual)
             for card in style.schema:
                 style.enabled[card] = True
