@@ -475,6 +475,117 @@ SLICER_CARD_SCHEMA = _schema(
     ),
 )
 
+# -- Chart cards, shared across cartesian / circular charts ------------- #
+_LEGEND_POSITIONS = [
+    ("Top", "Top"),
+    ("Bottom", "Bottom"),
+    ("Left", "Left"),
+    ("Right", "Right"),
+    ("TopCenter", "Top (centre)"),
+    ("BottomCenter", "Bottom (centre)"),
+    ("LeftCenter", "Left (centre)"),
+    ("RightCenter", "Right (centre)"),
+]
+_GRIDLINE_STYLES = [("solid", "Solid"), ("dashed", "Dashed"), ("dotted", "Dotted")]
+
+_CARD_LEGEND = CardSpec(
+    "legend",
+    "Legend",
+    [
+        PropSpec("show", "Show", "bool", True),
+        PropSpec("position", "Position", "choice", "Top", _LEGEND_POSITIONS),
+        PropSpec("showTitle", "Show title", "bool", True),
+        PropSpec("titleText", "Title text", "text", ""),
+        PropSpec("labelColor", "Text colour", "color", "#252423"),
+        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+        PropSpec("fontSize", "Font size", "int", 9),
+    ],
+)
+_CARD_DATA_POINT = CardSpec(
+    "dataPoint",
+    "Data colours",
+    [
+        PropSpec("defaultColor", "Default colour", "color", "#118DFF"),
+        PropSpec("showAllDataPoints", "Show all data points", "bool", False),
+    ],
+)
+_CARD_CHART_LABELS = CardSpec(
+    "labels",
+    "Data labels",
+    [
+        PropSpec("show", "Show", "bool", False),
+        PropSpec("color", "Colour", "color", "#000000"),
+        PropSpec("labelDisplayUnits", "Display units", "choice", 0, _DISPLAY_UNITS),
+        PropSpec("labelPrecision", "Decimal places", "int", 0),
+        PropSpec("fontSize", "Font size", "int", 9),
+        PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+    ],
+)
+
+
+def _axis_card(key: str, label: str) -> CardSpec:
+    return CardSpec(
+        key,
+        label,
+        [
+            PropSpec("show", "Show", "bool", True),
+            PropSpec("labelColor", "Label colour", "color", "#252423"),
+            PropSpec("fontSize", "Font size", "int", 9),
+            PropSpec("fontFamily", "Font", "font", "Segoe UI"),
+            PropSpec("showAxisTitle", "Show axis title", "bool", True),
+            PropSpec("titleColor", "Title colour", "color", "#252423"),
+            PropSpec("gridlineShow", "Gridlines", "bool", True),
+            PropSpec("gridlineColor", "Gridline colour", "color", "#EAEAEA"),
+            PropSpec("gridlineThickness", "Gridline thickness", "int", 1),
+            PropSpec("gridlineStyle", "Gridline style", "choice", "solid", _GRIDLINE_STYLES),
+        ],
+    )
+
+
+_CARD_CATEGORY_AXIS = _axis_card("categoryAxis", "X axis")
+_CARD_VALUE_AXIS = _axis_card("valueAxis", "Y axis")
+
+# Cartesian charts: axes + legend + data colours + labels.
+CARTESIAN_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    _CARD_LEGEND,
+    _CARD_CATEGORY_AXIS,
+    _CARD_VALUE_AXIS,
+    _CARD_DATA_POINT,
+    _CARD_CHART_LABELS,
+)
+
+# Circular / part-to-whole charts: legend + data colours + labels (no axes).
+CIRCULAR_CARD_SCHEMA = _schema(
+    _CARD_BACKGROUND,
+    _CARD_BORDER,
+    _CARD_TITLE,
+    _CARD_LEGEND,
+    _CARD_DATA_POINT,
+    _CARD_CHART_LABELS,
+)
+
+_CARTESIAN_VISUALS = [
+    "columnChart",
+    "clusteredColumnChart",
+    "hundredPercentStackedColumnChart",
+    "barChart",
+    "clusteredBarChart",
+    "hundredPercentStackedBarChart",
+    "lineChart",
+    "areaChart",
+    "stackedAreaChart",
+    "hundredPercentStackedAreaChart",
+    "lineClusteredColumnComboChart",
+    "lineStackedColumnComboChart",
+    "ribbonChart",
+    "waterfallChart",
+    "scatterChart",
+]
+_CIRCULAR_VISUALS = ["pieChart", "donutChart", "treemap", "funnel"]
+
 # Visuals with a dedicated, detailed card schema; others use CARD_SCHEMA.
 VISUAL_CARD_SCHEMA: "OrderedDict[str, OrderedDict[str, CardSpec]]" = OrderedDict(
     [
@@ -483,6 +594,10 @@ VISUAL_CARD_SCHEMA: "OrderedDict[str, OrderedDict[str, CardSpec]]" = OrderedDict
         ("slicer", SLICER_CARD_SCHEMA),
     ]
 )
+for _vis in _CARTESIAN_VISUALS:
+    VISUAL_CARD_SCHEMA[_vis] = CARTESIAN_CARD_SCHEMA
+for _vis in _CIRCULAR_VISUALS:
+    VISUAL_CARD_SCHEMA[_vis] = CIRCULAR_CARD_SCHEMA
 
 
 def cards_for(visual: str) -> "OrderedDict[str, CardSpec]":

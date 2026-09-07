@@ -126,6 +126,26 @@ class ConformanceTests(unittest.TestCase):
             ["color", "fontFace", "fontSize"],
         )
 
+    def test_charts_have_dedicated_cards(self):
+        cartesian = set(cards_for("columnChart"))
+        self.assertTrue(
+            {"legend", "categoryAxis", "valueAxis", "dataPoint", "labels"}.issubset(
+                cartesian
+            )
+        )
+        circular = set(cards_for("pieChart"))
+        self.assertTrue({"legend", "dataPoint", "labels"}.issubset(circular))
+        self.assertNotIn("categoryAxis", circular)  # circular charts have no axes
+
+    def test_chart_detailed_theme_validates(self):
+        for visual in ("columnChart", "lineChart", "scatterChart", "pieChart"):
+            style = VisualStyle(visual)
+            for card in style.schema:
+                style.enabled[card] = True
+            theme = PowerBITheme(visual)
+            theme.visual_styles = [style]
+            self.assertEqual(validate_theme(theme.to_dict()), [], visual)
+
     def test_slicer_orientation_is_integer(self):
         style = VisualStyle("slicer")
         style.enabled["general"] = True

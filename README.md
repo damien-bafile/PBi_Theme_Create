@@ -115,6 +115,14 @@ schema rejects.
   - **Slicer** (`slicer`): background, border, title, general (orientation,
     outline), header, items, selection controls, slider.
 
+  **Charts have dedicated card sets** too:
+  - **Cartesian charts** (column, bar, line, area, their clustered/stacked/100%
+    variants, combo, ribbon, waterfall, scatter): background, border, title,
+    legend, X axis, Y axis (each with gridlines and axis title), data colours,
+    data labels.
+  - **Circular / part-to-whole** (pie, donut, treemap, funnel): background,
+    border, title, legend, data colours, data labels (no axes).
+
   The model is schema-driven (`CARD_SCHEMA` / `VISUAL_CARD_SCHEMA`), so more
   visuals can be given dedicated card sets the same way.
 

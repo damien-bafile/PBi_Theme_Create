@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSpinBox,
     QTabWidget,
@@ -252,6 +253,10 @@ class _PropWidget(QWidget):
             w.setCurrentIndex(idx if idx >= 0 else 0)
             w.currentIndexChanged.connect(lambda _i: self.changed.emit())
             return w
+        if spec.kind == "text":
+            w = QLineEdit(str(value))
+            w.textChanged.connect(lambda _t: self.changed.emit())
+            return w
         # fallback: read-only label
         return QLabel(str(value))
 
@@ -267,6 +272,8 @@ class _PropWidget(QWidget):
             return w.currentFont().family()
         if self._spec.kind == "choice":
             return w.currentData()
+        if self._spec.kind == "text":
+            return w.text()
         return self._spec.default
 
 
