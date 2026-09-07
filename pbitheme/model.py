@@ -72,6 +72,16 @@ VISUAL_TYPES: List[tuple[str, str]] = [
     ("waterfallChart", "Waterfall Chart"),
     ("page", "Page"),
     ("report", "Report"),
+    ("cardVisual", "Card (new)"),
+    ("advancedSlicerVisual", "Slicer (new)"),
+    ("listSlicer", "List Slicer"),
+    ("textSlicer", "Text Slicer"),
+    ("pageNavigator", "Page Navigator"),
+    ("bookmarkNavigator", "Bookmark Navigator"),
+    ("scorecard", "Scorecard (Goals)"),
+    ("filter", "Filter"),
+    ("group", "Group"),
+    ("rdlVisual", "Paginated Report (RDL)"),
 ]
 
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")

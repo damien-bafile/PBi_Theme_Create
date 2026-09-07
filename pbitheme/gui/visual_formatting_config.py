@@ -735,6 +735,62 @@ REPORT_SECTIONS = [
     FormatSection("Filter Cards", list(_FILTER_CARD_FIELDS)),
 ]
 
+_UNIT_OPTIONS = [("1", "None"), ("1000", "Thousands"), ("1000000", "Millions"),
+                 ("1000000000", "Billions")]
+
+# New card visual (cardVisual): callout value, category label, accent bar.
+CARD_VISUAL_SECTIONS = [
+    FormatSection("Callout Value", [
+        FormatField("cvCalloutColor", "Color", "color", default="#252423", preview=False),
+        FormatField("cvCalloutSize", "Font Size", "number", min_val=8, max_val=60, default=27, suffix="pt", preview=False),
+        FormatField("cvCalloutFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+        FormatField("cvCalloutUnits", "Display Units", "dropdown", options=_UNIT_OPTIONS, preview=False),
+        FormatField("cvCalloutPrecision", "Decimal Places", "number", min_val=0, max_val=4, default=0, preview=False),
+    ]),
+    FormatSection("Category Label", [
+        FormatField("cvCatShow", "Show", "boolean", default=True, preview=False),
+        FormatField("cvCatColor", "Color", "color", default="#605E5C", preview=False),
+        FormatField("cvCatSize", "Font Size", "number", min_val=8, max_val=60, default=10, suffix="pt", preview=False),
+        FormatField("cvCatFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    ]),
+    FormatSection("Accent Bar", [
+        FormatField("cvAccentShow", "Show", "boolean", default=False, preview=False),
+        FormatField("cvAccentColor", "Color", "color", default="#118DFF", preview=False),
+    ]),
+]
+
+# New slicer visuals (advanced / list / text): header + items.
+NEW_SLICER_SECTIONS = [
+    FormatSection("Header", [
+        FormatField("nsHeaderShow", "Show", "boolean", default=True, preview=False),
+        FormatField("nsHeaderColor", "Font Color", "color", default="#252423", preview=False),
+        FormatField("nsHeaderBg", "Background", "color", default="#FFFFFF", preview=False),
+        FormatField("nsHeaderSize", "Font Size", "number", min_val=8, max_val=60, default=10, suffix="pt", preview=False),
+        FormatField("nsHeaderFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    ]),
+    FormatSection("Items", [
+        FormatField("nsItemsColor", "Font Color", "color", default="#252423", preview=False),
+        FormatField("nsItemsBg", "Background", "color", default="#FFFFFF", preview=False),
+        FormatField("nsItemsSize", "Font Size", "number", min_val=8, max_val=60, default=11, suffix="pt", preview=False),
+        FormatField("nsItemsFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    ]),
+]
+
+# Navigator visuals (page / bookmark): button fill, text, outline.
+NAVIGATOR_SECTIONS = [
+    FormatSection("Button Fill", [
+        FormatField("navFillColor", "Fill Color", "color", default="#118DFF", preview=False),
+    ]),
+    FormatSection("Button Text", [
+        FormatField("navTextColor", "Font Color", "color", default="#FFFFFF", preview=False),
+        FormatField("navTextSize", "Font Size", "number", min_val=8, max_val=60, default=12, suffix="pt", preview=False),
+        FormatField("navTextFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    ]),
+    FormatSection("Button Outline", [
+        FormatField("navOutlineColor", "Outline Color", "color", default="#333333", preview=False),
+    ]),
+]
+
 # Map visual types to their formatting sections
 VISUAL_FORMATTING = {
     # Matrix and Table
@@ -746,6 +802,14 @@ VISUAL_FORMATTING = {
     # Page & report level (filter pane / cards / wallpaper) -- export-only
     "page": PAGE_SECTIONS,
     "report": REPORT_SECTIONS,
+
+    # Newer / navigation visuals -- export-only
+    "cardVisual": CARD_VISUAL_SECTIONS,
+    "advancedSlicerVisual": NEW_SLICER_SECTIONS,
+    "listSlicer": NEW_SLICER_SECTIONS,
+    "textSlicer": NEW_SLICER_SECTIONS,
+    "pageNavigator": NAVIGATOR_SECTIONS,
+    "bookmarkNavigator": NAVIGATOR_SECTIONS,
 
     # Charts (cartesian charts carry the small-multiples layout card)
     "barChart": CHART_SECTIONS_SM,
