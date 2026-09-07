@@ -29,6 +29,8 @@ DEFAULT_DATA_COLORS: List[str] = [
 VISUAL_TYPES: List[tuple[str, str]] = [
     ("*", "All visuals (wildcard)"),
     ("areaChart", "Area Chart"),
+    ("stackedAreaChart", "Stacked Area Chart"),
+    ("hundredPercentStackedAreaChart", "100% Stacked Area Chart"),
     ("actionButton", "Action Button"),
     ("azureMapVisual", "Azure Maps"),
     ("barChart", "Bar Chart"),
@@ -68,6 +70,8 @@ VISUAL_TYPES: List[tuple[str, str]] = [
     ("textbox", "Text Box"),
     ("treemap", "Treemap"),
     ("waterfallChart", "Waterfall Chart"),
+    ("page", "Page"),
+    ("report", "Report"),
 ]
 
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")

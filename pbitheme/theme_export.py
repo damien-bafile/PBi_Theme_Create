@@ -30,13 +30,16 @@ VISUAL_NAME_MAP = {
     "basicShape": "shape",
     "azureMapVisual": "azureMap",
     "smartNarrative": "aiNarratives",
+    # Power BI's R-script visual is "scriptVisual" in the theme schema.
+    "rVisual": "scriptVisual",
 }
 
 # Families (by app key) that share a translation.
 _CARTESIAN = {
     "barChart", "columnChart", "clusteredBarChart", "clusteredColumnChart",
     "hundredPercentStackedBarChart", "hundredPercentStackedColumnChart",
-    "lineChart", "areaChart", "lineClusteredColumnComboChart",
+    "lineChart", "areaChart", "stackedAreaChart", "hundredPercentStackedAreaChart",
+    "lineClusteredColumnComboChart",
     "lineStackedColumnComboChart", "ribbonChart", "waterfallChart",
 }
 _SCATTER = {"scatterChart"}
@@ -62,6 +65,9 @@ _CARD = {"card"}
 _MULTIROW = {"multiRowCard"}
 _SLICER = {"slicer"}
 _KPI = {"kpi"}
+_PAGE = {"page"}
+_REPORT = {"report"}
+_PAGE_REPORT = _PAGE | _REPORT
 
 _GRIDLINE_STYLE = {"Solid": "solid", "Dashed": "dashed", "Dotted": "dotted"}
 
@@ -629,6 +635,41 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if fmt.get("imageScaling"):
             card("imageScaling")["imageScalingType"] = fmt["imageScaling"]
 
+    # ---- Page & report: wallpaper, filter pane, filter cards ---- #
+    if app_key in _PAGE_REPORT:
+        if app_key in _PAGE:
+            ws = card("outspace")
+            _set(ws, "color", _fill(fmt.get("wallpaperColor", "")))
+            if "wallpaperTransparency" in fmt:
+                ws["transparency"] = fmt["wallpaperTransparency"]
+
+        pane = card("outspacePane")
+        _set(pane, "backgroundColor", _fill(fmt.get("filterPaneBackground", "")))
+        _set(pane, "foregroundColor", _fill(fmt.get("filterPaneText", "")))
+        if "filterPaneTransparency" in fmt:
+            pane["transparency"] = fmt["filterPaneTransparency"]
+        if "filterPaneTitleSize" in fmt:
+            pane["titleSize"] = fmt["filterPaneTitleSize"]
+        if "filterPaneHeaderSize" in fmt:
+            pane["headerSize"] = fmt["filterPaneHeaderSize"]
+        if fmt.get("filterPaneFont"):
+            pane["fontFamily"] = fmt["filterPaneFont"]
+        if "filterPaneBorder" in fmt:
+            pane["border"] = bool(fmt["filterPaneBorder"])
+        _set(pane, "borderColor", _fill(fmt.get("filterPaneBorderColor", "")))
+        _set(pane, "checkboxAndApplyColor", _fill(fmt.get("filterPaneControlColor", "")))
+        _set(pane, "inputBoxColor", _fill(fmt.get("filterPaneInputColor", "")))
+
+        fc = card("filterCard")
+        _set(fc, "backgroundColor", _fill(fmt.get("filterCardBackground", "")))
+        _set(fc, "foregroundColor", _fill(fmt.get("filterCardText", "")))
+        if "filterCardBorder" in fmt:
+            fc["border"] = bool(fmt["filterCardBorder"])
+        _set(fc, "borderColor", _fill(fmt.get("filterCardBorderColor", "")))
+        if "filterCardTransparency" in fmt:
+            fc["transparency"] = fmt["filterCardTransparency"]
+        _set(fc, "inputBoxColor", _fill(fmt.get("filterCardInputColor", "")))
+
     # Drop any card left empty.
     return {k: v for k, v in cards.items() if v}
 
@@ -774,6 +815,8 @@ def _consumed_cards(app_key: str) -> set:
         return {"imageScaling"}
     if app_key in _TEXTBOX | _SMART_NARRATIVE:
         return {"text"}
+    if app_key in _PAGE_REPORT:
+        return {"outspace", "outspacePane", "filterCard"}
     return set()
 
 
@@ -1207,6 +1250,40 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         img = c("imageScaling")
         if "imageScalingType" in img:
             fmt["imageScaling"] = img["imageScalingType"]
+
+    elif app_key in _PAGE_REPORT:
+        if app_key in _PAGE:
+            ws = c("outspace")
+            _put(fmt, "wallpaperColor", _hex(ws, "color"))
+            if "transparency" in ws:
+                fmt["wallpaperTransparency"] = ws["transparency"]
+
+        pane = c("outspacePane")
+        _put(fmt, "filterPaneBackground", _hex(pane, "backgroundColor"))
+        _put(fmt, "filterPaneText", _hex(pane, "foregroundColor"))
+        if "transparency" in pane:
+            fmt["filterPaneTransparency"] = pane["transparency"]
+        if "titleSize" in pane:
+            fmt["filterPaneTitleSize"] = pane["titleSize"]
+        if "headerSize" in pane:
+            fmt["filterPaneHeaderSize"] = pane["headerSize"]
+        if "fontFamily" in pane:
+            fmt["filterPaneFont"] = pane["fontFamily"]
+        if "border" in pane:
+            fmt["filterPaneBorder"] = pane["border"]
+        _put(fmt, "filterPaneBorderColor", _hex(pane, "borderColor"))
+        _put(fmt, "filterPaneControlColor", _hex(pane, "checkboxAndApplyColor"))
+        _put(fmt, "filterPaneInputColor", _hex(pane, "inputBoxColor"))
+
+        fc = c("filterCard")
+        _put(fmt, "filterCardBackground", _hex(fc, "backgroundColor"))
+        _put(fmt, "filterCardText", _hex(fc, "foregroundColor"))
+        if "border" in fc:
+            fmt["filterCardBorder"] = fc["border"]
+        _put(fmt, "filterCardBorderColor", _hex(fc, "borderColor"))
+        if "transparency" in fc:
+            fmt["filterCardTransparency"] = fc["transparency"]
+        _put(fmt, "filterCardInputColor", _hex(fc, "inputBoxColor"))
 
     return fmt
 

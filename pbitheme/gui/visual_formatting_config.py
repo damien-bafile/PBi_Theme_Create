@@ -699,6 +699,42 @@ SLICER_SECTIONS = [
     ),
 ]
 
+# Page & report: filter-pane / filter-card / wallpaper theming. These export to
+# the outspacePane / filterCard / outspace cards; there is no live mockup, so
+# every field is export-only (preview=False).
+_FILTER_PANE_FIELDS = [
+    FormatField("filterPaneBackground", "Background", "color", default="#FFFFFF", preview=False),
+    FormatField("filterPaneText", "Text Color", "color", default="#252423", preview=False),
+    FormatField("filterPaneTransparency", "Transparency", "number", min_val=0, max_val=100, default=0, suffix="%", preview=False),
+    FormatField("filterPaneTitleSize", "Title Size", "number", min_val=8, max_val=60, default=12, suffix="pt", preview=False),
+    FormatField("filterPaneHeaderSize", "Header Size", "number", min_val=8, max_val=60, default=10, suffix="pt", preview=False),
+    FormatField("filterPaneFont", "Font Family", "dropdown", options=FONT_OPTIONS, default="Segoe UI", preview=False),
+    FormatField("filterPaneBorder", "Show Border", "boolean", default=False, preview=False),
+    FormatField("filterPaneBorderColor", "Border Color", "color", default="#CCCCCC", preview=False),
+    FormatField("filterPaneControlColor", "Apply / Checkbox Color", "color", default="#118DFF", preview=False),
+    FormatField("filterPaneInputColor", "Input Box Color", "color", default="#252423", preview=False),
+]
+_FILTER_CARD_FIELDS = [
+    FormatField("filterCardBackground", "Background", "color", default="#FFFFFF", preview=False),
+    FormatField("filterCardText", "Text Color", "color", default="#252423", preview=False),
+    FormatField("filterCardBorder", "Show Border", "boolean", default=False, preview=False),
+    FormatField("filterCardBorderColor", "Border Color", "color", default="#CCCCCC", preview=False),
+    FormatField("filterCardTransparency", "Transparency", "number", min_val=0, max_val=100, default=0, suffix="%", preview=False),
+    FormatField("filterCardInputColor", "Input Box Color", "color", default="#252423", preview=False),
+]
+PAGE_SECTIONS = [
+    FormatSection("Wallpaper", [
+        FormatField("wallpaperColor", "Wallpaper Color", "color", default="#EAEAEA", preview=False),
+        FormatField("wallpaperTransparency", "Wallpaper Transparency", "number", min_val=0, max_val=100, default=0, suffix="%", preview=False),
+    ]),
+    FormatSection("Filter Pane", list(_FILTER_PANE_FIELDS)),
+    FormatSection("Filter Cards", list(_FILTER_CARD_FIELDS)),
+]
+REPORT_SECTIONS = [
+    FormatSection("Filter Pane", list(_FILTER_PANE_FIELDS)),
+    FormatSection("Filter Cards", list(_FILTER_CARD_FIELDS)),
+]
+
 # Map visual types to their formatting sections
 VISUAL_FORMATTING = {
     # Matrix and Table
@@ -706,6 +742,10 @@ VISUAL_FORMATTING = {
     "table": MATRIX_TABLE_SECTIONS,
     "tableEx": MATRIX_TABLE_SECTIONS,
     "pivotTable": MATRIX_TABLE_SECTIONS,
+
+    # Page & report level (filter pane / cards / wallpaper) -- export-only
+    "page": PAGE_SECTIONS,
+    "report": REPORT_SECTIONS,
 
     # Charts (cartesian charts carry the small-multiples layout card)
     "barChart": CHART_SECTIONS_SM,
@@ -718,6 +758,8 @@ VISUAL_FORMATTING = {
     "lineClusteredColumnComboChart": CHART_SECTIONS_SM,
     "lineStackedColumnComboChart": CHART_SECTIONS_SM,
     "areaChart": CHART_SECTIONS_SM,
+    "stackedAreaChart": CHART_SECTIONS_SM,
+    "hundredPercentStackedAreaChart": CHART_SECTIONS_SM,
     "scatterChart": SCATTER_SECTIONS,
     "ribbonChart": CHART_SECTIONS_SM,
     "waterfallChart": WATERFALL_SECTIONS,
