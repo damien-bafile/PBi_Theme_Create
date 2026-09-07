@@ -97,7 +97,7 @@ def test_visual_formatting_config():
 
     matrix_sections = get_formatting_sections("matrix")
     assert matrix_sections is not None, "Matrix should have formatting sections"
-    assert len(matrix_sections) == 6, "Matrix should have 6 sections"
+    assert len(matrix_sections) >= 6, "Matrix should have at least 6 sections"
 
     section_names = [s.name for s in matrix_sections]
     assert "Gridlines" in section_names, "Should have Gridlines section"

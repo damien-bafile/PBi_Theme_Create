@@ -100,6 +100,10 @@ def main() -> int:
             panel.set_values({"refLineShow": True})
         if "trendShow" in panel._field_widgets:
             panel.set_values({"trendShow": True})
+        if "dataBarsShow" in panel._field_widgets:
+            panel.set_values({"dataBarsShow": True})
+        if "ratioLineShow" in panel._field_widgets:
+            panel.set_values({"ratioLineShow": True})
         cap = _instrument(dlg)
 
         # --- Formatting fields ---

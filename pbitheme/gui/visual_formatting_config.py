@@ -114,6 +114,8 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("totalsItalic", "Italic", "boolean", default=False),
             FormatField("totalsUnderline", "Underline", "boolean", default=False),
             FormatField("totalsFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+            FormatField("totalsLabel", "Label (Table)", "text", default="", preview=False),
+            FormatField("totalsApplyToHeaders", "Apply to Headers (Matrix)", "boolean", default=False, preview=False),
         ],
     ),
     FormatSection(
@@ -128,6 +130,54 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("subtotalsUnderline", "Underline", "boolean", default=False),
             FormatField("columnSubtotals", "Show Column Subtotals", "boolean", default=True, preview=False),
             FormatField("subtotalsFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+        ],
+    ),
+    FormatSection(
+        "Data Bars",
+        [
+            FormatField("dataBarsShow", "Show Data Bars", "boolean", default=False),
+            FormatField("dataBarsPositiveColor", "Positive Color", "color", default="#118DFF"),
+            FormatField("dataBarsNegativeColor", "Negative Color", "color", default="#D64550", preview=False),
+            FormatField("dataBarsAxisColor", "Axis Color", "color", default="#808080", preview=False),
+            FormatField("dataBarsHideText", "Bars Only (Hide Text)", "boolean", default=False, preview=False),
+            FormatField("dataBarsReverse", "Reverse Direction", "boolean", default=False, preview=False),
+        ],
+    ),
+    FormatSection(
+        "Column Sizing",
+        [
+            FormatField("columnAutoSize", "Auto-Size Width", "boolean", default=True, preview=False),
+            FormatField("defaultColumnWidth", "Default Width (px)", "number", min_val=20, max_val=400, default=120, suffix="px", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Blank Rows",  # matrix only on export
+        [
+            FormatField("blankRowsShow", "Show Blank Rows", "boolean", default=False, preview=False),
+            FormatField("blankRowColor", "Fill Color", "color", default="#F5F5F5", preview=False),
+            FormatField("blankRowBorderColor", "Border Color", "color", default="#CCCCCC", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Sparklines",
+        [
+            FormatField("sparklineType", "Chart Type", "dropdown",
+                       options=[("line", "Line"), ("column", "Column")], preview=False),
+            FormatField("sparklineColor", "Line/Bar Color", "color", default="#118DFF", preview=False),
+            FormatField("sparklineMarkerColor", "Marker Color", "color", default="#E66C37", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Table Style",
+        [
+            FormatField("stylePreset", "Built-in Style", "dropdown",
+                       options=[("None", "None"), ("Minimal", "Minimal"), ("BoldHeader", "Bold header"),
+                                ("AlternatingRows", "Alternating rows"),
+                                ("ContrastAlternatingRows", "Contrast alternating rows"),
+                                ("FlashyRows", "Flashy rows"),
+                                ("BoldHeaderFlashyRows", "Bold header flashy rows"),
+                                ("Sparse", "Sparse"), ("Condensed", "Condensed")],
+                       preview=False),
         ],
     ),
 ]
@@ -214,6 +264,12 @@ CHART_SECTIONS = [
             FormatField("trendColor", "Color", "color", default="#605E5C"),
         ],
     ),
+    FormatSection(
+        "Plot Area",
+        [
+            FormatField("plotAreaTransparency", "Transparency (%)", "number", min_val=0, max_val=100, default=0, suffix="%", preview=False),
+        ],
+    ),
 ]
 
 # Small multiples layout -- supported by cartesian charts (not scatter/waterfall).
@@ -230,13 +286,20 @@ SMALL_MULTIPLES_SECTION = FormatSection(
 # Cartesian charts that additionally expose the small-multiples layout card.
 CHART_SECTIONS_SM = CHART_SECTIONS + [SMALL_MULTIPLES_SECTION]
 
-# Scatter = chart sections plus marker / bubble options.
+# Scatter = chart sections plus marker / bubble options + a ratio line.
 SCATTER_SECTIONS = CHART_SECTIONS + [
     FormatSection(
         "Markers",
         [
             FormatField("bubbleSize", "Bubble Size", "number", min_val=0, max_val=100, default=20),
             FormatField("markerBorderColor", "Border Color", "color", default="#FFFFFF"),
+        ],
+    ),
+    FormatSection(
+        "Ratio Line",
+        [
+            FormatField("ratioLineShow", "Show", "boolean", default=False),
+            FormatField("ratioLineColor", "Color", "color", default="#605E5C"),
         ],
     ),
 ]

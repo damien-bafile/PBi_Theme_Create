@@ -207,6 +207,14 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
                 sm["rowCount"] = fmt["smRowCount"]
             _set(sm, "gridLineColor", _fill(fmt.get("smGridlineColor", "")))
             _set(sm, "backgroundColor", _fill(fmt.get("smBackgroundColor", "")))
+        # Plot area transparency (image-only card otherwise).
+        if "plotAreaTransparency" in fmt:
+            card("plotArea")["transparency"] = fmt["plotAreaTransparency"]
+        # Ratio line (scatter only).
+        if app_key in _SCATTER and "ratioLineShow" in fmt:
+            rl = card("ratioLine")
+            rl["show"] = bool(fmt["ratioLineShow"])
+            _set(rl, "lineColor", _fill(fmt.get("ratioLineColor", "")))
 
     # ---- Pie / donut / treemap: legend + slice labels ---- #
     elif app_key in _PIE | _TREEMAP:
@@ -372,6 +380,56 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
                 st["underline"] = bool(fmt["subtotalsUnderline"])
             if fmt.get("subtotalsFontFamily"):
                 st["fontFamily"] = fmt["subtotalsFontFamily"]
+
+        # Grand-total label (table) / apply-to-headers (matrix).
+        if not is_matrix and fmt.get("totalsLabel"):
+            tot["label"] = fmt["totalsLabel"]
+        if is_matrix and "totalsApplyToHeaders" in fmt:
+            tot["applyToHeaders"] = bool(fmt["totalsApplyToHeaders"])
+
+        # Data bars (columnFormatting default -- applies to numeric value columns).
+        # The dataBars object requires both reverseDirection and hideText.
+        if fmt.get("dataBarsShow"):
+            db: Dict[str, Any] = {
+                "reverseDirection": bool(fmt.get("dataBarsReverse", False)),
+                "hideText": bool(fmt.get("dataBarsHideText", False)),
+            }
+            _set(db, "positiveColor", _fill(fmt.get("dataBarsPositiveColor", "")))
+            _set(db, "negativeColor", _fill(fmt.get("dataBarsNegativeColor", "")))
+            _set(db, "axisColor", _fill(fmt.get("dataBarsAxisColor", "")))
+            cf = card("columnFormatting")
+            cf["dataBars"] = db
+            cf["styleValues"] = True
+
+        # Column sizing.
+        if "columnAutoSize" in fmt:
+            card("columnHeaders")["autoSizeColumnWidth"] = bool(fmt["columnAutoSize"])
+        if "defaultColumnWidth" in fmt:
+            card("columnWidth")["value"] = fmt["defaultColumnWidth"]
+
+        # Sparklines (in-cell mini charts).
+        if fmt.get("sparklineType") or fmt.get("sparklineColor") or fmt.get("sparklineMarkerColor"):
+            sp = card("sparklines")
+            if fmt.get("sparklineType"):
+                sp["chartType"] = fmt["sparklineType"]
+            _set(sp, "dataColor", _fill(fmt.get("sparklineColor", "")))
+            _set(sp, "markerColor", _fill(fmt.get("sparklineMarkerColor", "")))
+
+        # Built-in table style preset.
+        if fmt.get("stylePreset"):
+            card("stylePreset")["name"] = fmt["stylePreset"]
+
+        # Blank rows (matrix only).
+        if is_matrix:
+            if "blankRowsShow" in fmt or fmt.get("blankRowColor") or fmt.get("blankRowBorderColor"):
+                br = card("blankRows")
+                if "blankRowsShow" in fmt:
+                    br["showBlankRows"] = bool(fmt["blankRowsShow"])
+                _set(br, "blankRowColor", _fill(fmt.get("blankRowColor", "")))
+                bc = _fill(fmt.get("blankRowBorderColor", ""))
+                if bc is not None:
+                    br["borderColor"] = bc
+                    br["showBorder"] = True
         # valuesAlignment / cellPadding have no clean global card and are omitted.
 
     # ---- Card ---- #
@@ -683,7 +741,7 @@ def _consumed_cards(app_key: str) -> set:
     if app_key in _CARTESIAN | _SCATTER:
         return {"categoryAxis", "valueAxis", "legend", "labels", "categoryLabels", "dataPoint",
                 "y1AxisReferenceLine", "trend", "sentimentColors", "bubbles", "markers",
-                "smallMultiplesLayout"}
+                "smallMultiplesLayout", "plotArea", "ratioLine"}
     if app_key in _PIE | _TREEMAP:
         return {"legend", "labels", "slices"}
     if app_key in _FUNNEL:
@@ -691,7 +749,8 @@ def _consumed_cards(app_key: str) -> set:
     if app_key in _GAUGE:
         return {"axis", "dataPoint", "target", "calloutValue"}
     if app_key in _TABLE_PLAIN | _MATRIX:
-        return {"grid", "columnHeaders", "values", "total", "rowHeaders", "subTotals"}
+        return {"grid", "columnHeaders", "values", "total", "rowHeaders", "subTotals",
+                "columnFormatting", "columnWidth", "sparklines", "stylePreset", "blankRows"}
     if app_key in _CARD:
         return {"labels", "categoryLabels", "background", "border"}
     if app_key in _MULTIROW:
@@ -805,6 +864,14 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
                 fmt["smRowCount"] = sm["rowCount"]
             _put(fmt, "smGridlineColor", _hex(sm, "gridLineColor"))
             _put(fmt, "smBackgroundColor", _hex(sm, "backgroundColor"))
+        pa = c("plotArea")
+        if "transparency" in pa:
+            fmt["plotAreaTransparency"] = pa["transparency"]
+        if app_key in _SCATTER:
+            rl = c("ratioLine")
+            if "show" in rl:
+                fmt["ratioLineShow"] = bool(rl["show"])
+            _put(fmt, "ratioLineColor", _hex(rl, "lineColor"))
 
     elif app_key in _PIE | _TREEMAP:
         leg = c("legend")
@@ -948,6 +1015,41 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
                 fmt["subtotalsUnderline"] = bool(st["underline"])
             if "fontFamily" in st:
                 fmt["subtotalsFontFamily"] = st["fontFamily"]
+            if "applyToHeaders" in tot:
+                fmt["totalsApplyToHeaders"] = bool(tot["applyToHeaders"])
+        if "label" in tot:
+            fmt["totalsLabel"] = tot["label"]
+
+        cf = c("columnFormatting")
+        db = cf.get("dataBars") if isinstance(cf.get("dataBars"), dict) else None
+        if db is not None:
+            fmt["dataBarsShow"] = True
+            _put(fmt, "dataBarsPositiveColor", _hex(db, "positiveColor"))
+            _put(fmt, "dataBarsNegativeColor", _hex(db, "negativeColor"))
+            _put(fmt, "dataBarsAxisColor", _hex(db, "axisColor"))
+            if "hideText" in db:
+                fmt["dataBarsHideText"] = bool(db["hideText"])
+            if "reverseDirection" in db:
+                fmt["dataBarsReverse"] = bool(db["reverseDirection"])
+        if "autoSizeColumnWidth" in ch:
+            fmt["columnAutoSize"] = bool(ch["autoSizeColumnWidth"])
+        cw = c("columnWidth")
+        if "value" in cw:
+            fmt["defaultColumnWidth"] = cw["value"]
+        sp = c("sparklines")
+        if "chartType" in sp:
+            fmt["sparklineType"] = sp["chartType"]
+        _put(fmt, "sparklineColor", _hex(sp, "dataColor"))
+        _put(fmt, "sparklineMarkerColor", _hex(sp, "markerColor"))
+        pre = c("stylePreset")
+        if "name" in pre:
+            fmt["stylePreset"] = pre["name"]
+        if app_key in _MATRIX:
+            br = c("blankRows")
+            if "showBlankRows" in br:
+                fmt["blankRowsShow"] = bool(br["showBlankRows"])
+            _put(fmt, "blankRowColor", _hex(br, "blankRowColor"))
+            _put(fmt, "blankRowBorderColor", _hex(br, "borderColor"))
 
     elif app_key in _CARD | _MULTIROW:
         value_card = c("dataLabels") if app_key in _MULTIROW else c("labels")

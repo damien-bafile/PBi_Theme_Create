@@ -661,6 +661,13 @@ def generate_scatter_chart_svg(theme, formatting=None, generic=None, width=300, 
             parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{radius:.1f}" fill="{colors[si]}" opacity="0.85" stroke="{border}" stroke-width="1"/>')
             if labels_on and si == 0:
                 parts += _data_label(cx, cy - radius - 3, round(fy * 100), formatting, generic)
+    # Ratio line: a diagonal from bottom-left to top-right of the plot.
+    if _flag(formatting, "ratioLineShow", False):
+        rl_col = _col(formatting, "ratioLineColor", "#605E5C")
+        parts.append(
+            f'<line x1="{pl:.1f}" y1="{pb:.1f}" x2="{pr:.1f}" y2="{pt:.1f}" '
+            f'stroke="{rl_col}" stroke-width="1.5" stroke-dasharray="5,3"/>'
+        )
     parts.append("</svg>")
     return "\n".join(parts)
 
@@ -1129,6 +1136,9 @@ def generate_table_svg(
     padding = _num(formatting, "cellPadding", 6)
     banded = _flag(formatting, "bandedRows", False)
     alt_bg = _col(formatting, "alternateRowColor", "#F5F5F5")
+    db_show = _flag(formatting, "dataBarsShow", False)
+    db_pos = _col(formatting, "dataBarsPositiveColor", accent)
+    db_hide = _flag(formatting, "dataBarsHideText", False)
 
     show_totals = _flag(formatting, "showTotals", True)
     tot_bg = _col(formatting, "totalsBackgroundColor", "#E8E8E8")
@@ -1166,13 +1176,15 @@ def generate_table_svg(
     ]
     tot_row = ("Total", "452.6", "")
 
+    db_max = max((float(r[1]) for r in body + data2), default=1.0) or 1.0
+
     col_w = width / len(cols)
     row_h = max(16, v_size + padding * 2 + row_spacing)
     header_h = max(18, ch_size + padding * 2)
     y = top
 
     def draw_row(vals, bg, text_color, size, bold, align, is_header=False, indent=0,
-                 italic=False, underline=False):
+                 italic=False, underline=False, bars=False):
         nonlocal y
         h = header_h if is_header else row_h
         parts.append(f'<rect x="0" y="{y:.1f}" width="{width}" height="{h:.1f}" fill="{bg}" opacity="0.55"/>')
@@ -1182,6 +1194,21 @@ def generate_table_svg(
         for ci, cell in enumerate(vals):
             if cell == "":
                 continue
+            # Data bars: a proportional bar in the numeric (2nd) column.
+            if bars and ci == 1 and not is_header:
+                try:
+                    val = float(cell)
+                except ValueError:
+                    val = None
+                if val is not None:
+                    frac = max(0.05, min(1.0, val / db_max))
+                    parts.append(
+                        f'<rect x="{col_w * ci + 4:.1f}" y="{y + h * 0.25:.1f}" '
+                        f'width="{(col_w - 8) * frac:.1f}" height="{h * 0.5:.1f}" rx="1" '
+                        f'fill="{db_pos}" opacity="0.55"/>'
+                    )
+                if db_hide:
+                    continue  # bars only -- suppress the value text
             # First column follows row-header styling for body rows.
             if ci == 0 and not is_header:
                 anc, fx = anchor(rh_align)
@@ -1225,11 +1252,11 @@ def generate_table_svg(
     # A stepped layout indents child rows beneath their subtotal.
     step = 10 if rh_stepped else 0
     for row in body:
-        draw_row(row, value_bg(), v_fg, v_size, v_bold, v_align, indent=step, italic=v_italic, underline=v_underline)
+        draw_row(row, value_bg(), v_fg, v_size, v_bold, v_align, indent=step, italic=v_italic, underline=v_underline, bars=db_show)
     if show_sub:
         draw_row(sub_row, sub_bg, sub_fg, sub_size, sub_bold, v_align, italic=sub_italic, underline=sub_underline)
     for row in data2:
-        draw_row(row, value_bg(), v_fg, v_size, v_bold, v_align, indent=step, italic=v_italic, underline=v_underline)
+        draw_row(row, value_bg(), v_fg, v_size, v_bold, v_align, indent=step, italic=v_italic, underline=v_underline, bars=db_show)
     if show_totals:
         draw_row(tot_row, tot_bg, tot_fg, tot_size, tot_bold, v_align, italic=tot_italic, underline=tot_underline)
 

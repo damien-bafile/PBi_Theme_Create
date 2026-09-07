@@ -65,7 +65,7 @@ Most fields update the **live preview**; a few (marked *export-only* in the
 stages below) are exported as valid Power BI cards but can't be meaningfully
 shown in a simplified mockup (e.g. font family, word wrap).
 
-**Current overall card coverage: ~66%** (510 / 770 themeable cards across all visuals).
+**Current overall card coverage: ~70%** (539 / 770 themeable cards across all visuals).
 
 ### Stages
 
@@ -82,22 +82,24 @@ shown in a simplified mockup (e.g. font family, word wrap).
   (show + text), and a **subtitle** generic override (all visuals). (Data-label
   *orientation* is column/bar-only in the schema, and `plotArea` offers only an
   image + transparency — no fill colour — so both are intentionally skipped.)
-- **Stage 3 — Table & matrix depth — ◐ mostly done.** Previewed: grid **outer
+- **Stage 3 — Table & matrix depth — ✅ complete.** Previewed: grid **outer
   outline** + **overall text size**, matrix **row-header alignment** + **stepped
   layout**, **bold / italic / underline** and **font size** across column
   headers / values / row headers / totals / subtotals, full **subtotal font
-  styling** (colour / size / italic / underline). Export-only (valid, no live
-  preview): **font family** everywhere, **word wrap** (headers & values), matrix
-  **column subtotals**. Still in Advanced JSON only: built-in table
-  `stylePreset` (enum names not in the schema), per-column `columnFormatting`
-  (data bars — needs per-column ids), `columnWidth`, `columnTotal`/`rowTotal`,
-  `blankRows`, sparklines.
-- **Stage 4 — Reference lines & analytics — ◐ mostly done.** Done: **Y-axis
+  styling** (colour / size / italic / underline), and **data bars** (positive
+  colour). Export-only (valid, no live preview): **font family** everywhere,
+  **word wrap** (headers & values), matrix **column subtotals**. The remaining
+  Advanced-JSON items were finished in the **Advanced cards** stage below (data
+  bars, `columnWidth`, total label / apply-to-headers, `blankRows`, sparklines,
+  built-in `stylePreset`).
+- **Stage 4 — Reference lines & analytics — ✅ complete.** Done: **Y-axis
   reference line** (show / value / colour), **trend line** (show / colour) on
   every chart that supports it, **pie / donut slices** (start angle + inner
-  radius), **scatter bubble size + marker border**, and waterfall sentiment
-  colours (Stage 3). Still to do: ratio line, error bars, `plotArea` shading,
-  ribbon bands, small multiples.
+  radius), **scatter bubble size + marker border**, waterfall sentiment colours
+  (Stage 3), a scatter **ratio line** (show / colour — live previewed) and
+  **plot-area transparency** on every cartesian chart. (Error bars and ribbon
+  bands need per-measure field binding a theme can't supply, so they stay out;
+  small multiples shipped in Stage 6.)
 - **Stage 5 — Slicer & non-chart visuals — ✅ complete.** Made customizable:
   **Action Button** (fill / text / outline, icon, glow & shadow, and a **hover
   state**), **Basic Shape** (fill / outline), **Decomposition Tree** (level-header
@@ -118,33 +120,37 @@ shown in a simplified mockup (e.g. font family, word wrap).
   general, tooltips and small multiples are valid export-only cards — no live
   preview; there is no `zoomSlider` card in the schema, and the per-visual
   `visualLink`/navigation tooltip stays in the Advanced-JSON backlog.)
-- **Backlog — Advanced-JSON-only (no structured field yet).** Items that need
-  per-column identity, in-cell chart rendering, or enum values Microsoft doesn't
-  publish, so they stay in the Advanced JSON tab: table/matrix
-  `columnFormatting` (per-column colour / **data bars**), `columnWidth`,
-  `columnTotal` / `rowTotal`, `blankRows`, **sparklines**, and the built-in table
-  **`stylePreset`**; chart `plotArea` (image / transparency only); `ratioLine`;
-  and the per-visual navigation/link tooltip (`visualLink`). (The `visualTooltip`
-  and `visualHeaderTooltip` styling cards graduated to structured overrides in
-  Stage 6.)
+- **Stage 7 — Advanced cards — ✅ complete.** The former backlog, tackled by
+  setting each card's **theme-level defaults** (no per-column identity needed):
+  table/matrix **data bars** (`columnFormatting.dataBars` — positive / negative /
+  axis colour, reverse, hide-text; positive colour live-previewed as bars in the
+  value cells), **column sizing** (auto-size + default width), grand-total
+  **label** (table) / **apply-to-headers** (matrix), matrix **blank rows**
+  (fill + border), **sparklines** (type / line / marker colour), and the built-in
+  **`stylePreset`** (a dropdown of the documented preset names); plus chart
+  **plot-area transparency** and the scatter **ratio line**. All export-only
+  except data bars and the ratio line, all schema-valid, all round-trip.
+- **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
+  (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
+  section or URL a theme can't know — so it has no structured field by design.
 
 ### Coverage matrix
 
 | Visual | Frame | Axes | Legend | Labels | Colors | Table | Card/KPI/Gauge | Slicer | Other | % |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
-| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
-| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 65% |
-| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 65% |
-| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
-| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
-| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
-| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
-| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
-| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
-| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
-| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 63% |
-| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 70% |
+| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
+| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
+| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
+| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
+| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
+| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
+| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
+| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
+| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
+| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
+| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
+| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
+| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 72% |
 | Pie Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 67% |
 | Donut Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 67% |
 | Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ◐ | 62% |
@@ -153,10 +159,10 @@ shown in a simplified mockup (e.g. font family, word wrap).
 | Card | ✅ | — | — | ✅ | — | — | ☐ | — | ◐ | 65% |
 | Multi-row Card | ✅ | — | — | ✅ | — | — | ☐ | — | ◐ | 62% |
 | KPI | ✅ | — | — | — | — | — | ✅ | — | ◐ | 72% |
-| Table | ✅ | — | — | — | — | ◐ | — | — | ◐ | 63% |
-| Table (Extended) | ✅ | — | — | — | — | ◐ | — | — | ◐ | 63% |
-| Matrix | ✅ | — | — | — | — | ◐ | — | — | ◐ | 60% |
-| Pivot Table | ✅ | — | — | — | — | ◐ | — | — | ◐ | 60% |
+| Table | ✅ | — | — | — | — | ✅ | — | — | ◐ | 71% |
+| Table (Extended) | ✅ | — | — | — | — | ✅ | — | — | ◐ | 71% |
+| Matrix | ✅ | — | — | — | — | ✅ | — | — | ◐ | 69% |
+| Pivot Table | ✅ | — | — | — | — | ✅ | — | — | ◐ | 69% |
 | Slicer | ✅ | — | — | — | — | — | — | ✅ | ◐ | 67% |
 | Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 64% |
 | Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ◐ | 68% |
@@ -177,11 +183,14 @@ shown in a simplified mockup (e.g. font family, word wrap).
 padding, **divider**, **spacing** and **general** (alt text / responsive) —
 generic overrides on every visual. The **Card/KPI/Gauge** column tracks each
 visual's specialized cards — e.g. Card's value/label live under **Labels**; its
-`wordWrap` card is what's still ☐. **Colors** = per-series / default data point,
+`wordWrap` card is what's still ☐. **Table** = gridlines, headers, values,
+totals / subtotals, banded rows, **data bars**, sparklines, column sizing and the
+built-in **style preset**. **Colors** = per-series / default data point,
 sentiment, ribbon bands, pie slices, shape fills, map data points. **Other** =
-reference lines, trend, **data & header tooltips** (all visuals), **small
-multiples** (cartesian charts), plot area, and the visual-specific cards for
-buttons / shapes / trees / maps / images (Stages 4-6).*
+reference lines, trend, **ratio line** (scatter), **plot-area transparency**,
+**data & header tooltips** (all visuals), **small multiples** (cartesian charts),
+and the visual-specific cards for buttons / shapes / trees / maps / images
+(Stages 4-7).*
 
 ## Project layout
 

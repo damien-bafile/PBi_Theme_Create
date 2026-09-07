@@ -176,6 +176,34 @@ def main() -> int:
     check(unpack_divider_object(imported) == (True, "#AABBCC", 2, "dashed"), "divider round-trip broken")
     check(unpack_visual_tooltip_object(imported)[0] == "#111111", "visualTooltip round-trip broken")
 
+    # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
+    #    plotArea, ratio line scatter-only, and their round-trip.
+    vs = build_visual_styles({
+        "tableEx": _style({"dataBarsShow": True, "dataBarsPositiveColor": "#00FF00",
+                           "stylePreset": "Minimal", "defaultColumnWidth": 150,
+                           "blankRowsShow": True}),
+        "pivotTable": _style({"dataBarsShow": True, "blankRowsShow": True, "blankRowColor": "#EEEEEE"}),
+        "scatterChart": _style({"ratioLineShow": True, "ratioLineColor": "#123456",
+                               "plotAreaTransparency": 20}),
+        "barChart": _style({"ratioLineShow": True, "plotAreaTransparency": 30}),
+    })
+    tdb = vs["tableEx"]["*"]["columnFormatting"][0]["dataBars"]
+    check("reverseDirection" in tdb and "hideText" in tdb, "dataBars missing required reverseDirection/hideText")
+    check("blankRows" not in vs["tableEx"]["*"], "tableEx must not emit blankRows (matrix-only)")
+    check("blankRows" in vs["pivotTable"]["*"], "pivotTable should emit blankRows")
+    check(vs["tableEx"]["*"]["stylePreset"][0].get("name") == "Minimal", "stylePreset.name missing")
+    check("ratioLine" in vs["scatterChart"]["*"], "scatter should emit ratioLine")
+    check("ratioLine" not in vs["barChart"]["*"], "bar must not emit ratioLine (scatter-only)")
+    check(vs["barChart"]["*"]["plotArea"][0].get("transparency") == 30, "plotArea transparency missing")
+
+    imported = import_visual_styles(vs)
+    tex = imported.get("table", {}).get("*", {}).get("formatting", {})
+    check(tex.get("dataBarsShow") is True, "data bars did not round-trip")
+    check(tex.get("stylePreset") == "Minimal", "stylePreset did not round-trip")
+    sca = imported.get("scatterChart", {}).get("*", {}).get("formatting", {})
+    check(sca.get("ratioLineShow") is True, "ratio line did not round-trip")
+    check(sca.get("plotAreaTransparency") == 20, "plotArea did not round-trip")
+
     print(f"Export invariants checked. Failures: {len(failures)}")
     if failures:
         for f in failures:
