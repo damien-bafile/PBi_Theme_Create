@@ -70,6 +70,8 @@ VISUAL_TYPES: List[tuple[str, str]] = [
     ("textbox", "Text Box"),
     ("treemap", "Treemap"),
     ("waterfallChart", "Waterfall Chart"),
+    ("page", "Page"),
+    ("report", "Report"),
 ]
 
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
