@@ -12,6 +12,7 @@ wrapped as ``{"solid": {"color": "#RRGGBB"}}``.
 
 from __future__ import annotations
 
+import copy
 import json
 import re
 from collections import OrderedDict
@@ -76,6 +77,8 @@ class TextClass:
     font_face: str = "Segoe UI"
     font_size: int = 12
     color: str = "#252423"
+    # Any properties we do not model, preserved verbatim on round-trip.
+    extra: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {}
@@ -85,15 +88,20 @@ class TextClass:
             data["fontSize"] = int(self.font_size)
         if self.color:
             data["color"] = normalise_hex(self.color)
+        for key, value in self.extra.items():
+            data.setdefault(key, value)
         return data
 
     @classmethod
     def from_dict(cls, name: str, data: Dict[str, Any]) -> "TextClass":
+        known = {"fontFace", "fontSize", "color"}
+        extra = {k: copy.deepcopy(v) for k, v in data.items() if k not in known}
         return cls(
             name=name,
             font_face=data.get("fontFace", "Segoe UI"),
             font_size=int(data.get("fontSize", 12)),
             color=data.get("color", "#252423"),
+            extra=extra,
         )
 
 
@@ -559,38 +567,72 @@ class VisualStyle:
             key: {p.key: p.default for p in spec.props}
             for key, spec in schema.items()
         }
+        # Original ``visualStyles[visual]`` dict from a loaded file, kept so
+        # selectors, cards and properties we do not model survive a round-trip.
+        self.raw: Dict[str, Any] = {}
 
     @property
     def schema(self) -> "OrderedDict[str, CardSpec]":
         return cards_for(self.visual)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Return ``{card: [ {props...} ]}`` for the enabled cards only."""
-        cards: Dict[str, Any] = OrderedDict()
+        """Return the full ``visualStyles[visual]`` dict.
+
+        Unmodelled selectors, cards and properties from a loaded file are
+        preserved; modelled cards under the ``*`` selector reflect the current
+        editor values.
+        """
+        result: Dict[str, Any] = copy.deepcopy(self.raw) if self.raw else OrderedDict()
+
+        star = result.get("*")
+        if not isinstance(star, dict):
+            star = OrderedDict()
+
         for key, spec in self.schema.items():
+            original = star.get(key)
+            original_list = original if isinstance(original, list) else []
+            original_obj = (
+                original_list[0]
+                if original_list and isinstance(original_list[0], dict)
+                else {}
+            )
             if not self.enabled.get(key):
+                star.pop(key, None)
                 continue
             obj: Dict[str, Any] = OrderedDict()
             for prop in spec.props:
                 value = self.values[key].get(prop.key, prop.default)
                 obj[prop.key] = prop.to_json_value(value)
-            cards[key] = [obj]
-        return cards
+            # Preserve any properties on the original card that we do not model.
+            modelled = {p.key for p in spec.props}
+            for k, v in original_obj.items():
+                if k not in modelled:
+                    obj[k] = v
+            star[key] = [obj] + list(original_list[1:])
+
+        if star:
+            result["*"] = star
+        else:
+            result.pop("*", None)
+        return result
 
     @classmethod
-    def from_dict(cls, visual: str, cards: Dict[str, Any]) -> "VisualStyle":
+    def from_dict(cls, visual: str, raw: Dict[str, Any]) -> "VisualStyle":
         style = cls(visual)
-        for key, spec in style.schema.items():
-            if key not in cards:
-                continue
-            entries = cards[key]
-            obj = entries[0] if isinstance(entries, list) and entries else {}
-            if not isinstance(obj, dict):
-                continue
-            style.enabled[key] = True
-            for prop in spec.props:
-                if prop.key in obj:
-                    style.values[key][prop.key] = prop.from_json_value(obj[prop.key])
+        style.raw = copy.deepcopy(raw) if isinstance(raw, dict) else {}
+        star = raw.get("*") if isinstance(raw, dict) else None
+        if isinstance(star, dict):
+            for key, spec in style.schema.items():
+                if key not in star:
+                    continue
+                entries = star[key]
+                obj = entries[0] if isinstance(entries, list) and entries else {}
+                if not isinstance(obj, dict):
+                    continue
+                style.enabled[key] = True
+                for prop in spec.props:
+                    if prop.key in obj:
+                        style.values[key][prop.key] = prop.from_json_value(obj[prop.key])
         return style
 
 
@@ -622,6 +664,11 @@ class PowerBITheme:
         self.text_classes: Dict[str, TextClass] = _default_text_classes()
         # Start with a single, empty "all visuals" target.
         self.visual_styles: List[VisualStyle] = [VisualStyle("*")]
+        # Top-level keys we do not model (e.g. $schema, firstLevelElements),
+        # preserved verbatim on round-trip.
+        self.extra_top: Dict[str, Any] = {}
+        # Text classes other than the modelled ones, preserved verbatim.
+        self.extra_text_classes: Dict[str, Any] = {}
 
     # ------------------------------------------------------------------ #
     # Serialisation
@@ -645,16 +692,22 @@ class PowerBITheme:
             for name, tc in self.text_classes.items()
             if tc.to_dict()
         )
+        for name, value in self.extra_text_classes.items():
+            text_classes.setdefault(name, value)
         if text_classes:
             theme["textClasses"] = text_classes
 
         visual_styles: Dict[str, Any] = OrderedDict()
         for style in self.visual_styles:
-            cards = style.to_dict()
-            if cards:
-                visual_styles[style.visual] = {"*": cards}
+            vdict = style.to_dict()
+            if vdict:
+                visual_styles[style.visual] = vdict
         if visual_styles:
             theme["visualStyles"] = visual_styles
+
+        # Re-attach any top-level keys we do not model.
+        for key, value in self.extra_top.items():
+            theme.setdefault(key, value)
 
         return theme
 
@@ -681,22 +734,32 @@ class PowerBITheme:
 
         raw_classes = data.get("textClasses")
         if isinstance(raw_classes, dict):
+            modelled = set(_default_text_classes())
             theme.text_classes = OrderedDict(
                 (name, TextClass.from_dict(name, value))
                 for name, value in raw_classes.items()
-                if isinstance(value, dict)
+                if isinstance(value, dict) and name in modelled
             )
+            theme.extra_text_classes = {
+                name: copy.deepcopy(value)
+                for name, value in raw_classes.items()
+                if name not in modelled
+            }
 
         raw_visuals = data.get("visualStyles")
         if isinstance(raw_visuals, dict) and raw_visuals:
             styles: List[VisualStyle] = []
             for visual, selectors in raw_visuals.items():
-                cards = {}
-                if isinstance(selectors, dict):
-                    cards = selectors.get("*", {})
-                styles.append(VisualStyle.from_dict(visual, cards or {}))
+                styles.append(VisualStyle.from_dict(visual, selectors or {}))
             if styles:
                 theme.visual_styles = styles
+
+        # Capture top-level keys we do not model, to re-emit them on save.
+        known_top = {"name", "dataColors", "textClasses", "visualStyles"}
+        known_top |= {key for _attr, key, _label, _default in cls.STRUCTURAL_FIELDS}
+        theme.extra_top = {
+            k: copy.deepcopy(v) for k, v in data.items() if k not in known_top
+        }
 
         return theme
 

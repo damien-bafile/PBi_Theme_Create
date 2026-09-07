@@ -42,6 +42,8 @@ class MainWindow(QMainWindow):
         self._current_path: str | None = None
         self._structural_buttons: Dict[str, ColorButton] = {}
         self._text_editors: Dict[str, TextClassEditor] = {}
+        self._extra_top: Dict[str, object] = {}
+        self._extra_text_classes: Dict[str, object] = {}
 
         self.setWindowTitle("Power BI Theme Creator")
         self.resize(1000, 720)
@@ -186,11 +188,11 @@ class MainWindow(QMainWindow):
         self._data_editor.set_colors(theme.data_colors)
         for name, editor in self._text_editors.items():
             if name in theme.text_classes:
-                tc = theme.text_classes[name]
-                editor._font.setCurrentText(tc.font_face)
-                editor._size.setValue(tc.font_size)
-                editor._color.set_color(tc.color)
+                editor.set_value(theme.text_classes[name])
         self._visual_editor.set_styles(theme.visual_styles)
+        # Carry passthrough (keys/classes we do not edit) so Save keeps them.
+        self._extra_top = dict(theme.extra_top)
+        self._extra_text_classes = dict(theme.extra_text_classes)
 
     def _collect_theme(self) -> PowerBITheme:
         """Build a fresh :class:`PowerBITheme` from the current widget state."""
@@ -202,6 +204,8 @@ class MainWindow(QMainWindow):
             name: editor.value() for name, editor in self._text_editors.items()
         }
         theme.visual_styles = self._visual_editor.styles()
+        theme.extra_top = dict(self._extra_top)
+        theme.extra_text_classes = dict(self._extra_text_classes)
         return theme
 
     def _refresh_preview(self) -> None:

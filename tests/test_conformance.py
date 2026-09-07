@@ -74,6 +74,42 @@ class ConformanceTests(unittest.TestCase):
         theme.visual_styles = [style]
         self.assertEqual(validate_theme(theme.to_dict()), [])
 
+    def test_unmodelled_content_is_preserved(self):
+        external = {
+            "$schema": "https://example/schema.json",
+            "name": "External",
+            "dataColors": ["#010203"],
+            "firstLevelElements": "#111111",
+            "maximum": "#00FF00",
+            "textClasses": {
+                "title": {"fontFace": "Arial", "fontSize": 14, "color": "#000000",
+                          "bold": True},
+                "customClass": {"fontSize": 9},
+            },
+            "visualStyles": {
+                "pivotTable": {
+                    "*": {
+                        "grid": [{"gridHorizontal": True, "someFutureProp": 42}],
+                        "unknownCard": [{"foo": "bar"}],
+                    },
+                    "MyPreset": {"columnHeaders": [{"fontSize": 20}]},
+                },
+                "customVisualGuid": {"*": {"weird": [{"x": 1}]}},
+            },
+        }
+        out = PowerBITheme.from_dict(json.loads(json.dumps(external))).to_dict()
+        self.assertEqual(out["$schema"], external["$schema"])
+        self.assertEqual(out["firstLevelElements"], "#111111")
+        self.assertEqual(out["maximum"], "#00FF00")
+        self.assertTrue(out["textClasses"]["title"]["bold"])
+        self.assertEqual(out["textClasses"]["customClass"], {"fontSize": 9})
+        pv = out["visualStyles"]["pivotTable"]
+        self.assertEqual(pv["*"]["grid"][0]["someFutureProp"], 42)
+        self.assertEqual(pv["*"]["unknownCard"], [{"foo": "bar"}])
+        self.assertEqual(pv["MyPreset"], {"columnHeaders": [{"fontSize": 20}]})
+        self.assertEqual(out["visualStyles"]["customVisualGuid"],
+                         {"*": {"weird": [{"x": 1}]}})
+
     def test_slicer_orientation_is_integer(self):
         style = VisualStyle("slicer")
         style.enabled["general"] = True

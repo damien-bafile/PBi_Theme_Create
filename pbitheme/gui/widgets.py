@@ -151,6 +151,7 @@ class TextClassEditor(QWidget):
     def __init__(self, text_class: TextClass, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._name = text_class.name
+        self._extra = dict(text_class.extra)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -172,12 +173,19 @@ class TextClassEditor(QWidget):
         layout.addWidget(self._size)
         layout.addWidget(self._color)
 
+    def set_value(self, text_class: TextClass) -> None:
+        self._extra = dict(text_class.extra)
+        self._font.setCurrentText(text_class.font_face)
+        self._size.setValue(text_class.font_size)
+        self._color.set_color(text_class.color)
+
     def value(self) -> TextClass:
         return TextClass(
             name=self._name,
             font_face=self._font.currentFont().family(),
             font_size=self._size.value(),
             color=self._color.color(),
+            extra=dict(self._extra),
         )
 
 
@@ -281,6 +289,8 @@ class VisualTargetEditor(QWidget):
     def __init__(self, style: VisualStyle, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._visual = style.visual
+        # Retain any unmodelled selectors/cards/properties for round-tripping.
+        self._raw = style.raw
         self._cards = {}
 
         layout = QVBoxLayout(self)
@@ -298,6 +308,7 @@ class VisualTargetEditor(QWidget):
 
     def to_style(self) -> VisualStyle:
         style = VisualStyle(self._visual)
+        style.raw = self._raw
         for card_key, editor in self._cards.items():
             style.enabled[card_key] = editor.is_enabled()
             style.values[card_key] = editor.values()

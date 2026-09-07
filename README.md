@@ -20,7 +20,10 @@ separates the theme model from the GUI.
   Power BI schema defines (every chart, card, slicer, table, map, AI, script
   and navigation visual). Colours are emitted in Power BI's
   `{"solid": {"color": "#..."}}` form.
-- **Open / Save** existing `.json` themes (round-trips cleanly).
+- **Open / Save** existing `.json` themes — **lossless**: any keys, text
+  classes, visual selectors, cards or properties the editor doesn't model are
+  preserved verbatim, so opening a hand-crafted theme and saving it keeps
+  everything you didn't touch.
 - **Schema validation** — validate the theme against the official Power BI
   report theme JSON schema (bundled from Microsoft's
   `powerbi-desktop-samples`, currently **v2.157**) via **File → Validate** or
