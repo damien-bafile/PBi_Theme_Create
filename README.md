@@ -9,6 +9,9 @@ can also generate themes from scripts.
 
 ## Features
 
+- **Full visual coverage** — all **52** visual types Power BI's theme schema
+  defines are selectable; **49** have dedicated structured formatting and the
+  rest are themeable through the generic overrides.
 - **Live visual preview** — every visual is drawn as an SVG mockup that updates
   as you edit, plus a live JSON preview of the exported theme.
 - **Per-visual formatting** — axes, gridlines, legend, data labels, table
@@ -26,6 +29,9 @@ can also generate themes from scripts.
   **imported themes reverse-translate** back into the editor (clean round-trip).
 - **Advanced JSON** tab — set any property the schema supports, even ones not yet
   in the structured UI.
+- **Packaged & tested** — installs as a `pbitheme` command (`pip install -e .`),
+  runs headless in CI across Python 3.10–3.12, and a build workflow produces a
+  Windows `.exe` plus wheel/sdist on demand.
 
 ## Install & run
 
@@ -74,21 +80,27 @@ theme.background = "#FFFFFF"
 theme.save("corporate.json")
 ```
 
-## Power BI theme coverage roadmap
+## Power BI theme coverage
 
-**Goal: 100% structured coverage** — every Power BI formatting *card* for every
-visual editable in the structured UI (with live preview), not just via the
-Advanced JSON escape hatch. Coverage is tracked below at the **card** level
-(property-depth within each card is an ongoing sub-goal). Today anything missing
-can still be set through the **Advanced JSON** tab and exports validly.
+**Every visual is covered.** All **52** visual types the Power BI report theme
+schema (v2.157) defines are selectable in the editor. **49** of the editor's
+visual entries have dedicated, structured formatting sections; the handful that
+don't — Azure Maps, Key influencers, Python, R and Q&A, which expose little
+beyond frame styling — are still fully themeable through the generic overrides
+(title, background, border, drop shadow, padding, tooltips, …). Everything
+exports to real Power BI theme *cards*, is validated
+against the bundled schema, and round-trips (export → import → export is
+stable). Anything not yet in a structured section can still be set through the
+**Advanced JSON** tab.
+
+Card-level depth within each visual (every property of every card) remains an
+ongoing sub-goal, tracked in the stages and matrix below.
 
 **Legend:** ✅ done &nbsp;·&nbsp; ◐ partial &nbsp;·&nbsp; ☐ planned &nbsp;·&nbsp; — not applicable to this visual
 
 Most fields update the **live preview**; a few (marked *export-only* in the
 stages below) are exported as valid Power BI cards but can't be meaningfully
-shown in a simplified mockup (e.g. font family, word wrap).
-
-**Current overall card coverage: ~70%** (539 / 770 themeable cards across all visuals).
+shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
 
 ### Stages
 
@@ -153,6 +165,16 @@ shown in a simplified mockup (e.g. font family, word wrap).
   **`stylePreset`** (a dropdown of the documented preset names); plus chart
   **plot-area transparency** and the scatter **ratio line**. All export-only
   except data bars and the ratio line, all schema-valid, all round-trip.
+- **Stage 8 — Complete the visual set — ✅ complete.** Added every remaining
+  schema visual: **Stacked Area** & **100% Stacked Area** charts (cartesian
+  config); **Page** & **Report** (wallpaper, filter pane, filter cards →
+  `outspace` / `outspacePane` / `filterCard`); **Card (new)** (callout value,
+  category label, accent bar); the new **Slicer / List slicer / Text slicer**
+  (header + items); **Page** & **Bookmark navigators** (button fill / text /
+  outline); **Scorecard** (column headers, metric name, current value, target);
+  and **Filter**, **Group** & **Paginated (RDL)** (container background /
+  border). Also fixed the **R-visual** mapping (`rVisual → scriptVisual`) so R
+  themes actually apply. All export-only, schema-valid and round-tripping.
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.
@@ -169,6 +191,8 @@ shown in a simplified mockup (e.g. font family, word wrap).
 | 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
 | Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
 | Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
+| Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
+| 100% Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
 | Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
 | Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
 | Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
@@ -214,6 +238,26 @@ reference lines, trend, **ratio line** (scatter), **plot-area transparency**,
 **data & header tooltips** (all visuals), **small multiples** (cartesian charts),
 and the visual-specific cards for buttons / shapes / trees / maps / images
 (Stages 4-7).*
+
+### Additional visuals (Stage 8)
+
+These don't map onto the chart-oriented columns above; each has its own
+dedicated, export-only cards (schema-valid, round-tripping):
+
+| Visual | Dedicated cards |
+|---|---|
+| Card (new) — `cardVisual` | callout value, category label, accent bar |
+| Slicer (new) — `advancedSlicerVisual` | header, items |
+| List Slicer — `listSlicer` | header, items |
+| Text Slicer — `textSlicer` | header, items |
+| Page Navigator — `pageNavigator` | button fill, text, outline |
+| Bookmark Navigator — `bookmarkNavigator` | button fill, text, outline |
+| Scorecard (Goals) — `scorecard` | column headers, metric name, current value, target |
+| Filter — `filter` | header, items |
+| Group — `group` | container background, border |
+| Paginated (RDL) — `rdlVisual` | container background, border |
+| Page — `page` | wallpaper, filter pane, filter cards |
+| Report — `report` | filter pane, filter cards |
 
 ## Project layout
 
