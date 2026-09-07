@@ -145,6 +145,37 @@ def main() -> int:
     check(mat_fmt.get("showSubtotals") is True, "round-trip lost showSubtotals")
     check(mat_fmt.get("rowHeaderTextColor") == "#445566", "round-trip lost rowHeaderTextColor")
 
+    # 8) Stage 5/6: state-keyed button hover, small multiples gating, generic containers.
+    vs = build_visual_styles({"actionButton": _style({
+        "buttonFillColor": "#111111", "buttonHoverFillColor": "#222222",
+        "buttonTextColor": "#333333", "buttonHoverTextColor": "#444444",
+    })})
+    fill = vs["actionButton"]["*"]["fill"]
+    check(isinstance(fill, list) and len(fill) == 2, "button hover fill not a 2-state array")
+    check({e.get("$id") for e in fill} == {"default", "hover"}, "button fill states not default+hover")
+
+    vs = build_visual_styles({
+        "barChart": _style({"smColumnCount": 3, "smGridlineColor": "#ABCDEF"}),
+        "waterfallChart": _style({"smColumnCount": 3}),
+        "scatterChart": _style({"smColumnCount": 3}),
+    })
+    check("smallMultiplesLayout" in vs["barChart"]["*"], "barChart missing smallMultiplesLayout")
+    check("smallMultiplesLayout" not in vs["waterfallChart"]["*"], "waterfall must not emit smallMultiplesLayout")
+    check("smallMultiplesLayout" not in vs["scatterChart"]["*"], "scatter must not emit smallMultiplesLayout")
+
+    # Generic Stage 6 container cards pass through export and re-import unchanged.
+    from pbitheme.model import (
+        build_divider_object, build_visual_tooltip_object,
+        unpack_divider_object, unpack_visual_tooltip_object,
+    )
+    exported = build_visual_styles({"barChart": {"*": {
+        "divider": build_divider_object(True, "#AABBCC", 2, "dashed"),
+        "visualTooltip": build_visual_tooltip_object("#111111", "#222222", "#333333", 10),
+    }}})
+    imported = import_visual_styles(exported).get("barChart", {}).get("*", {})
+    check(unpack_divider_object(imported) == (True, "#AABBCC", 2, "dashed"), "divider round-trip broken")
+    check(unpack_visual_tooltip_object(imported)[0] == "#111111", "visualTooltip round-trip broken")
+
     print(f"Export invariants checked. Failures: {len(failures)}")
     if failures:
         for f in failures:

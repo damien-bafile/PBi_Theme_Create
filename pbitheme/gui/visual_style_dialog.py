@@ -39,6 +39,11 @@ from ..model import (
     build_visual_header_object,
     build_subtitle_object,
     build_padding_object,
+    build_divider_object,
+    build_spacing_object,
+    build_general_object,
+    build_visual_tooltip_object,
+    build_visual_header_tooltip_object,
     build_title_object,
     build_data_labels_object,
     build_legend_object,
@@ -48,6 +53,11 @@ from ..model import (
     unpack_visual_header_object,
     unpack_subtitle_object,
     unpack_padding_object,
+    unpack_divider_object,
+    unpack_spacing_object,
+    unpack_general_object,
+    unpack_visual_tooltip_object,
+    unpack_visual_header_tooltip_object,
     unpack_title_object,
     unpack_data_labels_object,
     unpack_legend_object,
@@ -239,6 +249,109 @@ class VisualStyleDialog(QDialog):
         self._padding_value.setEnabled(False)
         generic_layout.addWidget(padding_box)
 
+        # ---- Divider section ---- #
+        divider_box = QGroupBox("Divider")
+        divider_layout = QFormLayout(divider_box)
+        self._divider_check = QCheckBox("Override")
+        self._divider_check.setAccessibleName("Override divider")
+        self._divider_color = ColorButton("#D0D0D0", label="Divider color")
+        self._divider_width = QSpinBox()
+        self._divider_width.setRange(1, 10)
+        self._divider_width.setSuffix(" px")
+        self._divider_style = QComboBox()
+        self._divider_style.addItems(["solid", "dashed", "dotted"])
+        d_show, d_color, d_width, d_style = unpack_divider_object(existing_obj)
+        self._divider_color.set_color(d_color)
+        self._divider_width.setValue(d_width)
+        self._divider_style.setCurrentText(d_style)
+        divider_layout.addRow(self._divider_check, QLabel())
+        divider_layout.addRow("Color", self._divider_color)
+        divider_layout.addRow("Width", self._divider_width)
+        divider_layout.addRow("Style", self._divider_style)
+        for w in (self._divider_color, self._divider_width, self._divider_style):
+            self._divider_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
+            w.setEnabled(False)
+        generic_layout.addWidget(divider_box)
+
+        # ---- Spacing section (export-only) ---- #
+        spacing_box = QGroupBox("Spacing")
+        spacing_layout = QFormLayout(spacing_box)
+        self._spacing_check = QCheckBox("Override")
+        self._spacing_check.setAccessibleName("Override spacing")
+        self._spacing_below_title = QSpinBox()
+        self._spacing_below_title.setRange(0, 40)
+        self._spacing_below_title.setSuffix(" px")
+        self._spacing_vertical = QSpinBox()
+        self._spacing_vertical.setRange(0, 40)
+        self._spacing_vertical.setSuffix(" px")
+        _, sp_below, sp_vert = unpack_spacing_object(existing_obj)
+        self._spacing_below_title.setValue(sp_below)
+        self._spacing_vertical.setValue(sp_vert)
+        spacing_layout.addRow(self._spacing_check, QLabel())
+        spacing_layout.addRow("Below title", self._spacing_below_title)
+        spacing_layout.addRow("Between rows", self._spacing_vertical)
+        for w in (self._spacing_below_title, self._spacing_vertical):
+            self._spacing_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
+            w.setEnabled(False)
+        generic_layout.addWidget(spacing_box)
+
+        # ---- General (alt text / responsive) section (export-only) ---- #
+        general_box = QGroupBox("General")
+        general_layout = QFormLayout(general_box)
+        self._general_check = QCheckBox("Override")
+        self._general_check.setAccessibleName("Override general")
+        self._general_alt = QLineEdit()
+        self._general_keep_order = QCheckBox("Keep layer order (responsive)")
+        g_alt, g_keep = unpack_general_object(existing_obj)
+        self._general_alt.setText(g_alt)
+        self._general_keep_order.setChecked(g_keep)
+        general_layout.addRow(self._general_check, QLabel())
+        general_layout.addRow("Alt text", self._general_alt)
+        general_layout.addRow("", self._general_keep_order)
+        for w in (self._general_alt, self._general_keep_order):
+            self._general_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
+            w.setEnabled(False)
+        generic_layout.addWidget(general_box)
+
+        # ---- Data tooltip section (export-only) ---- #
+        tooltip_box = QGroupBox("Data Tooltip")
+        tooltip_layout = QFormLayout(tooltip_box)
+        self._tooltip_check = QCheckBox("Override")
+        self._tooltip_check.setAccessibleName("Override data tooltip")
+        self._tooltip_bg = ColorButton(theme.SURFACE_BACKGROUND, label="Tooltip background")
+        self._tooltip_title = ColorButton(theme.TEXT_PRIMARY, label="Tooltip title color")
+        self._tooltip_value = ColorButton(theme.TEXT_PRIMARY, label="Tooltip value color")
+        tt_bg, tt_title, tt_value, _tt_trans = unpack_visual_tooltip_object(existing_obj)
+        self._tooltip_bg.set_color(tt_bg)
+        self._tooltip_title.set_color(tt_title)
+        self._tooltip_value.set_color(tt_value)
+        tooltip_layout.addRow(self._tooltip_check, QLabel())
+        tooltip_layout.addRow("Background", self._tooltip_bg)
+        tooltip_layout.addRow("Title", self._tooltip_title)
+        tooltip_layout.addRow("Value", self._tooltip_value)
+        for w in (self._tooltip_bg, self._tooltip_title, self._tooltip_value):
+            self._tooltip_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
+            w.setEnabled(False)
+        generic_layout.addWidget(tooltip_box)
+
+        # ---- Header tooltip section (export-only) ---- #
+        htooltip_box = QGroupBox("Header Tooltip")
+        htooltip_layout = QFormLayout(htooltip_box)
+        self._htooltip_check = QCheckBox("Override")
+        self._htooltip_check.setAccessibleName("Override header tooltip")
+        self._htooltip_bg = ColorButton(theme.SURFACE_BACKGROUND, label="Header tooltip background")
+        self._htooltip_title = ColorButton(theme.TEXT_PRIMARY, label="Header tooltip title color")
+        ht_bg, ht_title, _ht_trans = unpack_visual_header_tooltip_object(existing_obj)
+        self._htooltip_bg.set_color(ht_bg)
+        self._htooltip_title.set_color(ht_title)
+        htooltip_layout.addRow(self._htooltip_check, QLabel())
+        htooltip_layout.addRow("Background", self._htooltip_bg)
+        htooltip_layout.addRow("Title", self._htooltip_title)
+        for w in (self._htooltip_bg, self._htooltip_title):
+            self._htooltip_check.toggled.connect(lambda c, _w=w: _w.setEnabled(c))
+            w.setEnabled(False)
+        generic_layout.addWidget(htooltip_box)
+
         # ---- Title section ---- #
         title_box = QGroupBox("Title")
         title_layout = QFormLayout(title_box)
@@ -309,12 +422,16 @@ class VisualStyleDialog(QDialog):
             self._bg_check, self._border_check, self._title_check,
             self._labels_check, self._legend_check, self._shadow_check,
             self._vh_check, self._padding_check, self._subtitle_check,
+            self._divider_check, self._spacing_check, self._general_check,
+            self._tooltip_check, self._htooltip_check,
         ):
             check.toggled.connect(self._update_preview)
         for color_btn in (
             self._bg_color, self._border_color, self._title_color,
             self._labels_color, self._legend_color, self._shadow_color,
             self._vh_background, self._vh_foreground, self._subtitle_color,
+            self._divider_color, self._tooltip_bg, self._tooltip_title,
+            self._tooltip_value, self._htooltip_bg, self._htooltip_title,
         ):
             color_btn.colorChanged.connect(self._update_preview)
         self._border_width.valueChanged.connect(self._update_preview)
@@ -327,6 +444,8 @@ class VisualStyleDialog(QDialog):
         self._title_size.valueChanged.connect(self._update_preview)
         self._labels_size.valueChanged.connect(self._update_preview)
         self._legend_pos.currentIndexChanged.connect(self._update_preview)
+        self._divider_width.valueChanged.connect(self._update_preview)
+        self._divider_style.currentIndexChanged.connect(self._update_preview)
 
         scroll = QScrollArea()
         scroll.setWidget(generic_widget)
@@ -450,10 +569,28 @@ class VisualStyleDialog(QDialog):
         self._subtitle_text.setText(sub_text)
         self._subtitle_color.set_color(sub_color)
         self._subtitle_size.setValue(sub_size)
+        _, d_color, d_width, d_style = unpack_divider_object(style_obj)
+        self._divider_color.set_color(d_color)
+        self._divider_width.setValue(d_width)
+        self._divider_style.setCurrentText(d_style)
+        _, sp_below, sp_vert = unpack_spacing_object(style_obj)
+        self._spacing_below_title.setValue(sp_below)
+        self._spacing_vertical.setValue(sp_vert)
+        g_alt, g_keep = unpack_general_object(style_obj)
+        self._general_alt.setText(g_alt)
+        self._general_keep_order.setChecked(g_keep)
+        tt_bg, tt_title, tt_value, _ = unpack_visual_tooltip_object(style_obj)
+        self._tooltip_bg.set_color(tt_bg)
+        self._tooltip_title.set_color(tt_title)
+        self._tooltip_value.set_color(tt_value)
+        ht_bg, ht_title, _ = unpack_visual_header_tooltip_object(style_obj)
+        self._htooltip_bg.set_color(ht_bg)
+        self._htooltip_title.set_color(ht_title)
         for chk in (
             self._bg_check, self._border_check, self._shadow_check, self._title_check,
             self._labels_check, self._legend_check, self._vh_check, self._padding_check,
-            self._subtitle_check,
+            self._subtitle_check, self._divider_check, self._spacing_check,
+            self._general_check, self._tooltip_check, self._htooltip_check,
         ):
             chk.setChecked(False)
         self._advanced_edit.setPlainText(json.dumps(style_obj, indent=2))
@@ -496,6 +633,11 @@ class VisualStyleDialog(QDialog):
         self._vh_check.setChecked(False)
         self._padding_check.setChecked(False)
         self._subtitle_check.setChecked(False)
+        self._divider_check.setChecked(False)
+        self._spacing_check.setChecked(False)
+        self._general_check.setChecked(False)
+        self._tooltip_check.setChecked(False)
+        self._htooltip_check.setChecked(False)
         self._advanced_edit.setPlainText("{}")
 
     def _build_overrides(self) -> Dict[str, Any]:
@@ -528,6 +670,28 @@ class VisualStyleDialog(QDialog):
             )
         if self._padding_check.isChecked():
             overrides["padding"] = build_padding_object(self._padding_value.value())
+        if self._divider_check.isChecked():
+            overrides["divider"] = build_divider_object(
+                True, self._divider_color.color(),
+                self._divider_width.value(), self._divider_style.currentText(),
+            )
+        if self._spacing_check.isChecked():
+            overrides["spacing"] = build_spacing_object(
+                True, self._spacing_below_title.value(), self._spacing_vertical.value()
+            )
+        if self._general_check.isChecked():
+            overrides["general"] = build_general_object(
+                self._general_alt.text(), self._general_keep_order.isChecked()
+            )
+        if self._tooltip_check.isChecked():
+            overrides["visualTooltip"] = build_visual_tooltip_object(
+                self._tooltip_bg.color(), self._tooltip_title.color(),
+                self._tooltip_value.color(), 0,
+            )
+        if self._htooltip_check.isChecked():
+            overrides["visualHeaderTooltip"] = build_visual_header_tooltip_object(
+                self._htooltip_bg.color(), self._htooltip_title.color(), 0
+            )
         if self._subtitle_check.isChecked():
             overrides["subTitle"] = build_subtitle_object(
                 True, self._subtitle_text.text(),

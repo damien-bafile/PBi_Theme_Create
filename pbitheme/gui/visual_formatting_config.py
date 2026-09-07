@@ -216,6 +216,20 @@ CHART_SECTIONS = [
     ),
 ]
 
+# Small multiples layout -- supported by cartesian charts (not scatter/waterfall).
+SMALL_MULTIPLES_SECTION = FormatSection(
+    "Small Multiples",
+    [
+        FormatField("smColumnCount", "Columns", "number", min_val=1, max_val=10, default=2, preview=False),
+        FormatField("smRowCount", "Rows", "number", min_val=1, max_val=10, default=2, preview=False),
+        FormatField("smGridlineColor", "Gridline Color", "color", default="#E1E1E1", preview=False),
+        FormatField("smBackgroundColor", "Background Color", "color", default="#FFFFFF", preview=False),
+    ],
+)
+
+# Cartesian charts that additionally expose the small-multiples layout card.
+CHART_SECTIONS_SM = CHART_SECTIONS + [SMALL_MULTIPLES_SECTION]
+
 # Scatter = chart sections plus marker / bubble options.
 SCATTER_SECTIONS = CHART_SECTIONS + [
     FormatSection(
@@ -630,19 +644,19 @@ VISUAL_FORMATTING = {
     "tableEx": MATRIX_TABLE_SECTIONS,
     "pivotTable": MATRIX_TABLE_SECTIONS,
 
-    # Charts
-    "barChart": CHART_SECTIONS,
-    "clusteredBarChart": CHART_SECTIONS,
-    "hundredPercentStackedBarChart": CHART_SECTIONS,
-    "columnChart": CHART_SECTIONS,
-    "clusteredColumnChart": CHART_SECTIONS,
-    "hundredPercentStackedColumnChart": CHART_SECTIONS,
-    "lineChart": CHART_SECTIONS,
-    "lineClusteredColumnComboChart": CHART_SECTIONS,
-    "lineStackedColumnComboChart": CHART_SECTIONS,
-    "areaChart": CHART_SECTIONS,
+    # Charts (cartesian charts carry the small-multiples layout card)
+    "barChart": CHART_SECTIONS_SM,
+    "clusteredBarChart": CHART_SECTIONS_SM,
+    "hundredPercentStackedBarChart": CHART_SECTIONS_SM,
+    "columnChart": CHART_SECTIONS_SM,
+    "clusteredColumnChart": CHART_SECTIONS_SM,
+    "hundredPercentStackedColumnChart": CHART_SECTIONS_SM,
+    "lineChart": CHART_SECTIONS_SM,
+    "lineClusteredColumnComboChart": CHART_SECTIONS_SM,
+    "lineStackedColumnComboChart": CHART_SECTIONS_SM,
+    "areaChart": CHART_SECTIONS_SM,
     "scatterChart": SCATTER_SECTIONS,
-    "ribbonChart": CHART_SECTIONS,
+    "ribbonChart": CHART_SECTIONS_SM,
     "waterfallChart": WATERFALL_SECTIONS,
 
     # Charts without cartesian axes -- their own settings sets

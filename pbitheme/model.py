@@ -320,6 +320,50 @@ def build_padding_object(padding: int) -> List[Dict[str, Any]]:
     return [{"top": p, "bottom": p, "left": p, "right": p}]
 
 
+def build_divider_object(show: bool, color: str, width: int, style: str) -> List[Dict[str, Any]]:
+    """Build a divider (title-area separator) visual-style object."""
+    return [{"show": show, "color": _solid_color(color), "width": int(width), "style": style}]
+
+
+def build_spacing_object(customize: bool, below_title: int, vertical: int) -> List[Dict[str, Any]]:
+    """Build a spacing visual-style object (space below title + between components)."""
+    return [{
+        "customizeSpacing": bool(customize),
+        "spaceBelowTitle": int(below_title),
+        "verticalSpacing": int(vertical),
+    }]
+
+
+def build_general_object(alt_text: str, keep_layer_order: bool) -> List[Dict[str, Any]]:
+    """Build a general visual-style object (alt text + responsive layer order)."""
+    obj: Dict[str, Any] = {"keepLayerOrder": bool(keep_layer_order)}
+    if alt_text:
+        obj["altText"] = alt_text
+    return [obj]
+
+
+def build_visual_tooltip_object(background: str, title_color: str, value_color: str,
+                                transparency: int) -> List[Dict[str, Any]]:
+    """Build a data-point tooltip visual-style object."""
+    return [{
+        "show": True,
+        "background": _solid_color(background),
+        "titleFontColor": _solid_color(title_color),
+        "valueFontColor": _solid_color(value_color),
+        "transparency": int(transparency),
+    }]
+
+
+def build_visual_header_tooltip_object(background: str, title_color: str,
+                                       transparency: int) -> List[Dict[str, Any]]:
+    """Build a visual-header (help) tooltip visual-style object."""
+    return [{
+        "background": _solid_color(background),
+        "titleFontColor": _solid_color(title_color),
+        "transparency": int(transparency),
+    }]
+
+
 def build_title_object(show: bool, font_face: str, font_size: int, color: str) -> List[Dict[str, Any]]:
     """Build a title visual-style object from picker state."""
     return [{"show": show, "fontColor": _solid_color(color), "fontSize": int(font_size), "fontFamily": font_face}]
@@ -390,6 +434,54 @@ def unpack_padding_object(obj: Dict[str, Any]) -> int:
     """Extract uniform padding (top) from an existing visual's * entry."""
     p = _first(obj.get("padding", {}))
     return int(p.get("top", 0) or 0)
+
+
+def unpack_divider_object(obj: Dict[str, Any]) -> Tuple[bool, str, int, str]:
+    """Extract divider picker state from an existing visual's * entry."""
+    p = _first(obj.get("divider", {}))
+    return (
+        bool(p.get("show", True)),
+        _extract_solid_color(p.get("color"), "#D0D0D0"),
+        int(p.get("width", 1) or 1),
+        str(p.get("style", "solid")),
+    )
+
+
+def unpack_spacing_object(obj: Dict[str, Any]) -> Tuple[bool, int, int]:
+    """Extract spacing picker state from an existing visual's * entry."""
+    p = _first(obj.get("spacing", {}))
+    return (
+        bool(p.get("customizeSpacing", True)),
+        int(p.get("spaceBelowTitle", 4) or 0),
+        int(p.get("verticalSpacing", 4) or 0),
+    )
+
+
+def unpack_general_object(obj: Dict[str, Any]) -> Tuple[str, bool]:
+    """Extract general (alt text / layer order) picker state."""
+    p = _first(obj.get("general", {}))
+    return (str(p.get("altText", "")), bool(p.get("keepLayerOrder", False)))
+
+
+def unpack_visual_tooltip_object(obj: Dict[str, Any]) -> Tuple[str, str, str, int]:
+    """Extract data-point tooltip picker state from an existing visual's * entry."""
+    p = _first(obj.get("visualTooltip", {}))
+    return (
+        _extract_solid_color(p.get("background"), "#FFFFFF"),
+        _extract_solid_color(p.get("titleFontColor"), "#252423"),
+        _extract_solid_color(p.get("valueFontColor"), "#252423"),
+        int(p.get("transparency", 0) or 0),
+    )
+
+
+def unpack_visual_header_tooltip_object(obj: Dict[str, Any]) -> Tuple[str, str, int]:
+    """Extract visual-header tooltip picker state from an existing visual's * entry."""
+    p = _first(obj.get("visualHeaderTooltip", {}))
+    return (
+        _extract_solid_color(p.get("background"), "#FFFFFF"),
+        _extract_solid_color(p.get("titleFontColor"), "#252423"),
+        int(p.get("transparency", 0) or 0),
+    )
 
 
 def unpack_title_object(obj: Dict[str, Any]) -> Tuple[bool, str, int, str]:

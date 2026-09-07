@@ -30,6 +30,7 @@ from ..model import (
     unpack_visual_header_object,
     unpack_subtitle_object,
     unpack_padding_object,
+    unpack_divider_object,
     unpack_title_object,
     unpack_data_labels_object,
     unpack_legend_object,
@@ -126,6 +127,11 @@ def extract_generic(style_obj: Dict[str, Any] | None) -> Dict[str, Any]:
         if sub_show:
             generic["subtitle"] = {"text": sub_text, "color": sub_color, "size": sub_size}
 
+    if "divider" in style_obj:
+        div_show, div_color, div_width, div_style = unpack_divider_object(style_obj)
+        if div_show:
+            generic["divider"] = {"color": div_color, "width": div_width, "style": div_style}
+
     return generic
 
 
@@ -201,6 +207,18 @@ def _title(width: int, default_text: str, default_color: str,
             f'text-anchor="middle">{_esc(sub_text)}</text>'
         )
         consumed = sub_y + 4
+    # A divider separating the title area from the content.
+    gdiv = generic.get("divider")
+    if gdiv:
+        dw = int(gdiv.get("width", 1)) or 1
+        dash = {"dashed": ' stroke-dasharray="6,3"', "dotted": ' stroke-dasharray="1,3"'}.get(
+            gdiv.get("style", "solid"), "")
+        dy = consumed + dw
+        svg += (
+            f'<line x1="6" y1="{dy:.1f}" x2="{width - 6}" y2="{dy:.1f}" '
+            f'stroke="{gdiv["color"]}" stroke-width="{dw}"{dash}/>'
+        )
+        consumed = dy + dw + 3
     return svg, consumed
 
 

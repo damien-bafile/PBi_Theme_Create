@@ -50,6 +50,8 @@ _TEXTBOX = {"textbox"}
 _SMART_NARRATIVE = {"smartNarrative"}
 # Cartesian visuals that have a `trend` card (waterfall & line+stacked combo don't).
 _TREND_VISUALS = (_CARTESIAN | _SCATTER) - {"waterfallChart", "lineStackedColumnComboChart"}
+# Cartesian visuals with a `smallMultiplesLayout` card (not waterfall or scatter).
+_SMALL_MULTIPLES = _CARTESIAN - {"waterfallChart"}
 _PIE = {"pieChart", "donutChart"}
 _TREEMAP = {"treemap"}
 _FUNNEL = {"funnel"}
@@ -196,6 +198,15 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             mb = _fill(fmt.get("markerBorderColor", ""))
             if mb is not None:
                 card("markers").update({"borderShow": True, "borderColor": mb})
+        # Small multiples layout (cartesian, excluding waterfall / scatter).
+        if app_key in _SMALL_MULTIPLES:
+            sm = card("smallMultiplesLayout")
+            if "smColumnCount" in fmt:
+                sm["columnCount"] = fmt["smColumnCount"]
+            if "smRowCount" in fmt:
+                sm["rowCount"] = fmt["smRowCount"]
+            _set(sm, "gridLineColor", _fill(fmt.get("smGridlineColor", "")))
+            _set(sm, "backgroundColor", _fill(fmt.get("smBackgroundColor", "")))
 
     # ---- Pie / donut / treemap: legend + slice labels ---- #
     elif app_key in _PIE | _TREEMAP:
@@ -671,7 +682,8 @@ def _axis_gridlines_inv(fmt: Dict[str, Any], c: Dict[str, Any]) -> None:
 def _consumed_cards(app_key: str) -> set:
     if app_key in _CARTESIAN | _SCATTER:
         return {"categoryAxis", "valueAxis", "legend", "labels", "categoryLabels", "dataPoint",
-                "y1AxisReferenceLine", "trend", "sentimentColors", "bubbles", "markers"}
+                "y1AxisReferenceLine", "trend", "sentimentColors", "bubbles", "markers",
+                "smallMultiplesLayout"}
     if app_key in _PIE | _TREEMAP:
         return {"legend", "labels", "slices"}
     if app_key in _FUNNEL:
@@ -785,6 +797,14 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             if "bubbleSize" in bub:
                 fmt["bubbleSize"] = bub["bubbleSize"]
             _put(fmt, "markerBorderColor", _hex(c("markers"), "borderColor"))
+        if app_key in _SMALL_MULTIPLES:
+            sm = c("smallMultiplesLayout")
+            if "columnCount" in sm:
+                fmt["smColumnCount"] = sm["columnCount"]
+            if "rowCount" in sm:
+                fmt["smRowCount"] = sm["rowCount"]
+            _put(fmt, "smGridlineColor", _hex(sm, "gridLineColor"))
+            _put(fmt, "smBackgroundColor", _hex(sm, "backgroundColor"))
 
     elif app_key in _PIE | _TREEMAP:
         leg = c("legend")

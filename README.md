@@ -12,8 +12,9 @@ can also generate themes from scripts.
 - **Per-visual formatting** — axes, gridlines, legend, data labels, table
   headers / values / totals / banded rows, gauge, KPI, slicer and more, for each
   visual type.
-- **Generic overrides on every visual** — title, background, border (width &
-  rounded corners), drop shadow, data labels, legend, visual header, padding.
+- **Generic overrides on every visual** — title, subtitle, background, border
+  (width & rounded corners), drop shadow, data labels, legend, visual header,
+  padding, divider, spacing, alt text, and data / header tooltip styling.
 - **Named style presets** — multiple presets per visual (Power BI's Style
   dropdown), not just the default.
 - **Colours & text** — data colours, structural colour classes, conditional-
@@ -64,7 +65,7 @@ Most fields update the **live preview**; a few (marked *export-only* in the
 stages below) are exported as valid Power BI cards but can't be meaningfully
 shown in a simplified mockup (e.g. font family, word wrap).
 
-**Current overall card coverage: ~59%** (455 / 770 themeable cards across all visuals).
+**Current overall card coverage: ~66%** (510 / 770 themeable cards across all visuals).
 
 ### Stages
 
@@ -107,70 +108,80 @@ shown in a simplified mockup (e.g. font family, word wrap).
   **slider**, **search box**, **date slicer**, **numeric slicer** and **dropdown**
   styling. (Button hover exports as a `$id` state array; date / numeric / search /
   dropdown and font families are valid export-only cards — no live preview.)
-- **Stage 6 — Containers, tooltips & misc — ☐.** Report tooltip & visual-header
-  tooltip styling, divider, spacing, subheader, `general` (alt text / responsive),
-  small multiples, zoom slider.
+- **Stage 6 — Containers, tooltips & misc — ✅ complete.** Added as generic
+  overrides on **every** visual: a **divider** (colour / width / style — live
+  previewed under the title), **spacing** (space below title + between
+  components), **general** (**alt text** + responsive layer order), a **data
+  tooltip** (background + title / value colours) and a **visual-header tooltip**
+  (background + title colour). Cartesian charts also gain a **small-multiples
+  layout** card (columns / rows / gridline & background colour). (Spacing,
+  general, tooltips and small multiples are valid export-only cards — no live
+  preview; there is no `zoomSlider` card in the schema, and the per-visual
+  `visualLink`/navigation tooltip stays in the Advanced-JSON backlog.)
 - **Backlog — Advanced-JSON-only (no structured field yet).** Items that need
   per-column identity, in-cell chart rendering, or enum values Microsoft doesn't
   publish, so they stay in the Advanced JSON tab: table/matrix
   `columnFormatting` (per-column colour / **data bars**), `columnWidth`,
   `columnTotal` / `rowTotal`, `blankRows`, **sparklines**, and the built-in table
   **`stylePreset`**; chart `plotArea` (image / transparency only); `ratioLine`;
-  and the per-visual tooltip family (`visualTooltip`, `visualHeaderTooltip`,
-  `visualLink`).
+  and the per-visual navigation/link tooltip (`visualLink`). (The `visualTooltip`
+  and `visualHeaderTooltip` styling cards graduated to structured overrides in
+  Stage 6.)
 
 ### Coverage matrix
 
 | Visual | Frame | Axes | Legend | Labels | Colors | Table | Card/KPI/Gauge | Slicer | Other | % |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
-| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
-| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 58% |
-| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 58% |
-| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
-| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
-| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 60% |
-| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 60% |
-| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 60% |
-| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 60% |
-| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
-| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 57% |
-| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 65% |
-| Pie Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ☐ | 62% |
-| Donut Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ☐ | 62% |
-| Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 56% |
-| Funnel | ✅ | ☐ | — | ✅ | ✅ | — | — | — | ☐ | 60% |
-| Gauge | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | — | ☐ | 70% |
-| Card | ✅ | — | — | ✅ | — | — | ☐ | — | ☐ | 60% |
-| Multi-row Card | ✅ | — | — | ✅ | — | — | ☐ | — | ☐ | 56% |
-| KPI | ✅ | — | — | — | — | — | ✅ | — | ☐ | 68% |
-| Table | ✅ | — | — | — | — | ◐ | — | — | ☐ | 57% |
-| Table (Extended) | ✅ | — | — | — | — | ◐ | — | — | ☐ | 57% |
-| Matrix | ✅ | — | — | — | — | ◐ | — | — | ☐ | 54% |
-| Pivot Table | ✅ | — | — | — | — | ◐ | — | — | ☐ | 54% |
-| Slicer | ✅ | — | — | — | — | — | — | ✅ | ◐ | 62% |
-| Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 58% |
-| Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ◐ | 63% |
-| Shape Map | ✅ | — | ✅ | — | ◐ | — | — | — | ☐ | 52% |
-| Azure Maps | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ☐ | 52% |
-| Decomposition Tree | ✅ | — | — | ◐ | — | — | — | — | ◐ | 47% |
-| Key Drivers | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| Q&A | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| Smart Narrative | ✅ | — | — | ◐ | — | — | — | — | ☐ | 52% |
-| Action Button | ✅ | — | — | — | ✅ | — | — | — | ✅ | 64% |
-| Basic Shape | ✅ | — | — | — | ✅ | — | — | — | ◐ | 50% |
-| Image | ✅ | — | — | — | — | — | — | — | ◐ | 61% |
-| Text Box | ✅ | — | — | ◐ | — | — | — | — | ☐ | 58% |
-| Python Visual | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
-| R Visual | ✅ | — | — | — | — | — | — | — | ☐ | 58% |
+| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
+| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
+| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 65% |
+| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 65% |
+| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
+| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
+| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
+| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
+| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
+| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
+| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 65% |
+| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ◐ | 63% |
+| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 70% |
+| Pie Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 67% |
+| Donut Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 67% |
+| Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ◐ | 62% |
+| Funnel | ✅ | ☐ | — | ✅ | ✅ | — | — | — | ◐ | 65% |
+| Gauge | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | — | ◐ | 74% |
+| Card | ✅ | — | — | ✅ | — | — | ☐ | — | ◐ | 65% |
+| Multi-row Card | ✅ | — | — | ✅ | — | — | ☐ | — | ◐ | 62% |
+| KPI | ✅ | — | — | — | — | — | ✅ | — | ◐ | 72% |
+| Table | ✅ | — | — | — | — | ◐ | — | — | ◐ | 63% |
+| Table (Extended) | ✅ | — | — | — | — | ◐ | — | — | ◐ | 63% |
+| Matrix | ✅ | — | — | — | — | ◐ | — | — | ◐ | 60% |
+| Pivot Table | ✅ | — | — | — | — | ◐ | — | — | ◐ | 60% |
+| Slicer | ✅ | — | — | — | — | — | — | ✅ | ◐ | 67% |
+| Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 64% |
+| Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ◐ | 68% |
+| Shape Map | ✅ | — | ✅ | — | ◐ | — | — | — | ◐ | 58% |
+| Azure Maps | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ◐ | 58% |
+| Decomposition Tree | ✅ | — | — | ◐ | — | — | — | — | ◐ | 53% |
+| Key Drivers | ✅ | — | — | — | — | — | — | — | ◐ | 63% |
+| Q&A | ✅ | — | — | — | — | — | — | — | ◐ | 63% |
+| Smart Narrative | ✅ | — | — | ◐ | — | — | — | — | ◐ | 58% |
+| Action Button | ✅ | — | — | — | ✅ | — | — | — | ✅ | 68% |
+| Basic Shape | ✅ | — | — | — | ✅ | — | — | — | ◐ | 56% |
+| Image | ✅ | — | — | — | — | — | — | — | ◐ | 66% |
+| Text Box | ✅ | — | — | ◐ | — | — | — | — | ◐ | 63% |
+| Python Visual | ✅ | — | — | — | — | — | — | — | ◐ | 63% |
+| R Visual | ✅ | — | — | — | — | — | — | — | ◐ | 63% |
 
 *Notes: **Frame** = title, background, border, drop shadow, visual header,
-padding (generic overrides on every visual). The **Card/KPI/Gauge** column tracks
-each visual's specialized cards — e.g. Card's value/label live under **Labels**;
-its `wordWrap` card is what's still ☐. **Colors** = per-series / default data
-point, sentiment, ribbon bands, pie slices, shape fills, map data points.
-**Other** = reference lines, trend, plot area, tooltips, small multiples, and the
-visual-specific cards for buttons / shapes / trees / maps / images (Stages 4-6).*
+padding, **divider**, **spacing** and **general** (alt text / responsive) —
+generic overrides on every visual. The **Card/KPI/Gauge** column tracks each
+visual's specialized cards — e.g. Card's value/label live under **Labels**; its
+`wordWrap` card is what's still ☐. **Colors** = per-series / default data point,
+sentiment, ribbon bands, pie slices, shape fills, map data points. **Other** =
+reference lines, trend, **data & header tooltips** (all visuals), **small
+multiples** (cartesian charts), plot area, and the visual-specific cards for
+buttons / shapes / trees / maps / images (Stages 4-6).*
 
 ## Project layout
 
