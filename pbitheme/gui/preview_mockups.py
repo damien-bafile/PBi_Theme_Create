@@ -244,7 +244,8 @@ def _legend(x: int, y: int, colors: List[str], formatting: Dict[str, Any],
     cx, cy = x, y
     if _flag(formatting, "legendShowTitle", False):
         title = _txt(formatting, "legendTitleText", "Legend")
-        parts.append(f'<text x="{cx}" y="{cy}" font-size="{size}" fill="{color}" font-weight="bold"{" font-style=\"italic\"" if _flag(formatting, "legendItalic", False) else ""}>{_esc(title)}</text>')
+        title_italic = ' font-style="italic"' if _flag(formatting, "legendItalic", False) else ""
+        parts.append(f'<text x="{cx}" y="{cy}" font-size="{size}" fill="{color}" font-weight="bold"{title_italic}>{_esc(title)}</text>')
         if horizontal:
             cx += size + 6 + len(title) * size * 0.55
         else:
