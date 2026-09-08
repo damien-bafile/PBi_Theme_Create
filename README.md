@@ -203,6 +203,13 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   and **Filter**, **Group** & **Paginated (RDL)** (container background /
   border). Also fixed the **R-visual** mapping (`rVisual → scriptVisual`) so R
   themes actually apply. All export-only, schema-valid and round-tripping.
+- **Stage 9 — Typography depth — ✅ complete.** Property-level depth *within*
+  the chart cards already emitted: **bold / italic** (live previewed) and **font
+  family** on the X-axis, Y-axis, legend and data labels of every cartesian chart
+  (bar / column / line / area / stacked-area / combos / stacked / ribbon /
+  scatter / waterfall), plus value-axis **display units** and **decimal
+  precision**. Centralised in the shared axis / legend / label renderers, so all
+  chart types gained it at once.
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.
@@ -211,21 +218,21 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
 
 | Visual | Frame | Axes | Legend | Labels | Colors | Table | Card/KPI/Gauge | Slicer | Other | % |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
-| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
-| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
-| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 67% |
-| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
-| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
-| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
-| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
-| Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
-| 100% Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
-| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
-| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 69% |
-| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 67% |
-| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
-| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 72% |
+| Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
+| Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
+| Clustered Bar Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 70% |
+| Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 70% |
+| 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
+| 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
+| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
+| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
+| Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
+| 100% Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
+| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
+| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
+| Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
+| Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 73% |
+| Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 75% |
 | Pie Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 67% |
 | Donut Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 67% |
 | Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ◐ | 62% |

@@ -204,6 +204,24 @@ def main() -> int:
     check(sca.get("ratioLineShow") is True, "ratio line did not round-trip")
     check(sca.get("plotAreaTransparency") == 20, "plotArea did not round-trip")
 
+    # 10) Typography depth: bold / italic / font family + y-axis units/precision.
+    vs = build_visual_styles({"barChart": _style({
+        "xAxisBold": True, "xAxisItalic": True, "xAxisFontFamily": "Georgia",
+        "yAxisBold": True, "yAxisDisplayUnits": "1000", "yAxisPrecision": 2,
+        "legendItalic": True, "legendFontFamily": "Arial",
+        "dataLabelBold": True, "dataLabelFontFamily": "Tahoma",
+    })})
+    b = vs["barChart"]["*"]
+    check(b["categoryAxis"][0].get("bold") is True, "categoryAxis.bold missing")
+    check(b["categoryAxis"][0].get("fontFamily") == "Georgia", "categoryAxis.fontFamily missing")
+    check(b["valueAxis"][0].get("labelDisplayUnits") == 1000, "valueAxis.labelDisplayUnits missing")
+    check(b["valueAxis"][0].get("labelPrecision") == 2, "valueAxis.labelPrecision missing")
+    check(b["legend"][0].get("italic") is True, "legend.italic missing")
+    check(b["labels"][0].get("bold") is True, "labels.bold missing")
+    imp = import_visual_styles(vs)["barChart"]["*"]["formatting"]
+    check(imp.get("xAxisBold") is True and imp.get("yAxisDisplayUnits") == "1000",
+          "typography did not round-trip")
+
     print(f"Export invariants checked. Failures: {len(failures)}")
     if failures:
         for f in failures:

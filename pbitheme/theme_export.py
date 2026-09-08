@@ -126,6 +126,12 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(cat, "labelColor", _fill(fmt.get("xAxisLabelColor", "")))
         if "xAxisLabelFontSize" in fmt:
             cat["fontSize"] = fmt["xAxisLabelFontSize"]
+        if "xAxisBold" in fmt:
+            cat["bold"] = bool(fmt["xAxisBold"])
+        if "xAxisItalic" in fmt:
+            cat["italic"] = bool(fmt["xAxisItalic"])
+        if fmt.get("xAxisFontFamily"):
+            cat["fontFamily"] = fmt["xAxisFontFamily"]
         _set(cat, "titleColor", _fill(fmt.get("xAxisTitleColor", "")))
         if "xAxisTitleFontSize" in fmt:
             cat["titleFontSize"] = fmt["xAxisTitleFontSize"]
@@ -137,6 +143,16 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(val, "labelColor", _fill(fmt.get("yAxisLabelColor", "")))
         if "yAxisLabelFontSize" in fmt:
             val["fontSize"] = fmt["yAxisLabelFontSize"]
+        if "yAxisBold" in fmt:
+            val["bold"] = bool(fmt["yAxisBold"])
+        if "yAxisItalic" in fmt:
+            val["italic"] = bool(fmt["yAxisItalic"])
+        if fmt.get("yAxisFontFamily"):
+            val["fontFamily"] = fmt["yAxisFontFamily"]
+        if "yAxisDisplayUnits" in fmt:
+            val["labelDisplayUnits"] = int(fmt["yAxisDisplayUnits"])
+        if "yAxisPrecision" in fmt:
+            val["labelPrecision"] = int(fmt["yAxisPrecision"])
         _set(val, "titleColor", _fill(fmt.get("yAxisTitleColor", "")))
         if "yAxisTitleFontSize" in fmt:
             val["titleFontSize"] = fmt["yAxisTitleFontSize"]
@@ -158,6 +174,12 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(leg, "labelColor", _fill(fmt.get("legendTextColor", "")))
         if "legendFontSize" in fmt:
             leg["fontSize"] = fmt["legendFontSize"]
+        if "legendBold" in fmt:
+            leg["bold"] = bool(fmt["legendBold"])
+        if "legendItalic" in fmt:
+            leg["italic"] = bool(fmt["legendItalic"])
+        if fmt.get("legendFontFamily"):
+            leg["fontFamily"] = fmt["legendFontFamily"]
         if "legendShowTitle" in fmt:
             leg["showTitle"] = bool(fmt["legendShowTitle"])
         if fmt.get("legendTitleText"):
@@ -178,6 +200,12 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(lab, "color", _fill(fmt.get("dataLabelColor", "")))
         if "dataLabelFontSize" in fmt:
             lab["fontSize"] = fmt["dataLabelFontSize"]
+        if "dataLabelBold" in fmt:
+            lab["bold"] = bool(fmt["dataLabelBold"])
+        if "dataLabelItalic" in fmt:
+            lab["italic"] = bool(fmt["dataLabelItalic"])
+        if fmt.get("dataLabelFontFamily"):
+            lab["fontFamily"] = fmt["dataLabelFontFamily"]
         if app_key not in _SCATTER and "dataLabelBackground" in fmt:
             lab["enableBackground"] = bool(fmt["dataLabelBackground"])
         if app_key not in _SCATTER:
@@ -958,6 +986,12 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "xAxisLabelColor", _hex(cat, "labelColor"))
         if "fontSize" in cat:
             fmt["xAxisLabelFontSize"] = cat["fontSize"]
+        if "bold" in cat:
+            fmt["xAxisBold"] = bool(cat["bold"])
+        if "italic" in cat:
+            fmt["xAxisItalic"] = bool(cat["italic"])
+        if "fontFamily" in cat:
+            fmt["xAxisFontFamily"] = cat["fontFamily"]
         _put(fmt, "xAxisTitleColor", _hex(cat, "titleColor"))
         if "titleFontSize" in cat:
             fmt["xAxisTitleFontSize"] = cat["titleFontSize"]
@@ -967,6 +1001,16 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "yAxisLabelColor", _hex(val, "labelColor"))
         if "fontSize" in val:
             fmt["yAxisLabelFontSize"] = val["fontSize"]
+        if "bold" in val:
+            fmt["yAxisBold"] = bool(val["bold"])
+        if "italic" in val:
+            fmt["yAxisItalic"] = bool(val["italic"])
+        if "fontFamily" in val:
+            fmt["yAxisFontFamily"] = val["fontFamily"]
+        if "labelDisplayUnits" in val:
+            fmt["yAxisDisplayUnits"] = str(val["labelDisplayUnits"])
+        if "labelPrecision" in val:
+            fmt["yAxisPrecision"] = val["labelPrecision"]
         _put(fmt, "yAxisTitleColor", _hex(val, "titleColor"))
         if "titleFontSize" in val:
             fmt["yAxisTitleFontSize"] = val["titleFontSize"]
@@ -987,6 +1031,12 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "legendTextColor", _hex(leg, "labelColor"))
         if "fontSize" in leg:
             fmt["legendFontSize"] = leg["fontSize"]
+        if "bold" in leg:
+            fmt["legendBold"] = bool(leg["bold"])
+        if "italic" in leg:
+            fmt["legendItalic"] = bool(leg["italic"])
+        if "fontFamily" in leg:
+            fmt["legendFontFamily"] = leg["fontFamily"]
         if "showTitle" in leg:
             fmt["legendShowTitle"] = bool(leg["showTitle"])
         if "titleText" in leg:
@@ -995,6 +1045,12 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "dataLabelColor", _hex(lab, "color"))
         if "fontSize" in lab:
             fmt["dataLabelFontSize"] = lab["fontSize"]
+        if "bold" in lab:
+            fmt["dataLabelBold"] = bool(lab["bold"])
+        if "italic" in lab:
+            fmt["dataLabelItalic"] = bool(lab["italic"])
+        if "fontFamily" in lab:
+            fmt["dataLabelFontFamily"] = lab["fontFamily"]
         if "enableBackground" in lab:
             fmt["dataLabelBackground"] = bool(lab["enableBackground"])
         if "labelDisplayUnits" in lab:

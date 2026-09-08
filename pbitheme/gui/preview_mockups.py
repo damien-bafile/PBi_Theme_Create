@@ -222,18 +222,29 @@ def _title(width: int, default_text: str, default_color: str,
     return svg, consumed
 
 
+def _font_attrs(formatting: Dict[str, Any], bold_key: str, italic_key: str) -> str:
+    """Return the bold / italic SVG text attributes for a card's font styling."""
+    attrs = ""
+    if _flag(formatting, bold_key, False):
+        attrs += ' font-weight="bold"'
+    if _flag(formatting, italic_key, False):
+        attrs += ' font-style="italic"'
+    return attrs
+
+
 def _legend(x: int, y: int, colors: List[str], formatting: Dict[str, Any],
             generic: Dict[str, Any], horizontal: bool) -> List[str]:
     """Render a small 3-series legend at (x, y)."""
     gleg = (generic or {}).get("legend")
     color = gleg["color"] if gleg else _col(formatting, "legendTextColor", "#252423")
     size = int(_num(formatting, "legendFontSize", 10))
+    fa = _font_attrs(formatting, "legendBold", "legendItalic")
     names = ["Series A", "Series B", "Series C"]
     parts: List[str] = []
     cx, cy = x, y
     if _flag(formatting, "legendShowTitle", False):
         title = _txt(formatting, "legendTitleText", "Legend")
-        parts.append(f'<text x="{cx}" y="{cy}" font-size="{size}" fill="{color}" font-weight="bold">{_esc(title)}</text>')
+        parts.append(f'<text x="{cx}" y="{cy}" font-size="{size}" fill="{color}" font-weight="bold"{" font-style=\"italic\"" if _flag(formatting, "legendItalic", False) else ""}>{_esc(title)}</text>')
         if horizontal:
             cx += size + 6 + len(title) * size * 0.55
         else:
@@ -241,7 +252,7 @@ def _legend(x: int, y: int, colors: List[str], formatting: Dict[str, Any],
     for i, name in enumerate(names[: len(colors)]):
         parts.append(f'<rect x="{cx}" y="{cy - size + 2}" width="{size}" height="{size}" fill="{colors[i]}"/>')
         parts.append(
-            f'<text x="{cx + size + 3}" y="{cy}" font-size="{size}" fill="{color}">{name}</text>'
+            f'<text x="{cx + size + 3}" y="{cy}" font-size="{size}" fill="{color}"{fa}>{name}</text>'
         )
         if horizontal:
             cx += size + 12 + len(name) * size * 0.55
@@ -299,8 +310,9 @@ def _data_label(x: float, y: float, text: Any, formatting: Dict[str, Any],
         parts.append(
             f'<rect x="{x - 9:.1f}" y="{y - size:.1f}" width="18" height="{size + 3}" fill="#FFFFFF" opacity="0.7"/>'
         )
+    fa = _font_attrs(formatting, "dataLabelBold", "dataLabelItalic")
     parts.append(
-        f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{color}" text-anchor="middle">{_esc(text)}</text>'
+        f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{color}" text-anchor="middle"{fa}>{_esc(text)}</text>'
     )
     return parts
 
@@ -413,11 +425,12 @@ def _chart_base(
         for frac in (0.15, 0.30, 0.70, 0.85):
             gy = plot_b - frac * (plot_b - plot_t)
             parts.append(f'<line x1="{plot_l}" y1="{gy:.1f}" x2="{plot_r}" y2="{gy:.1f}" stroke="{fg}" stroke-width="0.4" stroke-dasharray="1,2" opacity="0.4"/>')
+    y_fa = _font_attrs(formatting, "yAxisBold", "yAxisItalic")
     for frac, val in y_ticks:
         gy = plot_b - frac * (plot_b - plot_t)
         parts.append(
             f'<text x="{plot_l - 4}" y="{gy + y_lab_size / 3:.1f}" font-size="{y_lab_size}" '
-            f'fill="{y_lab_color}" text-anchor="end">{val}</text>'
+            f'fill="{y_lab_color}" text-anchor="end"{y_fa}>{val}</text>'
         )
     y_title_color = _col(formatting, "yAxisTitleColor", fg)
     y_title_size = int(_num(formatting, "yAxisTitleFontSize", 8))
@@ -431,13 +444,14 @@ def _chart_base(
     # ---- X-axis labels + title ---- #
     x_lab_color = _col(formatting, "xAxisLabelColor", fg)
     x_lab_size = int(_num(formatting, "xAxisLabelFontSize", 8))
+    x_fa = _font_attrs(formatting, "xAxisBold", "xAxisItalic")
     cats = ["Q1", "Q2", "Q3", "Q4"]
     span = (plot_r - plot_l) / len(cats)
     for i, cat in enumerate(cats):
         cx = plot_l + span * (i + 0.5)
         parts.append(
             f'<text x="{cx:.1f}" y="{plot_b + x_lab_size + 4}" font-size="{x_lab_size}" '
-            f'fill="{x_lab_color}" text-anchor="middle">{cat}</text>'
+            f'fill="{x_lab_color}" text-anchor="middle"{x_fa}>{cat}</text>'
         )
     x_title_color = _col(formatting, "xAxisTitleColor", fg)
     x_title_size = int(_num(formatting, "xAxisTitleFontSize", 8))
