@@ -23,4 +23,4 @@ __all__ = [
     "unpack_data_labels_object", "unpack_legend_object",
     "merge_visual_style_entry"
 ]
-__version__ = "1.0.0"
+__version__ = "0.1.0"
