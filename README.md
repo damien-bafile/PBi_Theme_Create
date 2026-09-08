@@ -35,9 +35,14 @@ can also generate themes from scripts.
 
 ## Install & run
 
+**Windows users** can grab the standalone `PowerBI_Theme_Creator.exe` (no Python
+needed) from the [latest release](https://github.com/damien-bafile/PBi_Theme_Create/releases/latest).
+
+From source:
+
 ```bash
 pip install -e .        # installs PySide6 + jsonschema
-python main.py
+python main.py          # or: pbitheme  /  python -m pbitheme
 ```
 
 Requires Python 3.8+ and PySide6.
@@ -79,6 +84,29 @@ theme.data_colors = ["#118DFF", "#12239E", "#E66C37"]
 theme.background = "#FFFFFF"
 theme.save("corporate.json")
 ```
+
+## Releasing
+
+Releases are cut by the **Build** workflow (`.github/workflows/build.yml`),
+which builds the Windows `.exe` and the wheel/sdist and publishes a GitHub
+Release with those files attached. There are two ways to trigger it:
+
+- **Push a version tag** (from a machine with tag-push rights):
+
+  ```bash
+  git tag v0.1.0
+  git push origin v0.1.0
+  ```
+
+- **Run it manually** — GitHub → **Actions → Build → Run workflow**, and set the
+  **version** input (e.g. `v0.1.0`). This creates the tag on the chosen commit,
+  builds the artifacts, and publishes the release. Leaving **version** blank
+  just builds the artifacts (downloadable from the run) without releasing.
+
+Before releasing, bump `version` in `pyproject.toml` to match the tag. Release
+notes are auto-generated from merged PRs; edit them on the release afterwards if
+needed. The published assets are `PowerBI_Theme_Creator.exe`,
+`pbitheme-<version>-py3-none-any.whl` and `pbitheme-<version>.tar.gz`.
 
 ## Power BI theme coverage
 
