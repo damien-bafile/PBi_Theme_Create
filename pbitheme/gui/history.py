@@ -63,6 +63,12 @@ class ThemeHistory:
         state = self._redo_stack.pop()
         return state
 
+    def append_undo(self, theme: PowerBITheme) -> None:
+        """Append to the undo stack WITHOUT clearing redo (used when redoing)."""
+        self._undo_stack.append(copy.deepcopy(theme))
+        if len(self._undo_stack) > self._max_size:
+            self._undo_stack.pop(0)
+
     def save_for_redo(self, theme: PowerBITheme) -> None:
         """Save the current theme to redo stack before undoing.
 

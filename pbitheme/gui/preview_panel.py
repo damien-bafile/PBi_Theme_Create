@@ -18,6 +18,7 @@ from PySide6.QtSvgWidgets import QSvgWidget
 
 from ..model import PowerBITheme
 from .preview_mockups import generate_all_mockups
+from .theme import BORDER_HAIRLINE
 
 
 class PreviewPanel(QWidget):
@@ -57,7 +58,7 @@ class PreviewPanel(QWidget):
             # Small minimum so a single narrow column never triggers horizontal scroll;
             # the SVG scales up to fill whatever width the pane offers.
             svg_widget.setMinimumSize(220, 150)
-            svg_widget.setStyleSheet("border: 1px solid #ddd; border-radius: 4px;")
+            svg_widget.setStyleSheet(f"border: 1px solid {BORDER_HAIRLINE}; border-radius: 4px;")
             self._svg_widgets[key] = svg_widget
 
         self._columns = 0  # force first layout

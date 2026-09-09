@@ -10,10 +10,6 @@ TEXT_STRONG = "#000000"
 BORDER_SUBTLE = "#888888"
 SURFACE_BACKGROUND = "#FFFFFF"
 
-# Luminance threshold for auto-selecting text color (light/dark) on colored backgrounds
-# Colors with luminance > threshold get dark text (#000000), otherwise light text (#FFFFFF)
-LUMINANCE_THRESHOLD = 140
-
 # Light "workshop" surface tokens (DESIGN.md) used by the forced app palette.
 SURFACE_ALT = "#F3F2F1"      # panels / alternate rows
 BORDER_HAIRLINE = "#E1DFDD"

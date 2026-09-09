@@ -190,6 +190,27 @@ class VisualFormatterPanel(QWidget):
                 values[key] = widget.text()
         return values
 
+    def reset_to_defaults(self) -> None:
+        """Reset every field to its configured default (used by Clear All Overrides)."""
+        sections = get_formatting_sections(self._visual_key) or []
+        for section in sections:
+            for field in section.fields:
+                widget = self._field_widgets.get(field.key)
+                if widget is None:
+                    continue
+                if isinstance(widget, ColorButton):
+                    widget.set_color(field.default or "#FFFFFF")
+                elif isinstance(widget, QCheckBox):
+                    widget.setChecked(bool(field.default))
+                elif isinstance(widget, QSpinBox):
+                    widget.setValue(int(field.default or 0))
+                elif isinstance(widget, QComboBox):
+                    idx = widget.findData(field.default) if field.default is not None else 0
+                    widget.setCurrentIndex(idx if idx >= 0 else 0)
+                elif isinstance(widget, QLineEdit):
+                    widget.setText(str(field.default or ""))
+        self.values_changed.emit()
+
     def set_values(self, values: Dict[str, Any]) -> None:
         """Populate widgets from values dict."""
         for key, value in values.items():

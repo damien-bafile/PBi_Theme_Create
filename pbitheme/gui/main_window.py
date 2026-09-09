@@ -35,6 +35,21 @@ from .preview_panel import PreviewPanel
 from .history import ThemeHistory
 
 
+# Plain-language hints for the Power BI structural colour classes (P3: jargon).
+_STRUCTURAL_TIPS = {
+    "foreground": "Default text and label colour on visuals.",
+    "second_level": "Secondary / muted text (axis labels, subtitles).",
+    "third_level": "Gridlines and grid backgrounds.",
+    "fourth_level": "Dimmed elements and inactive category text.",
+    "background": "Visual and page background.",
+    "secondary_background": "Secondary surfaces (e.g. slicer panes, headers).",
+    "table_accent": "Accent colour for table/matrix headers and highlights.",
+    "good": "Positive / on-target sentiment (KPIs, conditional formatting).",
+    "neutral": "Neutral sentiment.",
+    "bad": "Negative / off-target sentiment.",
+}
+
+
 class MainWindow(QMainWindow):
     """Edit a :class:`PowerBITheme` on the left, preview its JSON on the right."""
 
@@ -51,6 +66,7 @@ class MainWindow(QMainWindow):
         self._skip_history_record = False  # Flag to prevent recording during undo/redo
         self._dirty = False
         self._loading = False  # suppress dirty-marking while pushing a theme into widgets
+        self._committed: PowerBITheme | None = None  # last committed snapshot (undo baseline)
 
         self.setWindowTitle("Power BI Theme Creator")
         self.resize(1000, 720)
@@ -61,6 +77,7 @@ class MainWindow(QMainWindow):
         self._load_from_theme(self._theme)
         self._refresh_preview()
         self._loading = False
+        self._committed = self._collect_theme()
         self._set_dirty(False)
 
     # ------------------------------------------------------------------ #
@@ -133,6 +150,8 @@ class MainWindow(QMainWindow):
         general_layout = QFormLayout(general_box)
         self._name_edit = QLineEdit()
         self._name_edit.textChanged.connect(self._refresh_preview)
+        # Commit one undo step per name edit (on focus-out / Enter, not per keystroke).
+        self._name_edit.editingFinished.connect(self._record_history)
         general_layout.addRow("Theme name", self._name_edit)
         form.addWidget(general_box)
 
@@ -142,6 +161,10 @@ class MainWindow(QMainWindow):
         for attr, _key, label, default in PowerBITheme.STRUCTURAL_FIELDS:
             button = ColorButton(default, label=label)
             button.colorChanged.connect(lambda _c: self._refresh_preview())
+            button.colorChanged.connect(lambda _c: self._record_history())
+            tip = _STRUCTURAL_TIPS.get(attr)
+            if tip:
+                button.setToolTip(tip)
             self._structural_buttons[attr] = button
             struct_layout.addRow(label, button)
         form.addWidget(struct_box)
@@ -152,6 +175,7 @@ class MainWindow(QMainWindow):
         for attr, _key, label, default in PowerBITheme.GRADIENT_FIELDS:
             button = ColorButton(default, label=label)
             button.colorChanged.connect(lambda _c: self._refresh_preview())
+            button.colorChanged.connect(lambda _c: self._record_history())
             self._structural_buttons[attr] = button
             gradient_layout.addRow(label, button)
         form.addWidget(gradient_box)
@@ -161,6 +185,7 @@ class MainWindow(QMainWindow):
         data_layout = QVBoxLayout(data_box)
         self._data_editor = DataColorsEditor(self._theme.data_colors)
         self._data_editor.changed.connect(self._refresh_preview)
+        self._data_editor.changed.connect(self._record_history)
         data_layout.addWidget(self._data_editor)
         form.addWidget(data_box)
 
@@ -170,17 +195,20 @@ class MainWindow(QMainWindow):
         for name, tc in self._theme.text_classes.items():
             editor = TextClassEditor(tc)
             editor.changed.connect(self._refresh_preview)
+            editor.changed.connect(self._record_history)
             self._text_editors[name] = editor
             text_layout.addRow(name.capitalize(), editor)
         form.addWidget(text_box)
 
-        # Visual styles
+        # Visual styles — the product's headline capability, so surface it near
+        # the top of the form (right after General) instead of below every colour
+        # and text section where it fell off the initial fold.
         visual_box = QGroupBox("Visual styles")
         visual_layout = QVBoxLayout(visual_box)
         self._visual_checklist = VisualStylesChecklist()
         self._visual_checklist.visualRequested.connect(self._on_edit_visual_style)
         visual_layout.addWidget(self._visual_checklist)
-        form.addWidget(visual_box)
+        form.insertWidget(1, visual_box)
 
         form.addStretch(1)
 
@@ -307,10 +335,17 @@ class MainWindow(QMainWindow):
             event.ignore()
 
     def _record_history(self) -> None:
-        """Record current theme state for undo (unless skipped during undo/redo)."""
-        if self._skip_history_record:
+        """Commit an edit: push the pre-edit baseline for undo, then rebase.
+
+        Recording the *previous* committed state (not the current one) is what
+        makes Ctrl+Z actually step back one edit. Skipped during load and during
+        undo/redo playback.
+        """
+        if self._skip_history_record or self._loading:
             return
-        self._history.push(self._collect_theme())
+        if self._committed is not None:
+            self._history.push(self._committed)
+        self._committed = self._collect_theme()
         self._update_history_actions()
 
     def _update_history_actions(self) -> None:
@@ -333,6 +368,7 @@ class MainWindow(QMainWindow):
         self._load_from_theme(PowerBITheme())
         self._refresh_preview()
         self._loading = False
+        self._committed = self._collect_theme()
         self._set_dirty(False)
         self._update_title()
         self.statusBar().showMessage("New theme")
@@ -373,6 +409,7 @@ class MainWindow(QMainWindow):
         self._load_from_theme(theme)
         self._refresh_preview()
         self._loading = False
+        self._committed = self._collect_theme()
         self._set_dirty(False)
         self._update_title()
         self.statusBar().showMessage(f"Opened {os.path.basename(path)}")
@@ -469,32 +506,39 @@ class MainWindow(QMainWindow):
             self._record_history()
             self._refresh_preview()
 
+    def _apply_history_state(self, theme: PowerBITheme) -> None:
+        """Load a theme from history without recording it as a new edit."""
+        self._committed = copy.deepcopy(theme)
+        self._skip_history_record = True
+        self._loading = True
+        self._load_from_theme(theme)
+        self._refresh_preview()
+        self._loading = False
+        self._skip_history_record = False
+        self._set_dirty(True)
+        self._update_title()
+        self._update_history_actions()
+
     def _on_undo(self) -> None:
-        """Undo the last theme change."""
+        """Undo the last theme change (restore the previous committed state)."""
         if not self._history.can_undo():
             return
-        # Save current state for redo
-        self._history.save_for_redo(self._theme)
-        # Get previous state
+        # Current committed state becomes available for redo.
+        self._history.save_for_redo(self._committed if self._committed is not None else self._collect_theme())
         prev_theme = self._history.undo()
-        if prev_theme:
-            self._skip_history_record = True
-            self._load_from_theme(prev_theme)
-            self._refresh_preview()
-            self._skip_history_record = False
+        if prev_theme is not None:
+            self._apply_history_state(prev_theme)
             self.statusBar().showMessage("Undo")
 
     def _on_redo(self) -> None:
         """Redo the last undone change."""
         if not self._history.can_redo():
             return
-        # Get next state
+        # Keep the current state on the undo stack (without clearing redo).
+        self._history.append_undo(self._committed if self._committed is not None else self._collect_theme())
         next_theme = self._history.redo()
-        if next_theme:
-            self._skip_history_record = True
-            self._load_from_theme(next_theme)
-            self._refresh_preview()
-            self._skip_history_record = False
+        if next_theme is not None:
+            self._apply_history_state(next_theme)
             self.statusBar().showMessage("Redo")
 
     def _on_save_screenshot(self) -> None:

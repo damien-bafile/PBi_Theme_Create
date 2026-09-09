@@ -232,6 +232,32 @@ def test_visual_styles():
     print("  ✓ Standard visual types present")
 
 
+def test_undo_and_clear_all():
+    """Test 7: undo covers colour edits, and Clear All resets Visual Formatting."""
+    print("\n✓ Test 7: Undo coverage + Clear All Overrides")
+    from pbitheme.driver import AppDriver
+
+    d = AppDriver()
+    w = d.window
+    before = w._structural_buttons["foreground"].color()
+    w._structural_buttons["foreground"].set_color("#ABCDEF")
+    w._structural_buttons["foreground"].colorChanged.emit("#ABCDEF")
+    assert w._collect_theme().foreground == "#ABCDEF", "colour edit did not apply"
+    assert w._history.can_undo(), "colour edit was not recorded for undo"
+    w._on_undo()
+    assert w._collect_theme().foreground == before, "undo did not revert the colour edit"
+    print("  ✓ Undo reverts a structural-colour edit")
+
+    dlg = d.open_visual_dialog("barChart")
+    dlg._formatter_panel.set_values({"xAxisLabelColor": "#111111", "dataLabelBold": True})
+    dlg._note_touch()
+    dlg._clear_all()
+    vals = dlg._formatter_panel.get_values()
+    assert vals.get("xAxisLabelColor") == "#252423", "Clear All did not reset Visual Formatting colour"
+    assert vals.get("dataLabelBold") is False, "Clear All did not reset Visual Formatting toggle"
+    print("  ✓ Clear All Overrides resets the Visual Formatting tab")
+
+
 def run_all_tests():
     """Run all feature tests."""
     print("=" * 60)
@@ -245,6 +271,7 @@ def run_all_tests():
         test_accessibility()
         test_theme_model()
         test_visual_styles()
+        test_undo_and_clear_all()
 
         print("\n" + "=" * 60)
         print("✅ ALL TESTS PASSED!")

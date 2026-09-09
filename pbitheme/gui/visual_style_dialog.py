@@ -148,10 +148,24 @@ class VisualStyleDialog(QDialog):
             self._formatter_panel = VisualFormatterPanel(
                 visual_key, max_columns=self._section_columns
             )
+            # Make the override model explicit: unlike the Generic Overrides tab
+            # (opt-in per section), these fields export together once the visual is
+            # customized. The live preview + JSON show exactly what will be written.
+            fmt_container = QWidget()
+            fmt_v = QVBoxLayout(fmt_container)
+            fmt_v.setContentsMargins(0, 0, 0, 0)
+            fmt_note = QLabel(
+                "These settings are written as a set when this visual is customized. "
+                "Use “Clear All Overrides” to return everything to defaults."
+            )
+            fmt_note.setWordWrap(True)
+            fmt_note.setStyleSheet("color: #605E5C; padding: 4px 2px;")
+            fmt_v.addWidget(fmt_note)
             formatter_scroll = QScrollArea()
             formatter_scroll.setWidget(self._formatter_panel)
             formatter_scroll.setWidgetResizable(True)
-            tabs.addTab(formatter_scroll, "Visual Formatting")
+            fmt_v.addWidget(formatter_scroll, 1)
+            tabs.addTab(fmt_container, "Visual Formatting")
 
         # Tab 2: Generic overrides. Sections are collected into a list and then
         # arranged in balanced columns so the tab stays compact.
@@ -521,7 +535,7 @@ class VisualStyleDialog(QDialog):
 
         self._preview_svg = QSvgWidget()
         self._preview_svg.setMinimumSize(250, 250)
-        self._preview_svg.setStyleSheet("border: 1px solid #ddd; border-radius: 4px; background: white;")
+        self._preview_svg.setStyleSheet(f"border: 1px solid {theme.BORDER_HAIRLINE}; border-radius: 4px; background: white;")
         right_layout.addWidget(self._preview_svg)
         right_layout.addStretch()
 
@@ -678,7 +692,12 @@ class VisualStyleDialog(QDialog):
         self._general_check.setChecked(False)
         self._tooltip_check.setChecked(False)
         self._htooltip_check.setChecked(False)
+        # "All" must include the Visual Formatting tab, not just the generic
+        # overrides — otherwise the Advanced JSON box no longer tells the truth.
+        if self._formatter_panel:
+            self._formatter_panel.reset_to_defaults()
         self._advanced_edit.setPlainText("{}")
+        self._update_preview()
 
     def _build_overrides(self) -> Dict[str, Any]:
         """Collect the current formatting + generic overrides into one dict.
