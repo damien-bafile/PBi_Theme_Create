@@ -208,8 +208,10 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   family** on the X-axis, Y-axis, legend and data labels of every cartesian chart
   (bar / column / line / area / stacked-area / combos / stacked / ribbon /
   scatter / waterfall), plus value-axis **display units** and **decimal
-  precision**. Centralised in the shared axis / legend / label renderers, so all
-  chart types gained it at once.
+  precision**. Extended the same **bold / italic / font family** to the **pie /
+  donut / treemap** legends & data labels and the **funnel** data labels.
+  Centralised in the shared axis / legend / label renderers, so all these visuals
+  gained it at once.
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.
@@ -233,10 +235,10 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
 | Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
 | Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 73% |
 | Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 75% |
-| Pie Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 67% |
-| Donut Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 67% |
-| Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ◐ | 62% |
-| Funnel | ✅ | ☐ | — | ✅ | ✅ | — | — | — | ◐ | 65% |
+| Pie Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 70% |
+| Donut Chart | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 70% |
+| Treemap | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ◐ | 65% |
+| Funnel | ✅ | ☐ | — | ✅ | ✅ | — | — | — | ◐ | 67% |
 | Gauge | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | — | ◐ | 74% |
 | Card | ✅ | — | — | ✅ | — | — | ☐ | — | ◐ | 65% |
 | Multi-row Card | ✅ | — | — | ✅ | — | — | ☐ | — | ◐ | 62% |

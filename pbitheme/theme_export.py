@@ -88,6 +88,28 @@ def _set(card: Dict[str, Any], key: str, value: Any) -> None:
         card[key] = value
 
 
+def _apply_font_style(card: Dict[str, Any], fmt: Dict[str, Any],
+                      bold_key: str, italic_key: str, family_key: str) -> None:
+    """Copy bold / italic / font-family formatting onto a text card."""
+    if bold_key in fmt:
+        card["bold"] = bool(fmt[bold_key])
+    if italic_key in fmt:
+        card["italic"] = bool(fmt[italic_key])
+    if fmt.get(family_key):
+        card["fontFamily"] = fmt[family_key]
+
+
+def _read_font_style(card: Dict[str, Any], fmt: Dict[str, Any],
+                     bold_key: str, italic_key: str, family_key: str) -> None:
+    """Inverse of :func:`_apply_font_style` -- read bold / italic / font-family."""
+    if "bold" in card:
+        fmt[bold_key] = bool(card["bold"])
+    if "italic" in card:
+        fmt[italic_key] = bool(card["italic"])
+    if "fontFamily" in card:
+        fmt[family_key] = card["fontFamily"]
+
+
 def _state_entry(entries: Any, state: str) -> Dict[str, Any]:
     """Return the ``$id``-keyed state object (``default`` / ``hover`` ...) or ``{}``."""
     if isinstance(entries, list):
@@ -264,12 +286,14 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(leg, "labelColor", _fill(fmt.get("legendTextColor", "")))
         if "legendFontSize" in fmt:
             leg["fontSize"] = fmt["legendFontSize"]
+        _apply_font_style(leg, fmt, "legendBold", "legendItalic", "legendFontFamily")
         lab = card("labels")
         if "showDataLabels" in fmt:
             lab["show"] = bool(fmt["showDataLabels"])
         _set(lab, "color", _fill(fmt.get("dataLabelColor", "")))
         if "dataLabelFontSize" in fmt:
             lab["fontSize"] = fmt["dataLabelFontSize"]
+        _apply_font_style(lab, fmt, "dataLabelBold", "dataLabelItalic", "dataLabelFontFamily")
         # Slices (pie/donut only -- treemap has no slices card).
         if app_key in _PIE:
             sl = card("slices")
@@ -287,6 +311,7 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(lab, "color", _fill(fmt.get("dataLabelColor", "")))
         if "dataLabelFontSize" in fmt:
             lab["fontSize"] = fmt["dataLabelFontSize"]
+        _apply_font_style(lab, fmt, "dataLabelBold", "dataLabelItalic", "dataLabelFontFamily")
 
     # ---- Gauge: axis range, fill, target, callout ---- #
     elif app_key in _GAUGE:
@@ -1105,12 +1130,14 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "legendTextColor", _hex(leg, "labelColor"))
         if "fontSize" in leg:
             fmt["legendFontSize"] = leg["fontSize"]
+        _read_font_style(leg, fmt, "legendBold", "legendItalic", "legendFontFamily")
         lab = c("labels")
         if "show" in lab:
             fmt["showDataLabels"] = bool(lab["show"])
         _put(fmt, "dataLabelColor", _hex(lab, "color"))
         if "fontSize" in lab:
             fmt["dataLabelFontSize"] = lab["fontSize"]
+        _read_font_style(lab, fmt, "dataLabelBold", "dataLabelItalic", "dataLabelFontFamily")
         if app_key in _PIE:
             sl = c("slices")
             if "startAngle" in sl:
@@ -1126,6 +1153,7 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "dataLabelColor", _hex(lab, "color"))
         if "fontSize" in lab:
             fmt["dataLabelFontSize"] = lab["fontSize"]
+        _read_font_style(lab, fmt, "dataLabelBold", "dataLabelItalic", "dataLabelFontFamily")
 
     elif app_key in _GAUGE:
         ax = c("axis")

@@ -222,6 +222,22 @@ def main() -> int:
     check(imp.get("xAxisBold") is True and imp.get("yAxisDisplayUnits") == "1000",
           "typography did not round-trip")
 
+    # 11) Typography depth on non-chart chart-likes (pie / treemap / funnel).
+    vs = build_visual_styles({
+        "pieChart": _style({"legendBold": True, "dataLabelItalic": True,
+                            "dataLabelFontFamily": "Arial"}),
+        "treemap": _style({"legendItalic": True, "dataLabelBold": True}),
+        "funnel": _style({"dataLabelBold": True, "dataLabelFontFamily": "Tahoma"}),
+    })
+    check(vs["pieChart"]["*"]["legend"][0].get("bold") is True, "pie legend.bold missing")
+    check(vs["pieChart"]["*"]["labels"][0].get("italic") is True, "pie labels.italic missing")
+    check(vs["pieChart"]["*"]["labels"][0].get("fontFamily") == "Arial", "pie labels.fontFamily missing")
+    check(vs["treemap"]["*"]["labels"][0].get("bold") is True, "treemap labels.bold missing")
+    check(vs["funnel"]["*"]["labels"][0].get("fontFamily") == "Tahoma", "funnel labels.fontFamily missing")
+    pie_imp = import_visual_styles(vs)["pieChart"]["*"]["formatting"]
+    check(pie_imp.get("legendBold") is True and pie_imp.get("dataLabelItalic") is True,
+          "pie typography did not round-trip")
+
     print(f"Export invariants checked. Failures: {len(failures)}")
     if failures:
         for f in failures:

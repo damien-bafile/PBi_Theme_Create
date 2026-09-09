@@ -781,6 +781,7 @@ def generate_pie_chart_svg(theme, formatting=None, generic=None, width=300, heig
     show_labels = _flag(formatting, "showDataLabels", True)
     dl_color = _col(formatting, "dataLabelColor", "#FFFFFF")
     dl_size = int(_num(formatting, "dataLabelFontSize", 9))
+    dl_fa = _font_attrs(formatting, "dataLabelBold", "dataLabelItalic")
     angle = 90.0 - _num(formatting, "sliceStartAngle", 0)  # start at top, offset by start angle
     for i, v in enumerate(vals):
         sweep = 360.0 * v / total
@@ -790,7 +791,7 @@ def generate_pie_chart_svg(theme, formatting=None, generic=None, width=300, heig
             lx, ly = _pt(cx, cy, (r + inner) / 2 if donut else r * 0.62, mid)
             parts.append(
                 f'<text x="{lx:.1f}" y="{ly + dl_size / 3:.1f}" font-size="{dl_size}" fill="{dl_color}" '
-                f'text-anchor="middle">{round(100 * v / total)}%</text>'
+                f'text-anchor="middle"{dl_fa}>{round(100 * v / total)}%</text>'
             )
         angle += sweep
 
@@ -895,6 +896,7 @@ def generate_treemap_svg(theme, formatting=None, generic=None, width=300, height
     show_labels = _flag(formatting, "showDataLabels", True)
     dl_color = _col(formatting, "dataLabelColor", "#FFFFFF")
     dl_size = int(_num(formatting, "dataLabelFontSize", 9))
+    dl_fa = _font_attrs(formatting, "dataLabelBold", "dataLabelItalic")
 
     # Simple slice-and-dice: big box left, remainder stacked on the right.
     total = sum(v for _, v in cats)
@@ -916,7 +918,7 @@ def generate_treemap_svg(theme, formatting=None, generic=None, width=300, height
         parts.append(f'<rect x="{bx:.1f}" y="{by:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="{color}" stroke="#FFFFFF" stroke-width="1.5"/>')
         if show_labels and bw > 16 and bh > 12:
             parts.append(
-                f'<text x="{bx + 5:.1f}" y="{by + dl_size + 3:.1f}" font-size="{dl_size}" fill="{dl_color}">{_esc(lab)}</text>'
+                f'<text x="{bx + 5:.1f}" y="{by + dl_size + 3:.1f}" font-size="{dl_size}" fill="{dl_color}"{dl_fa}>{_esc(lab)}</text>'
             )
 
     if legend_pos in ("Top", "Bottom"):
@@ -943,6 +945,7 @@ def generate_funnel_svg(theme, formatting=None, generic=None, width=300, height=
     show_labels = _flag(formatting, "showDataLabels", True)
     dl_color = _col(formatting, "dataLabelColor", "#FFFFFF")
     dl_size = int(_num(formatting, "dataLabelFontSize", 9))
+    dl_fa = _font_attrs(formatting, "dataLabelBold", "dataLabelItalic")
 
     max_w = width * 0.8
     cx = width / 2
@@ -956,7 +959,7 @@ def generate_funnel_svg(theme, formatting=None, generic=None, width=300, height=
         if show_labels:
             parts.append(
                 f'<text x="{cx:.1f}" y="{y + bh / 2 + dl_size / 3:.1f}" font-size="{dl_size}" fill="{dl_color}" '
-                f'text-anchor="middle">{_esc(label)}: {v}</text>'
+                f'text-anchor="middle"{dl_fa}>{_esc(label)}: {v}</text>'
             )
         y += bh + gap
     parts.append(title_svg)

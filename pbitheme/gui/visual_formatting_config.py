@@ -367,6 +367,9 @@ PIE_SECTIONS = [
                        options=[("Top", "Top"), ("Bottom", "Bottom"), ("Left", "Left"), ("Right", "Right")]),
             FormatField("legendTextColor", "Text Color", "color", default="#252423"),
             FormatField("legendFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
+            FormatField("legendBold", "Bold", "boolean", default=False),
+            FormatField("legendItalic", "Italic", "boolean", default=False),
+            FormatField("legendFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
     FormatSection(
@@ -375,6 +378,9 @@ PIE_SECTIONS = [
             FormatField("showDataLabels", "Show Labels", "boolean", default=True),
             FormatField("dataLabelColor", "Color", "color", default="#FFFFFF"),
             FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=6, max_val=16, suffix="pt"),
+            FormatField("dataLabelBold", "Bold", "boolean", default=False),
+            FormatField("dataLabelItalic", "Italic", "boolean", default=False),
+            FormatField("dataLabelFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
     FormatSection(
@@ -422,6 +428,9 @@ TREEMAP_SECTIONS = [
                        options=[("Top", "Top"), ("Bottom", "Bottom"), ("Left", "Left"), ("Right", "Right")]),
             FormatField("legendTextColor", "Text Color", "color", default="#252423"),
             FormatField("legendFontSize", "Font Size (pt)", "number", min_val=8, max_val=16, suffix="pt"),
+            FormatField("legendBold", "Bold", "boolean", default=False),
+            FormatField("legendItalic", "Italic", "boolean", default=False),
+            FormatField("legendFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
     FormatSection(
@@ -430,11 +439,14 @@ TREEMAP_SECTIONS = [
             FormatField("showDataLabels", "Show Labels", "boolean", default=True),
             FormatField("dataLabelColor", "Color", "color", default="#FFFFFF"),
             FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=6, max_val=16, suffix="pt"),
+            FormatField("dataLabelBold", "Bold", "boolean", default=False),
+            FormatField("dataLabelItalic", "Italic", "boolean", default=False),
+            FormatField("dataLabelFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
 ]
 
-# Funnel -- decreasing stages; bar colour + data labels.
+# Funnel -- decreasing stages; bar colour + data labels (no legend card).
 FUNNEL_SECTIONS = [
     FormatSection(
         "Bars",
@@ -448,6 +460,9 @@ FUNNEL_SECTIONS = [
             FormatField("showDataLabels", "Show Labels", "boolean", default=True),
             FormatField("dataLabelColor", "Color", "color", default="#FFFFFF"),
             FormatField("dataLabelFontSize", "Font Size (pt)", "number", min_val=6, max_val=16, suffix="pt"),
+            FormatField("dataLabelBold", "Bold", "boolean", default=False),
+            FormatField("dataLabelItalic", "Italic", "boolean", default=False),
+            FormatField("dataLabelFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
 ]
