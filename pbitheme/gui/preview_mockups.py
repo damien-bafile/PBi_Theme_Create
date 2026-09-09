@@ -576,25 +576,54 @@ def generate_line_chart_svg(
     return "\n".join(parts)
 
 
-def generate_area_chart_svg(theme, formatting=None, generic=None, width=300, height=200):
-    """Line chart with the area under each series filled."""
+def generate_area_chart_svg(theme, formatting=None, generic=None, width=300, height=200,
+                            label="Area Chart", stacked=False, percent=False):
+    """Area chart: overlapping filled areas, or stacked / 100%-stacked bands."""
     formatting, generic = formatting or {}, generic or {}
     colors = _series_colors(theme, 3, formatting)
-    parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, "Area Chart")
+    parts, pl, pt, pr, pb = _chart_base(theme, formatting, generic, width, height, label)
     series = [[40, 55, 50, 70, 65, 80], [30, 40, 45, 55, 60, 68], [20, 28, 35, 42, 48, 58]]
     scale = (pb - pt) / 100.0
+    full = pb - pt
     n = len(series[0])
     step = (pr - pl) / (n - 1)
-    for si in reversed(range(len(series))):  # back-to-front so fills overlap nicely
-        line = series[si]
-        pts = [(pl + i * step, pb - v * scale) for i, v in enumerate(line)]
-        poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
-        area = f"{pl:.1f},{pb:.1f} " + poly + f" {pr:.1f},{pb:.1f}"
-        parts.append(f'<polygon points="{area}" fill="{colors[si]}" opacity="0.35"/>')
-        parts.append(f'<polyline points="{poly}" fill="none" stroke="{colors[si]}" stroke-width="2"/>')
-    if _labels_on(formatting, generic):
-        for i, v in enumerate(series[0]):
-            parts += _data_label(pl + i * step, pb - v * scale - 3, v, formatting, generic)
+
+    if stacked:
+        col_tot = [sum(series[s][i] for s in range(len(series))) for i in range(n)]
+        cum = [0.0] * n
+        top_pts = None
+        for si in range(len(series)):
+            lower, upper = [], []
+            for i in range(n):
+                base, top = cum[i], cum[i] + series[si][i]
+                if percent:
+                    ly = pb - full * (base / col_tot[i])
+                    uy = pb - full * (top / col_tot[i])
+                else:
+                    ly, uy = pb - base * scale, pb - top * scale
+                lower.append((pl + i * step, ly))
+                upper.append((pl + i * step, uy))
+                cum[i] = top
+            band = (" ".join(f"{x:.1f},{y:.1f}" for x, y in upper) + " "
+                    + " ".join(f"{x:.1f},{y:.1f}" for x, y in reversed(lower)))
+            parts.append(f'<polygon points="{band}" fill="{colors[si]}" opacity="0.8"/>')
+            parts.append(f'<polyline points="{" ".join(f"{x:.1f},{y:.1f}" for x, y in upper)}" '
+                         f'fill="none" stroke="{colors[si]}" stroke-width="1.5"/>')
+            top_pts = upper
+        if _labels_on(formatting, generic) and top_pts:
+            for i, (x, y) in enumerate(top_pts):
+                val = 100.0 if percent else col_tot[i]
+                parts += _data_label(x, y - 3, val, formatting, generic)
+    else:
+        for si in reversed(range(len(series))):  # back-to-front so fills overlap nicely
+            pts = [(pl + i * step, pb - v * scale) for i, v in enumerate(series[si])]
+            poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+            area = f"{pl:.1f},{pb:.1f} " + poly + f" {pr:.1f},{pb:.1f}"
+            parts.append(f'<polygon points="{area}" fill="{colors[si]}" opacity="0.35"/>')
+            parts.append(f'<polyline points="{poly}" fill="none" stroke="{colors[si]}" stroke-width="2"/>')
+        if _labels_on(formatting, generic):
+            for i, v in enumerate(series[0]):
+                parts += _data_label(pl + i * step, pb - v * scale - 3, v, formatting, generic)
     parts.append("</svg>")
     return "\n".join(parts)
 
@@ -1596,6 +1625,146 @@ def generate_text_svg(theme, formatting=None, generic=None, width=300, height=20
     return "\n".join(parts)
 
 
+def generate_scorecard_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Scorecard (Goals): metric rows with current value, target and a status dot."""
+    generic = generic or {}
+    fg = theme.foreground
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Scorecard", fg, generic)
+    rows = [("Revenue", "$1.2M", "$1.0M", theme.good),
+            ("Churn", "6.4%", "5.0%", theme.bad),
+            ("NPS", "48", "45", theme.good)]
+    y = top + 6
+    rh = min(30, (height - top - 10) / len(rows))
+    parts.append(f'<text x="12" y="{y + 8:.0f}" font-size="9" fill="#8A8886">Metric</text>')
+    parts.append(f'<text x="{width - 90:.0f}" y="{y + 8:.0f}" font-size="9" fill="#8A8886">Value</text>')
+    parts.append(f'<text x="{width - 40:.0f}" y="{y + 8:.0f}" font-size="9" fill="#8A8886">Goal</text>')
+    y += 14
+    for name, val, goal, dot in rows:
+        parts.append(f'<circle cx="17" cy="{y + rh / 2:.0f}" r="4" fill="{dot}"/>')
+        parts.append(f'<text x="28" y="{y + rh / 2 + 4:.0f}" font-size="11" fill="{fg}">{_esc(name)}</text>')
+        parts.append(f'<text x="{width - 90:.0f}" y="{y + rh / 2 + 4:.0f}" font-size="11" fill="{fg}" font-weight="bold">{_esc(val)}</text>')
+        parts.append(f'<text x="{width - 40:.0f}" y="{y + rh / 2 + 4:.0f}" font-size="10" fill="#8A8886">{_esc(goal)}</text>')
+        parts.append(f'<line x1="10" y1="{y + rh:.0f}" x2="{width - 10}" y2="{y + rh:.0f}" stroke="#EDEBE9" stroke-width="1"/>')
+        y += rh
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_filter_pane_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Filter pane: a header plus a couple of filter field cards with checkboxes."""
+    generic = generic or {}
+    fg = theme.foreground
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Filters", fg, generic)
+    y = top + 6
+    for field in ("Region", "Category"):
+        parts.append(f'<rect x="10" y="{y:.0f}" width="{width - 20}" height="46" rx="3" fill="#FAF9F8" stroke="#EDEBE9" stroke-width="1"/>')
+        parts.append(f'<text x="18" y="{y + 15:.0f}" font-size="10" fill="{fg}" font-weight="bold">{field}</text>')
+        for i, opt in enumerate(("All", "Selected")):
+            oy = y + 24 + i * 0  # single row
+            ox = 18 + i * 90
+            parts.append(f'<rect x="{ox}" y="{y + 26:.0f}" width="9" height="9" fill="none" stroke="{fg}" stroke-width="1"/>')
+            if i == 1:
+                parts.append(f'<rect x="{ox + 2}" y="{y + 28:.0f}" width="5" height="5" fill="{theme.table_accent}"/>')
+            parts.append(f'<text x="{ox + 14}" y="{y + 34:.0f}" font-size="9" fill="{fg}">{opt}</text>')
+        y += 54
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_group_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Group container: a dashed frame holding a couple of child shapes."""
+    generic = generic or {}
+    colors = _series_colors(theme, 2)
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Group", theme.foreground, generic)
+    gx, gy = 16, top + 8
+    gw, gh = width - 32, height - top - 20
+    parts.append(f'<rect x="{gx}" y="{gy:.0f}" width="{gw}" height="{gh:.0f}" rx="4" fill="none" stroke="#B3B0AD" stroke-width="1.5" stroke-dasharray="5,3"/>')
+    parts.append(f'<rect x="{gx + 14}" y="{gy + gh * 0.28:.0f}" width="{gw * 0.32:.0f}" height="{gh * 0.45:.0f}" rx="3" fill="{colors[0]}" opacity="0.85"/>')
+    parts.append(f'<circle cx="{gx + gw * 0.72:.0f}" cy="{gy + gh * 0.5:.0f}" r="{gh * 0.24:.0f}" fill="{colors[1]}" opacity="0.85"/>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_navigator_svg(theme, formatting=None, generic=None, width=300, height=200,
+                           kind="page", label="Navigator"):
+    """Page / bookmark navigator: a row of pill buttons, one selected."""
+    generic = generic or {}
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, label, theme.foreground, generic)
+    items = ["Overview", "Detail", "Trends"] if kind == "page" else ["View A", "View B", "View C"]
+    accent = theme.table_accent
+    y = top + (height - top) / 2 - 14
+    bw = (width - 20 - (len(items) - 1) * 8) / len(items)
+    for i, it in enumerate(items):
+        x = 10 + i * (bw + 8)
+        sel = (i == 0)
+        fill = accent if sel else "#FFFFFF"
+        stroke = accent
+        tcol = "#FFFFFF" if sel else accent
+        parts.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{bw:.0f}" height="28" rx="14" fill="{fill}" stroke="{stroke}" stroke-width="1.5"/>')
+        parts.append(f'<text x="{x + bw / 2:.0f}" y="{y + 18:.0f}" font-size="10" fill="{tcol}" text-anchor="middle">{_esc(it)}</text>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_page_svg(theme, formatting=None, generic=None, width=300, height=200,
+                      kind="page", label="Page"):
+    """Page / report canvas: a wallpaper with visual tiles (+ a filter pane strip)."""
+    generic = generic or {}
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, label, theme.foreground, generic)
+    accent = theme.table_accent
+    cl, ct = 12, top + 8
+    cr, cb = width - 12, height - 12
+    fp = 46 if kind == "report" else 0  # report reserves a filter-pane strip on the right
+    # canvas / wallpaper
+    parts.append(f'<rect x="{cl}" y="{ct:.0f}" width="{cr - cl}" height="{cb - ct:.0f}" rx="3" fill="#F3F2F1" stroke="#E1DFDD" stroke-width="1"/>')
+    tiles_r = cr - fp - 6
+    tw = (tiles_r - cl - 18) / 2
+    th = (cb - ct - 18) / 2
+    for r in range(2):
+        for c in range(2):
+            tx = cl + 6 + c * (tw + 6)
+            ty = ct + 6 + r * (th + 6)
+            parts.append(f'<rect x="{tx:.0f}" y="{ty:.0f}" width="{tw:.0f}" height="{th:.0f}" rx="2" fill="#FFFFFF" stroke="#E1DFDD" stroke-width="1"/>')
+            parts.append(f'<rect x="{tx + 4:.0f}" y="{ty + 4:.0f}" width="{tw - 8:.0f}" height="4" rx="2" fill="{accent}" opacity="0.7"/>')
+    if fp:
+        parts.append(f'<rect x="{cr - fp:.0f}" y="{ct:.0f}" width="{fp}" height="{cb - ct:.0f}" fill="#FAF9F8" stroke="#E1DFDD" stroke-width="1"/>')
+        parts.append(f'<text x="{cr - fp + 6:.0f}" y="{ct + 14:.0f}" font-size="8" fill="#8A8886">Filters</text>')
+        for i in range(3):
+            parts.append(f'<rect x="{cr - fp + 6:.0f}" y="{ct + 20 + i * 14:.0f}" width="{fp - 12}" height="9" rx="2" fill="#EDEBE9"/>')
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def generate_paginated_svg(theme, formatting=None, generic=None, width=300, height=200):
+    """Paginated (RDL) report: a document page with a header band and table rows."""
+    generic = generic or {}
+    fg = theme.foreground
+    parts = _frame(width, height, generic, theme.background)
+    title_svg, top = _title(width, "Paginated Report", fg, generic)
+    dx, dy = width * 0.16, top + 8
+    dw, dh = width * 0.68, height - top - 20
+    parts.append(f'<rect x="{dx:.0f}" y="{dy:.0f}" width="{dw:.0f}" height="{dh:.0f}" fill="#FFFFFF" stroke="#B3B0AD" stroke-width="1.5"/>')
+    parts.append(f'<rect x="{dx:.0f}" y="{dy:.0f}" width="{dw:.0f}" height="16" fill="{theme.table_accent}" opacity="0.85"/>')
+    ry = dy + 24
+    while ry < dy + dh - 6:
+        parts.append(f'<line x1="{dx + 8:.0f}" y1="{ry:.0f}" x2="{dx + dw - 8:.0f}" y2="{ry:.0f}" stroke="#E1DFDD" stroke-width="1"/>')
+        parts.append(f'<rect x="{dx + 8:.0f}" y="{ry - 6:.0f}" width="{dw * 0.4:.0f}" height="4" rx="1" fill="#C8C6C4"/>')
+        ry += 14
+    parts.append(title_svg)
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
 # --------------------------------------------------------------------------- #
 # Dispatch
 # --------------------------------------------------------------------------- #
@@ -1646,6 +1815,10 @@ def render_visual_preview(
         return generate_line_chart_svg(*args)
     if visual_key == "areaChart":
         return generate_area_chart_svg(*args)
+    if visual_key == "stackedAreaChart":
+        return generate_area_chart_svg(*args, label="Stacked Area", stacked=True)
+    if visual_key == "hundredPercentStackedAreaChart":
+        return generate_area_chart_svg(*args, label="100% Stacked Area", stacked=True, percent=True)
     if visual_key in ("lineClusteredColumnComboChart", "lineStackedColumnComboChart"):
         return generate_combo_chart_svg(*args, stacked=visual_key.startswith("lineStacked"))
     if visual_key in ("hundredPercentStackedBarChart", "hundredPercentStackedColumnChart"):
@@ -1687,7 +1860,29 @@ def render_visual_preview(
     if visual_key == "textbox":
         return generate_text_svg(*args, kind="text", label="Text Box")
 
-    # Default: grouped bar/column chart
+    # Newer container / slicer / navigator / goal visuals -- bespoke placeholders.
+    if visual_key == "cardVisual":
+        return generate_card_kpi_svg(*args)
+    if visual_key in ("advancedSlicerVisual", "listSlicer", "textSlicer"):
+        return generate_slicer_svg(*args)
+    if visual_key == "pageNavigator":
+        return generate_navigator_svg(*args, kind="page", label="Page Navigator")
+    if visual_key == "bookmarkNavigator":
+        return generate_navigator_svg(*args, kind="bookmark", label="Bookmark Navigator")
+    if visual_key == "scorecard":
+        return generate_scorecard_svg(*args)
+    if visual_key == "filter":
+        return generate_filter_pane_svg(*args)
+    if visual_key == "group":
+        return generate_group_svg(*args)
+    if visual_key == "page":
+        return generate_page_svg(*args, kind="page", label="Page")
+    if visual_key == "report":
+        return generate_page_svg(*args, kind="report", label="Report")
+    if visual_key == "rdlVisual":
+        return generate_paginated_svg(*args)
+
+    # Default: grouped bar/column chart (bar / column / clustered family)
     return generate_bar_chart_svg(*args)
 
 

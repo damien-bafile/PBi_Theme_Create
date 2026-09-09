@@ -38,6 +38,25 @@ def test_visual_preview_mockups():
     print("  ✓ All 4 mockups generate correctly")
     print("  ✓ Mockups contain valid SVG data")
 
+    # Every visual gets a bespoke preview -- none may fall through to the generic
+    # bar-chart default except the bar / column / clustered family it's meant for.
+    import re
+    from pbitheme.model import VISUAL_TYPES
+    from pbitheme.gui.preview_mockups import render_visual_preview
+
+    def _title(svg):
+        m = re.search(r'font-weight="bold">([^<]+)</text>', svg)
+        return m.group(1) if m else "?"
+
+    bar_family = {"barChart", "columnChart", "clusteredBarChart", "clusteredColumnChart"}
+    fell_back = [
+        key for key, _ in VISUAL_TYPES
+        if key != "*" and key not in bar_family
+        and _title(render_visual_preview(theme, key, {}, 240, 180)) == "Bar Chart"
+    ]
+    assert not fell_back, f"Visuals fall back to the generic bar chart mockup: {fell_back}"
+    print(f"  ✓ All {len([k for k, _ in VISUAL_TYPES if k != '*'])} visuals render a bespoke preview")
+
 
 def test_undo_redo_history():
     """Test 2: Undo/Redo - Check history stack."""
