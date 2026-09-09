@@ -49,14 +49,19 @@ class MainWindow(QMainWindow):
         self._undo_action: QAction | None = None
         self._redo_action: QAction | None = None
         self._skip_history_record = False  # Flag to prevent recording during undo/redo
+        self._dirty = False
+        self._loading = False  # suppress dirty-marking while pushing a theme into widgets
 
         self.setWindowTitle("Power BI Theme Creator")
         self.resize(1000, 720)
 
         self._build_menu()
         self._build_ui()
+        self._loading = True
         self._load_from_theme(self._theme)
         self._refresh_preview()
+        self._loading = False
+        self._set_dirty(False)
 
     # ------------------------------------------------------------------ #
     # UI construction
@@ -73,9 +78,13 @@ class MainWindow(QMainWindow):
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self._on_open)
 
-        save_action = QAction("&Save As...", self)
+        save_action = QAction("&Save", self)
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self._on_save)
+
+        save_as_action = QAction("Save &As...", self)
+        save_as_action.setShortcut("Ctrl+Shift+S")
+        save_as_action.triggered.connect(self._on_save_as)
 
         screenshot_action = QAction("Save &Screenshot...", self)
         screenshot_action.triggered.connect(self._on_save_screenshot)
@@ -88,7 +97,7 @@ class MainWindow(QMainWindow):
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
 
-        for action in (new_action, open_action, save_action, screenshot_action):
+        for action in (new_action, open_action, save_action, save_as_action, screenshot_action):
             file_menu.addAction(action)
         file_menu.addSeparator()
         file_menu.addAction(validate_action)
@@ -105,7 +114,7 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self._undo_action)
 
         self._redo_action = QAction("&Redo", self)
-        self._redo_action.setShortcut("Ctrl+Y")
+        self._redo_action.setShortcuts(["Ctrl+Y", "Ctrl+Shift+Z"])
         self._redo_action.triggered.connect(self._on_redo)
         self._redo_action.setEnabled(False)
         edit_menu.addAction(self._redo_action)
@@ -260,6 +269,42 @@ class MainWindow(QMainWindow):
         self._visual_checklist.set_theme(self._theme)
         self._visual_preview.update_preview(self._theme, self._visual_styles)
         self._update_history_actions()
+        if not self._loading:
+            self._set_dirty(True)
+        self._update_title()
+
+    # ------------------------------------------------------------------ #
+    # Dirty state / window title
+    # ------------------------------------------------------------------ #
+    def _set_dirty(self, dirty: bool) -> None:
+        self._dirty = dirty
+        self.setWindowModified(dirty)
+
+    def _update_title(self) -> None:
+        """Show the current file (or theme name) plus an unsaved-changes marker."""
+        if self._current_path:
+            base = os.path.basename(self._current_path)
+        else:
+            base = (self._name_edit.text().strip() or "Untitled")
+        # `[*]` is Qt's placeholder for the modified marker (driven by setWindowModified).
+        self.setWindowTitle(f"{base}[*] — Power BI Theme Creator")
+
+    def _confirm_discard(self) -> bool:
+        """Return True if it's safe to throw away the current theme."""
+        if not self._dirty:
+            return True
+        resp = QMessageBox.question(
+            self, "Discard changes?",
+            "This theme has unsaved changes. Discard them?",
+            QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Cancel,
+        )
+        return resp == QMessageBox.Discard
+
+    def closeEvent(self, event) -> None:  # noqa: N802 (Qt override)
+        if self._confirm_discard():
+            event.accept()
+        else:
+            event.ignore()
 
     def _record_history(self) -> None:
         """Record current theme state for undo (unless skipped during undo/redo)."""
@@ -279,14 +324,22 @@ class MainWindow(QMainWindow):
     # Menu actions
     # ------------------------------------------------------------------ #
     def _on_new(self) -> None:
+        if not self._confirm_discard():
+            return
         self._current_path = None
         self._visual_styles = {}
         self._history.clear()
+        self._loading = True
         self._load_from_theme(PowerBITheme())
         self._refresh_preview()
+        self._loading = False
+        self._set_dirty(False)
+        self._update_title()
         self.statusBar().showMessage("New theme")
 
     def _on_open(self) -> None:
+        if not self._confirm_discard():
+            return
         path, _ = QFileDialog.getOpenFileName(
             self, "Open theme or Power BI file", "",
             "Power BI files (*.pbix *.pbit *.json);;All files (*)"
@@ -305,17 +358,33 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Ready")
             return
         except (OSError, ValueError) as exc:
-            QMessageBox.critical(self, "Open failed", f"Could not load theme:\n{exc}")
+            QMessageBox.critical(
+                self, "Open failed",
+                f"Could not open {os.path.basename(path)}:\n{exc}\n\n"
+                f"Make sure it's a valid Power BI theme (.json) or report "
+                f"(.pbix / .pbit) file.",
+            )
             self.statusBar().showMessage("Ready")
             return
 
         self._current_path = path
         self._history.clear()
+        self._loading = True
         self._load_from_theme(theme)
         self._refresh_preview()
+        self._loading = False
+        self._set_dirty(False)
+        self._update_title()
         self.statusBar().showMessage(f"Opened {os.path.basename(path)}")
 
     def _on_save(self) -> None:
+        """Save to the current file, or fall back to Save As when there is none."""
+        if not self._current_path:
+            self._on_save_as()
+            return
+        self._write_theme(self._current_path)
+
+    def _on_save_as(self) -> None:
         theme = self._collect_theme()
         default_name = (theme.name or "theme").replace(" ", "_") + ".json"
         path, _ = QFileDialog.getSaveFileName(
@@ -325,14 +394,24 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".json"):
             path += ".json"
+        self._write_theme(path)
+
+    def _write_theme(self, path: str) -> None:
+        theme = self._collect_theme()
         self.statusBar().showMessage(f"Saving {os.path.basename(path)}...")
         try:
             theme.save(path)
         except OSError as exc:
-            QMessageBox.critical(self, "Save failed", f"Could not save theme:\n{exc}")
+            QMessageBox.critical(
+                self, "Save failed",
+                f"Could not save to {os.path.basename(path)}:\n{exc}\n\n"
+                f"Check the folder exists and is writable, then try again.",
+            )
             self.statusBar().showMessage("Ready")
             return
         self._current_path = path
+        self._set_dirty(False)
+        self._update_title()
         self.statusBar().showMessage(f"Saved {os.path.basename(path)}")
 
     def _on_validate(self) -> None:

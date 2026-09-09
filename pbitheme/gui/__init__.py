@@ -27,6 +27,8 @@ def main() -> int:
 
     app = QApplication(sys.argv)
     app.setApplicationName("Power BI Theme Creator")
+    from . import theme
+    theme.apply_light_palette(app)  # own the canvas so DESIGN.md is real everywhere
     window = MainWindow()
     window.show()
     return app.exec()

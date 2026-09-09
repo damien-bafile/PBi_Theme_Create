@@ -34,41 +34,60 @@ class PreviewPanel(QWidget):
         # Scroll area for mockups
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._scroll = scroll
 
         container = QWidget()
-        grid = QGridLayout(container)
-        grid.setSpacing(10)
+        self._grid = QGridLayout(container)
+        self._grid.setSpacing(10)
 
-        # Mockup labels and display
-        mockup_info = [
-            ("Bar Chart", "bar_chart", 0, 0),
-            ("Table", "table", 0, 1),
-            ("Line Chart", "line_chart", 1, 0),
-            ("Card/KPI", "card_kpi", 1, 1),
+        # (label, key) in display order; laid out into 1 or 2 columns responsively.
+        self._mockups = [
+            ("Bar Chart", "bar_chart"),
+            ("Table", "table"),
+            ("Line Chart", "line_chart"),
+            ("Card/KPI", "card_kpi"),
         ]
-
-        for label_text, key, row, col in mockup_info:
-            # Label
+        self._labels: dict[str, QLabel] = {}
+        for label_text, key in self._mockups:
             label = QLabel(label_text)
             label.setStyleSheet("font-weight: bold; margin-top: 8px;")
-            grid.addWidget(label, row * 2, col)
-
-            # SVG widget
+            self._labels[key] = label
             svg_widget = QSvgWidget()
-            svg_widget.setMinimumSize(300, 200)
+            # Small minimum so a single narrow column never triggers horizontal scroll;
+            # the SVG scales up to fill whatever width the pane offers.
+            svg_widget.setMinimumSize(220, 150)
             svg_widget.setStyleSheet("border: 1px solid #ddd; border-radius: 4px;")
             self._svg_widgets[key] = svg_widget
-            grid.addWidget(svg_widget, row * 2 + 1, col)
 
-        grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 1)
-        grid.addWidget(QWidget(), len(mockup_info) * 2, 0)  # Spacer at bottom
+        self._columns = 0  # force first layout
+        self._populate_grid(2)
 
         scroll.setWidget(container)
         layout.addWidget(scroll)
 
         # Initial update
         self.update_preview(self._theme)
+
+    def _populate_grid(self, columns: int) -> None:
+        """(Re)lay the mockups into *columns* columns (1 when the pane is narrow)."""
+        if columns == self._columns:
+            return
+        self._columns = columns
+        while self._grid.count():
+            self._grid.takeAt(0)
+        for i, (_label, key) in enumerate(self._mockups):
+            row, col = divmod(i, columns)
+            self._grid.addWidget(self._labels[key], row * 2, col)
+            self._grid.addWidget(self._svg_widgets[key], row * 2 + 1, col)
+        for c in range(2):
+            self._grid.setColumnStretch(c, 1 if c < columns else 0)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt override)
+        super().resizeEvent(event)
+        # Two columns need room for two ~220px tiles + spacing; below that, stack.
+        want = 2 if self._scroll.viewport().width() >= 500 else 1
+        self._populate_grid(want)
 
     def update_preview(self, theme: PowerBITheme, visual_styles: Dict[str, Any] | None = None) -> None:
         """Update all mockups to reflect the current theme and visual styles."""

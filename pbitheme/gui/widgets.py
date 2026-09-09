@@ -43,6 +43,22 @@ from ..model import (
 from . import theme
 
 
+def _wcag_luminance(c: QColor) -> float:
+    """WCAG 2.x relative luminance of a colour (0=black … 1=white)."""
+    def _lin(v: float) -> float:
+        v /= 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    return 0.2126 * _lin(c.red()) + 0.7152 * _lin(c.green()) + 0.0722 * _lin(c.blue())
+
+
+def _readable_text_color(hex_color: str) -> str:
+    """Return black or white — whichever has the higher WCAG contrast on *hex_color*."""
+    lum = _wcag_luminance(QColor(hex_color))
+    contrast_white = (1.0 + 0.05) / (lum + 0.05)
+    contrast_black = (lum + 0.05) / 0.05
+    return theme.SURFACE_BACKGROUND if contrast_white >= contrast_black else theme.TEXT_STRONG
+
+
 class ColorButton(QPushButton):
     """A button that shows a colour swatch and opens a colour picker."""
 
@@ -73,10 +89,9 @@ class ColorButton(QPushButton):
             self.colorChanged.emit(self._color)
 
     def _refresh(self) -> None:
-        # Choose readable text colour based on luminance.
-        c = QColor(self._color)
-        luminance = 0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()
-        text = theme.TEXT_STRONG if luminance > theme.LUMINANCE_THRESHOLD else theme.SURFACE_BACKGROUND
+        # Pick the text colour (black or white) with the higher WCAG contrast
+        # against the swatch, so the hex stays readable on saturated fills.
+        text = _readable_text_color(self._color)
         self.setText(self._color)
         self.setStyleSheet(
             f"background-color: {self._color}; color: {text};"
@@ -101,11 +116,8 @@ class DataColorsEditor(QWidget):
 
         controls = QHBoxLayout()
         add_btn = QPushButton("+ Add colour")
-        add_btn.clicked.connect(lambda: self._add_color("#118DFF", emit=True))
-        remove_btn = QPushButton("- Remove last")
-        remove_btn.clicked.connect(self._remove_last)
+        add_btn.clicked.connect(lambda: self.set_colors(self.colors() + ["#118DFF"]))
         controls.addWidget(add_btn)
-        controls.addWidget(remove_btn)
         controls.addStretch(1)
 
         outer = QVBoxLayout(self)
@@ -119,37 +131,39 @@ class DataColorsEditor(QWidget):
         return [btn.color() for btn in self._buttons]
 
     def set_colors(self, colors: List[str]) -> None:
-        while self._buttons:
-            self._remove_last(emit=False)
-        for color in colors:
-            self._add_color(color, emit=False)
+        self._rebuild(list(colors))
         self.changed.emit()
 
-    def _add_color(self, color: str, emit: bool) -> None:
-        row = QWidget()
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        index = len(self._buttons) + 1
-        layout.addWidget(QLabel(f"{index}."))
-        button = ColorButton(color, label=f"Data color {index}")
-        button.colorChanged.connect(lambda _c: self.changed.emit())
-        layout.addWidget(button)
-        layout.addStretch(1)
+    def _rebuild(self, colors: List[str]) -> None:
+        """Recreate every row so per-row deletes stay correctly numbered."""
+        while self._rows.count():
+            item = self._rows.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+        self._buttons = []
+        for i, color in enumerate(colors):
+            row = QWidget()
+            layout = QHBoxLayout(row)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.addWidget(QLabel(f"{i + 1}."))
+            button = ColorButton(color, label=f"Data color {i + 1}")
+            button.colorChanged.connect(lambda _c: self.changed.emit())
+            self._buttons.append(button)
+            layout.addWidget(button)
+            del_btn = QPushButton("✕")
+            del_btn.setFixedWidth(28)
+            del_btn.setToolTip("Remove this colour")
+            del_btn.setAccessibleName(f"Remove data color {i + 1}")
+            del_btn.clicked.connect(lambda _=False, idx=i: self._remove_at(idx))
+            layout.addWidget(del_btn)
+            layout.addStretch(1)
+            self._rows.addWidget(row)
 
-        self._buttons.append(button)
-        self._rows.addWidget(row)
-        if emit:
-            self.changed.emit()
-
-    def _remove_last(self, emit: bool = True) -> None:
-        if not self._buttons:
-            return
-        self._buttons.pop()
-        item = self._rows.takeAt(self._rows.count() - 1)
-        if item and item.widget():
-            item.widget().deleteLater()
-        if emit:
-            self.changed.emit()
+    def _remove_at(self, idx: int) -> None:
+        cols = self.colors()
+        if 0 <= idx < len(cols):
+            del cols[idx]
+            self.set_colors(cols)
 
 
 class TextClassEditor(QWidget):

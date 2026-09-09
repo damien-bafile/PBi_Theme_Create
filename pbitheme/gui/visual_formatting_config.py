@@ -187,35 +187,40 @@ CHART_SECTIONS = [
     FormatSection(
         "X-Axis",
         [
-            FormatField("xAxisTitleText", "Title Text", "text", default=""),
+            # Axis labels (tick text) grouped first...
             FormatField("xAxisLabelColor", "Label Color", "color", default="#252423"),
-            FormatField("xAxisLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
-            FormatField("xAxisBold", "Bold", "boolean", default=False),
-            FormatField("xAxisItalic", "Italic", "boolean", default=False),
-            FormatField("xAxisFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+            FormatField("xAxisLabelFontSize", "Label Size (pt)", "number", min_val=8, max_val=20, default=10, suffix="pt"),
+            FormatField("xAxisBold", "Label Bold", "boolean", default=False),
+            FormatField("xAxisItalic", "Label Italic", "boolean", default=False),
+            FormatField("xAxisFontFamily", "Label Font", "dropdown", options=FONT_OPTIONS, preview=False),
+            # ...then the axis title.
+            FormatField("xAxisTitleText", "Title Text", "text", default=""),
             FormatField("xAxisTitleColor", "Title Color", "color", default="#252423"),
-            FormatField("xAxisTitleFontSize", "Title Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
+            FormatField("xAxisTitleFontSize", "Title Size (pt)", "number", min_val=8, max_val=20, default=10, suffix="pt"),
         ],
     ),
     FormatSection(
         "Y-Axis",
         [
-            FormatField("yAxisTitleText", "Title Text", "text", default=""),
+            # Scale...
             FormatField("yAxisLogScale", "Log Scale", "boolean", default=False),
             FormatField("yAxisSetRange", "Fixed Range", "boolean", default=False),
             FormatField("yAxisStart", "Range Start", "number", min_val=0, max_val=100000, default=0),
             FormatField("yAxisEnd", "Range End", "number", min_val=1, max_val=100000, default=100),
+            # ...axis labels (tick values)...
             FormatField("yAxisLabelColor", "Label Color", "color", default="#252423"),
-            FormatField("yAxisLabelFontSize", "Font Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
-            FormatField("yAxisBold", "Bold", "boolean", default=False),
-            FormatField("yAxisItalic", "Italic", "boolean", default=False),
-            FormatField("yAxisFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+            FormatField("yAxisLabelFontSize", "Label Size (pt)", "number", min_val=8, max_val=20, default=10, suffix="pt"),
+            FormatField("yAxisBold", "Label Bold", "boolean", default=False),
+            FormatField("yAxisItalic", "Label Italic", "boolean", default=False),
+            FormatField("yAxisFontFamily", "Label Font", "dropdown", options=FONT_OPTIONS, preview=False),
             FormatField("yAxisDisplayUnits", "Display Units", "dropdown",
                        options=[("1", "None"), ("1000", "Thousands"), ("1000000", "Millions"),
                                 ("1000000000", "Billions")], preview=False),
             FormatField("yAxisPrecision", "Decimal Places", "number", min_val=0, max_val=4, preview=False),
+            # ...then the axis title.
+            FormatField("yAxisTitleText", "Title Text", "text", default=""),
             FormatField("yAxisTitleColor", "Title Color", "color", default="#252423"),
-            FormatField("yAxisTitleFontSize", "Title Size (pt)", "number", min_val=8, max_val=20, suffix="pt"),
+            FormatField("yAxisTitleFontSize", "Title Size (pt)", "number", min_val=8, max_val=20, default=10, suffix="pt"),
         ],
     ),
     FormatSection(

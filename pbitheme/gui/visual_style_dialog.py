@@ -115,6 +115,10 @@ class VisualStyleDialog(QDialog):
             self._presets["*"] = {}
         self._current_preset: str = "*"
         existing_obj = self._presets.get("*", {})
+        # If the visual had no overrides on open, an untouched OK must NOT mark it
+        # "customized" — the ✓ badge should mean the user actually changed something.
+        self._existing_was_empty = not bool(existing_obj)
+        self._user_touched = False
 
         root_layout = QHBoxLayout(self)
 
@@ -134,6 +138,9 @@ class VisualStyleDialog(QDialog):
 
         # Tabs
         tabs = QTabWidget()
+        # Show all three tab labels instead of clipping them behind scroll chevrons.
+        tabs.setUsesScrollButtons(False)
+        tabs.tabBar().setExpanding(True)
 
         # Tab 1: Visual-specific formatting (if available), inside a scroll area
         # so visuals with many sections never force the dialog off-screen.
@@ -449,6 +456,7 @@ class VisualStyleDialog(QDialog):
             self._tooltip_check, self._htooltip_check,
         ):
             check.toggled.connect(self._update_preview)
+            check.toggled.connect(self._note_touch)
         for color_btn in (
             self._bg_color, self._border_color, self._title_color,
             self._labels_color, self._legend_color, self._shadow_color,
@@ -457,18 +465,24 @@ class VisualStyleDialog(QDialog):
             self._tooltip_value, self._htooltip_bg, self._htooltip_title,
         ):
             color_btn.colorChanged.connect(self._update_preview)
-        self._border_width.valueChanged.connect(self._update_preview)
-        self._border_radius.valueChanged.connect(self._update_preview)
-        self._padding_value.valueChanged.connect(self._update_preview)
-        self._subtitle_size.valueChanged.connect(self._update_preview)
+            color_btn.colorChanged.connect(self._note_touch)
+        for _w in (self._border_width, self._border_radius, self._padding_value,
+                   self._subtitle_size, self._bg_alpha, self._title_size,
+                   self._labels_size, self._divider_width):
+            _w.valueChanged.connect(self._update_preview)
+            _w.valueChanged.connect(self._note_touch)
         self._subtitle_text.textChanged.connect(self._update_preview)
-        self._bg_alpha.valueChanged.connect(self._update_preview)
+        self._subtitle_text.textChanged.connect(self._note_touch)
         self._title_font.currentFontChanged.connect(self._update_preview)
-        self._title_size.valueChanged.connect(self._update_preview)
-        self._labels_size.valueChanged.connect(self._update_preview)
+        self._title_font.currentFontChanged.connect(self._note_touch)
         self._legend_pos.currentIndexChanged.connect(self._update_preview)
-        self._divider_width.valueChanged.connect(self._update_preview)
+        self._legend_pos.currentIndexChanged.connect(self._note_touch)
         self._divider_style.currentIndexChanged.connect(self._update_preview)
+        self._divider_style.currentIndexChanged.connect(self._note_touch)
+        self._general_alt.textChanged.connect(self._note_touch)
+        self._general_keep_order.toggled.connect(self._note_touch)
+        self._spacing_below_title.valueChanged.connect(self._note_touch)
+        self._spacing_vertical.valueChanged.connect(self._note_touch)
 
         scroll = QScrollArea()
         scroll.setWidget(generic_widget)
@@ -481,6 +495,8 @@ class VisualStyleDialog(QDialog):
         advanced_layout.addWidget(QLabel("Raw styleName '*' object:"))
         self._advanced_edit = QPlainTextEdit()
         self._advanced_edit.setPlainText(json.dumps(existing_obj, indent=2))
+        # Editing the raw JSON counts as a user change (connect after the initial set).
+        self._advanced_edit.textChanged.connect(self._note_touch)
         advanced_layout.addWidget(self._advanced_edit)
         tabs.addTab(advanced_widget, "Advanced JSON")
 
@@ -525,6 +541,7 @@ class VisualStyleDialog(QDialog):
                     self._formatter_panel.set_values(formatting)
             # Connect formatter changes to preview updates
             self._formatter_panel.values_changed.connect(self._update_preview)
+            self._formatter_panel.values_changed.connect(self._note_touch)
 
         # Populate the preset selector now that every widget exists.
         self._refresh_preset_combo()
@@ -751,6 +768,13 @@ class VisualStyleDialog(QDialog):
 
         # Save the preset currently being edited, then expose the full map.
         self._presets[self._current_preset] = merge_visual_style_entry(base, self._build_overrides())
+        # A previously-empty visual opened and OK'd without any change stays
+        # un-customized, so the checklist's ✓ means "the user changed something".
+        if self._existing_was_empty and not self._user_touched:
+            self._result = {}
+            self._result_presets = {"*": {}}
+            self.accept()
+            return
         self._result = self._presets.get("*", {})
         # Keep the default plus any non-empty named presets.
         self._result_presets = {
@@ -761,6 +785,10 @@ class VisualStyleDialog(QDialog):
     def result_dict(self) -> Dict[str, Any]:
         """Return the merged result dict, or empty dict if dialog was cancelled."""
         return self._result or {}
+
+    def _note_touch(self, *args) -> None:
+        """Record that the user actually changed a control (drives the ✓ badge)."""
+        self._user_touched = True
 
     def _update_preview(self) -> None:
         """Re-render the live preview from the *exact* overrides that will be saved."""
