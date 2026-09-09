@@ -47,6 +47,10 @@ _STRUCTURAL_TIPS = {
     "good": "Positive / on-target sentiment (KPIs, conditional formatting).",
     "neutral": "Neutral sentiment.",
     "bad": "Negative / off-target sentiment.",
+    "gradient_min": "Low end of conditional-formatting colour scales.",
+    "gradient_center": "Midpoint of diverging colour scales.",
+    "gradient_max": "High end of conditional-formatting colour scales.",
+    "gradient_null": "Colour used for blank / N/A values.",
 }
 
 
@@ -176,6 +180,9 @@ class MainWindow(QMainWindow):
             button = ColorButton(default, label=label)
             button.colorChanged.connect(lambda _c: self._refresh_preview())
             button.colorChanged.connect(lambda _c: self._record_history())
+            tip = _STRUCTURAL_TIPS.get(attr)
+            if tip:
+                button.setToolTip(tip)
             self._structural_buttons[attr] = button
             gradient_layout.addRow(label, button)
         form.addWidget(gradient_box)

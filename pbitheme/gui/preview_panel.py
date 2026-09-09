@@ -21,6 +21,10 @@ from .preview_mockups import generate_all_mockups
 from .theme import BORDER_HAIRLINE
 
 
+#: Viewport width (px) at/above which the mockups lay out in two columns.
+TWO_COLUMN_MIN_WIDTH = 500
+
+
 class PreviewPanel(QWidget):
     """Display visual mockups of Power BI visuals using the current theme."""
 
@@ -87,7 +91,7 @@ class PreviewPanel(QWidget):
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt override)
         super().resizeEvent(event)
         # Two columns need room for two ~220px tiles + spacing; below that, stack.
-        want = 2 if self._scroll.viewport().width() >= 500 else 1
+        want = 2 if self._scroll.viewport().width() >= TWO_COLUMN_MIN_WIDTH else 1
         self._populate_grid(want)
 
     def update_preview(self, theme: PowerBITheme, visual_styles: Dict[str, Any] | None = None) -> None:

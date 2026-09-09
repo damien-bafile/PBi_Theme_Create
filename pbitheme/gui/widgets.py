@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QColorDialog,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -213,56 +214,82 @@ class VisualStylesChecklist(QWidget):
 
     visualRequested = Signal(str)
 
+    # Name buttons read as links so it's obvious the rows open an editor.
+    _NAME_STYLE = (
+        "QPushButton { text-align: left; border: none; padding: 2px; }"
+        "QPushButton:hover { text-decoration: underline; color: #118DFF; }"
+    )
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._status_labels: dict[str, QLabel] = {}
+        self._theme: PowerBITheme | None = None
+        self._query = ""
+
+        # Search / filter box so the 50+ visuals stay findable.
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("Filter visuals…")
+        self._search.setClearButtonEnabled(True)
+        self._search.setAccessibleName("Filter visuals")
+        self._search.textChanged.connect(self._on_filter)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-
         container = QWidget()
-        grid = QGridLayout(container)
-        grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 0)
-        grid.setColumnStretch(2, 1)
-        grid.setColumnStretch(3, 0)
-        grid.setSpacing(8)
-
-        # Display in 2 columns to fit more visuals on screen
-        for idx, (key, label) in enumerate(VISUAL_TYPES):
-            row = idx // 2
-            col = (idx % 2) * 2  # 0 or 2
-
-            # Escape '&' so Qt doesn't treat it as a mnemonic accelerator
-            # (e.g. "Q&A" -> "QA" with A underlined, "Line & Stacked..." -> "Line _Stacked...").
-            name_btn = QPushButton(label.replace("&", "&&"))
-            name_btn.setFlat(True)
-            name_btn.setCursor(Qt.PointingHandCursor)
-            name_btn.setStyleSheet("text-align: left; border: none; padding: 2px;")
-            name_btn.clicked.connect(lambda _c=False, k=key: self.visualRequested.emit(k))
-
-            status_label = QLabel("✗")
-            status_label.setStyleSheet("color: #8b0000; font-weight: bold; min-width: 30px;")
-            grid.addWidget(name_btn, row, col)
-            grid.addWidget(status_label, row, col + 1)
-            self._status_labels[key] = status_label
-
-        # Add a stretch row at the end to push all items to the top
-        grid.addWidget(QWidget(), (len(VISUAL_TYPES) + 1) // 2 + 1, 0)
-        grid.setRowStretch((len(VISUAL_TYPES) + 1) // 2 + 1, 1)
-
+        self._grid = QGridLayout(container)
+        self._grid.setColumnStretch(0, 1)
+        self._grid.setColumnStretch(1, 0)
+        self._grid.setColumnStretch(2, 1)
+        self._grid.setColumnStretch(3, 0)
+        self._grid.setSpacing(8)
         scroll.setWidget(container)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self._search)
         layout.addWidget(scroll)
 
-    def set_theme(self, pbi_theme: PowerBITheme) -> None:
-        """Update the checklist based on which visuals are customised."""
+        self._populate()
+
+    def _on_filter(self, text: str) -> None:
+        self._query = text.strip().lower()
+        self._populate()
+
+    def _populate(self) -> None:
+        """(Re)build the 2-column grid, showing only visuals matching the filter."""
+        while self._grid.count():
+            item = self._grid.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+        self._status_labels = {}
+        matches = [(k, l) for k, l in VISUAL_TYPES if self._query in l.lower()]
+        for idx, (key, label) in enumerate(matches):
+            row, col = idx // 2, (idx % 2) * 2
+            name_btn = QPushButton(label.replace("&", "&&"))  # && escapes the mnemonic
+            name_btn.setFlat(True)
+            name_btn.setCursor(Qt.PointingHandCursor)
+            name_btn.setStyleSheet(self._NAME_STYLE)
+            name_btn.clicked.connect(lambda _c=False, k=key: self.visualRequested.emit(k))
+            status_label = QLabel("✗ Default")
+            grid_row, grid_col = row, col
+            self._grid.addWidget(name_btn, grid_row, grid_col)
+            self._grid.addWidget(status_label, grid_row, grid_col + 1)
+            self._status_labels[key] = status_label
+        stretch_row = (len(matches) + 1) // 2 + 1
+        self._grid.setRowStretch(stretch_row, 1)
+        self._refresh_status()
+
+    def _refresh_status(self) -> None:
         for key, label in self._status_labels.items():
-            if pbi_theme.is_visual_customised(key):
+            customised = self._theme is not None and self._theme.is_visual_customised(key)
+            if customised:
                 label.setText("✓ Custom")
                 label.setStyleSheet(f"color: {theme.STATUS_CUSTOM_COLOR}; font-weight: bold; min-width: 80px;")
             else:
                 label.setText("✗ Default")
                 label.setStyleSheet(f"color: {theme.STATUS_DEFAULT_COLOR}; font-weight: bold; min-width: 80px;")
+
+    def set_theme(self, pbi_theme: PowerBITheme) -> None:
+        """Update the checklist based on which visuals are customised."""
+        self._theme = pbi_theme
+        self._refresh_status()

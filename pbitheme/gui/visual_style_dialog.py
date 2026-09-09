@@ -99,9 +99,11 @@ class VisualStyleDialog(QDialog):
         else:  # headless / no screen
             width, height = 1000, 720
         self.resize(max(600, width), max(400, height))
-        # Two columns of sections only when the left pane is wide enough;
-        # otherwise one column that scrolls vertically (never off-screen).
-        self._section_columns = 2 if (width - 300) >= 700 else 1
+        # Two columns of sections only when the left pane (dialog width minus the
+        # ~300px preview column) can hold two ~350px section columns; otherwise one
+        # column that scrolls vertically (never off-screen).
+        PREVIEW_COLUMN_PX, TWO_SECTION_COLUMNS_PX = 300, 700
+        self._section_columns = 2 if (width - PREVIEW_COLUMN_PX) >= TWO_SECTION_COLUMNS_PX else 1
         self._visual_key = visual_key
         self._visual_label = visual_label
         self._theme = pbi_theme or PowerBITheme()
@@ -460,6 +462,34 @@ class VisualStyleDialog(QDialog):
         _generic_boxes.append(legend_box)
         generic_layout.addLayout(balanced_columns(_generic_boxes, self._section_columns))
         generic_layout.addStretch()
+
+        # Progressive disclosure: collapse each override section to just its
+        # "Override" checkbox until it's enabled, so the tab isn't a wall of 14
+        # expanded sections (and it reinforces what "override" means here).
+        for _box in _generic_boxes:
+            _form = _box.layout()
+            if not isinstance(_form, QFormLayout):
+                continue
+            _check = None
+            _check_row = 0
+            for _r in range(_form.rowCount()):
+                for _role in (QFormLayout.LabelRole, QFormLayout.FieldRole):
+                    _it = _form.itemAt(_r, _role)
+                    _w = _it.widget() if _it else None
+                    if isinstance(_w, QCheckBox):
+                        _check, _check_row = _w, _r
+                        break
+                if _check is not None:
+                    break
+            if _check is None:
+                continue
+
+            def _toggler(checked, form=_form, first=_check_row + 1, total=_form.rowCount()):
+                for _rr in range(first, total):
+                    form.setRowVisible(_rr, checked)
+
+            _check.toggled.connect(_toggler)
+            _toggler(_check.isChecked())  # start collapsed
 
         # Live-update the preview whenever any generic override changes.
         for check in (
