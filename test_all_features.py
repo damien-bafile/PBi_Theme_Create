@@ -285,6 +285,34 @@ def test_undo_and_clear_all():
     print("  ✓ Dark-mode toggle switches palette and status colours")
 
 
+def test_schema_update_action():
+    """Test 8: the 'Check for Schema Update' handler shows the right dialog."""
+    print("\n✓ Test 8: Check for Schema Update")
+    from pbitheme.driver import AppDriver
+    from PySide6.QtWidgets import QMessageBox
+
+    d = AppDriver()
+    w = d.window
+    calls = []
+    orig_info, orig_warn = QMessageBox.information, QMessageBox.warning
+    QMessageBox.information = staticmethod(lambda *a, **k: calls.append(("info", a[1])))
+    QMessageBox.warning = staticmethod(lambda *a, **k: calls.append(("warn", a[1])))
+    try:
+        w._on_schema_check_done({"bundled": "2.157", "latest": "2.161", "update_available": True, "error": None})
+        w._on_schema_check_done({"bundled": "2.157", "latest": "2.157", "update_available": False, "error": None})
+        w._on_schema_check_done({"bundled": "2.157", "latest": None, "update_available": False, "error": "no network"})
+    finally:
+        QMessageBox.information, QMessageBox.warning = orig_info, orig_warn
+
+    kinds = [c[0] for c in calls]
+    assert kinds == ["info", "info", "warn"], f"unexpected dialogs: {calls}"
+    assert calls[0][1] == "Schema update available"
+    assert calls[1][1] == "Schema up to date"
+    assert calls[2][1] == "Couldn't check for updates"
+    assert w._update_action.isEnabled(), "update action was not re-enabled"
+    print("  ✓ Update-available / up-to-date / error branches all show the right dialog")
+
+
 def run_all_tests():
     """Run all feature tests."""
     print("=" * 60)
@@ -299,6 +327,7 @@ def run_all_tests():
         test_theme_model()
         test_visual_styles()
         test_undo_and_clear_all()
+        test_schema_update_action()
 
         print("\n" + "=" * 60)
         print("✅ ALL TESTS PASSED!")

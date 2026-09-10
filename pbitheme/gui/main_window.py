@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QDialog,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 
 from ..model import PowerBITheme, VISUAL_TYPES
 from ..pbix_import import extract_theme_from_pbix, NoThemeFoundError
@@ -57,6 +57,22 @@ _STRUCTURAL_TIPS = {
 }
 
 
+class _SchemaCheckWorker(QThread):
+    """Fetch the latest upstream schema version off the UI thread."""
+
+    done = Signal(dict)
+
+    def run(self) -> None:  # noqa: D401 - Qt override
+        from ..schema_update import check_for_update
+
+        try:
+            self.done.emit(check_for_update())
+        except Exception as exc:  # pragma: no cover - check_for_update shouldn't raise
+            self.done.emit(
+                {"bundled": None, "latest": None, "update_available": False, "error": str(exc)}
+            )
+
+
 class MainWindow(QMainWindow):
     """Edit a :class:`PowerBITheme` on the left, preview its JSON on the right."""
 
@@ -70,6 +86,7 @@ class MainWindow(QMainWindow):
         self._history = ThemeHistory(max_size=20)
         self._undo_action: QAction | None = None
         self._redo_action: QAction | None = None
+        self._schema_worker: _SchemaCheckWorker | None = None
         self._skip_history_record = False  # Flag to prevent recording during undo/redo
         self._dirty = False
         self._loading = False  # suppress dirty-marking while pushing a theme into widgets
@@ -117,6 +134,9 @@ class MainWindow(QMainWindow):
         validate_action.setShortcut("Ctrl+L")
         validate_action.triggered.connect(self._on_validate)
 
+        self._update_action = QAction("Check for Schema &Update...", self)
+        self._update_action.triggered.connect(self._on_check_schema_update)
+
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
@@ -125,6 +145,7 @@ class MainWindow(QMainWindow):
             file_menu.addAction(action)
         file_menu.addSeparator()
         file_menu.addAction(validate_action)
+        file_menu.addAction(self._update_action)
         file_menu.addSeparator()
         file_menu.addAction(quit_action)
 
@@ -573,6 +594,46 @@ class MainWindow(QMainWindow):
         box.setDetailedText(preview)
         box.exec()
         self.statusBar().showMessage(f"{len(errors)} schema issue(s)")
+
+    def _on_check_schema_update(self) -> None:
+        """Check upstream (off the UI thread) for a newer Power BI schema."""
+        if self._schema_worker is not None:
+            return  # a check is already running
+        self._update_action.setEnabled(False)
+        self.statusBar().showMessage("Checking for schema updates…")
+        self._schema_worker = _SchemaCheckWorker(self)
+        self._schema_worker.done.connect(self._on_schema_check_done)
+        self._schema_worker.start()
+
+    def _on_schema_check_done(self, info: Dict[str, Any]) -> None:
+        self._update_action.setEnabled(True)
+        worker, self._schema_worker = self._schema_worker, None
+        if worker is not None:
+            worker.deleteLater()
+
+        bundled = info.get("bundled") or "unknown"
+        if info.get("error"):
+            QMessageBox.warning(
+                self, "Couldn't check for updates",
+                f"Could not reach the schema source:\n{info['error']}\n\n"
+                "Check your connection and try again.",
+            )
+            self.statusBar().showMessage("Schema update check failed")
+        elif info.get("update_available"):
+            latest = info.get("latest")
+            QMessageBox.information(
+                self, "Schema update available",
+                "A newer Power BI report theme schema is available:\n\n"
+                f"  Bundled: v{bundled}\n  Latest: v{latest}\n\n"
+                "It will be included in a future release.",
+            )
+            self.statusBar().showMessage(f"Schema update available: v{latest}")
+        else:
+            QMessageBox.information(
+                self, "Schema up to date",
+                f"You have the latest Power BI report theme schema (v{bundled}).",
+            )
+            self.statusBar().showMessage(f"Schema up to date (v{bundled})")
 
     def _on_edit_visual_style(self, visual_key: str) -> None:
         """Open the style editor dialog for the selected visual type."""

@@ -60,8 +60,9 @@ Requires Python 3.8+ and PySide6.
 
 The exported theme can be validated against the **official Power BI report
 theme JSON schema** (bundled from Microsoft's `powerbi-desktop-samples`,
-currently **v2.157**) via **File → Validate** (Ctrl+L). It is also scriptable
-and covered by tests:
+currently **v2.157**) via **File → Validate** (Ctrl+L). **File → Check for
+Schema Update…** checks Microsoft's repo for a newer schema version. It is also
+scriptable and covered by tests:
 
 ```python
 from pbitheme.model import PowerBITheme
