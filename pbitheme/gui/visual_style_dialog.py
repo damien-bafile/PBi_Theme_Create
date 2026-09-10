@@ -129,11 +129,20 @@ class VisualStyleDialog(QDialog):
 
         # Style preset selector
         preset_row = QHBoxLayout()
-        preset_row.addWidget(QLabel("Style preset:"))
+        _preset_tip = (
+            "Style presets map to Power BI's named styleName entries for this "
+            "visual. “Default” (*) applies to every instance; “+ New” adds a "
+            "named preset users can pick from the visual's Style dropdown."
+        )
+        preset_lbl = QLabel("Style preset:")
+        preset_lbl.setToolTip(_preset_tip)
+        preset_row.addWidget(preset_lbl)
         self._preset_combo = QComboBox()
         self._preset_combo.setAccessibleName("Style preset")
+        self._preset_combo.setToolTip(_preset_tip)
         preset_row.addWidget(self._preset_combo, 1)
         self._new_preset_btn = QPushButton("+ New")
+        self._new_preset_btn.setToolTip(_preset_tip)
         self._new_preset_btn.clicked.connect(self._on_new_preset)
         preset_row.addWidget(self._new_preset_btn)
         left_layout.addLayout(preset_row)
@@ -470,6 +479,10 @@ class VisualStyleDialog(QDialog):
             _form = _box.layout()
             if not isinstance(_form, QFormLayout):
                 continue
+            # Tight margins so a collapsed section reads as a slim row, not a big
+            # empty box.
+            _form.setContentsMargins(8, 4, 8, 4)
+            _form.setVerticalSpacing(4)
             _check = None
             _check_row = 0
             for _r in range(_form.rowCount()):
@@ -548,7 +561,7 @@ class VisualStyleDialog(QDialog):
 
         # ---- Clear all button ---- #
         clear_btn = QPushButton("Clear All Overrides")
-        clear_btn.clicked.connect(self._clear_all)
+        clear_btn.clicked.connect(self._on_clear_all_clicked)
         left_layout.addWidget(clear_btn)
 
         # ---- Dialog buttons ---- #
@@ -705,6 +718,17 @@ class VisualStyleDialog(QDialog):
     def result_presets(self) -> Dict[str, Any]:
         """Return the full {presetName: styleObj} map (default plus named presets)."""
         return getattr(self, "_result_presets", None) or {"*": self.result_dict()}
+
+    def _on_clear_all_clicked(self) -> None:
+        """Confirm before the destructive Clear All (there is no in-dialog undo)."""
+        resp = QMessageBox.question(
+            self, "Clear all overrides?",
+            "Reset every override for this visual back to defaults? "
+            "This can't be undone from inside the dialog.",
+            QMessageBox.Yes | QMessageBox.Cancel, QMessageBox.Cancel,
+        )
+        if resp == QMessageBox.Yes:
+            self._clear_all()
 
     def _clear_all(self) -> None:
         """Uncheck all sections and reset JSON to empty."""

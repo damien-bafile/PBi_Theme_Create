@@ -235,13 +235,16 @@ class VisualStylesChecklist(QWidget):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        # One column so the status never gets pushed off-screen; the outer form
+        # scrolls, and this inner list keeps a sensible height (~10 rows) rather
+        # than collapsing to a cramped double-scrolled box.
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setMinimumHeight(260)
         container = QWidget()
         self._grid = QGridLayout(container)
-        self._grid.setColumnStretch(0, 1)
-        self._grid.setColumnStretch(1, 0)
-        self._grid.setColumnStretch(2, 1)
-        self._grid.setColumnStretch(3, 0)
-        self._grid.setSpacing(8)
+        self._grid.setColumnStretch(0, 1)   # visual name (stretches)
+        self._grid.setColumnStretch(1, 0)   # status (fixed)
+        self._grid.setSpacing(6)
         scroll.setWidget(container)
 
         layout = QVBoxLayout(self)
@@ -256,27 +259,27 @@ class VisualStylesChecklist(QWidget):
         self._populate()
 
     def _populate(self) -> None:
-        """(Re)build the 2-column grid, showing only visuals matching the filter."""
+        """(Re)build the single-column list, showing only visuals matching the filter."""
         while self._grid.count():
             item = self._grid.takeAt(0)
             if item and item.widget():
                 item.widget().deleteLater()
         self._status_labels = {}
         matches = [(k, l) for k, l in VISUAL_TYPES if self._query in l.lower()]
-        for idx, (key, label) in enumerate(matches):
-            row, col = idx // 2, (idx % 2) * 2
+        for row, (key, label) in enumerate(matches):
             name_btn = QPushButton(label.replace("&", "&&"))  # && escapes the mnemonic
             name_btn.setFlat(True)
             name_btn.setCursor(Qt.PointingHandCursor)
             name_btn.setStyleSheet(self._NAME_STYLE)
             name_btn.clicked.connect(lambda _c=False, k=key: self.visualRequested.emit(k))
             status_label = QLabel("✗ Default")
-            grid_row, grid_col = row, col
-            self._grid.addWidget(name_btn, grid_row, grid_col)
-            self._grid.addWidget(status_label, grid_row, grid_col + 1)
+            # Fixed width + right alignment so the status never truncates.
+            status_label.setFixedWidth(90)
+            status_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self._grid.addWidget(name_btn, row, 0)
+            self._grid.addWidget(status_label, row, 1)
             self._status_labels[key] = status_label
-        stretch_row = (len(matches) + 1) // 2 + 1
-        self._grid.setRowStretch(stretch_row, 1)
+        self._grid.setRowStretch(len(matches), 1)  # push rows to the top
         self._refresh_status()
 
     def _refresh_status(self) -> None:
@@ -284,10 +287,10 @@ class VisualStylesChecklist(QWidget):
             customised = self._theme is not None and self._theme.is_visual_customised(key)
             if customised:
                 label.setText("✓ Custom")
-                label.setStyleSheet(f"color: {theme.STATUS_CUSTOM_COLOR}; font-weight: bold; min-width: 80px;")
+                label.setStyleSheet(f"color: {theme.STATUS_CUSTOM_COLOR}; font-weight: bold;")
             else:
                 label.setText("✗ Default")
-                label.setStyleSheet(f"color: {theme.STATUS_DEFAULT_COLOR}; font-weight: bold; min-width: 80px;")
+                label.setStyleSheet(f"color: {theme.STATUS_DEFAULT_COLOR}; font-weight: bold;")
 
     def set_theme(self, pbi_theme: PowerBITheme) -> None:
         """Update the checklist based on which visuals are customised."""
