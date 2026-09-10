@@ -6,7 +6,7 @@ import copy
 import os
 from typing import Any, Dict
 
-from PySide6.QtGui import QAction, QFont
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
@@ -253,7 +253,7 @@ class MainWindow(QMainWindow):
         json_layout = QVBoxLayout(json_host)
         self._preview = QPlainTextEdit()
         self._preview.setReadOnly(True)
-        self._preview.setFont(QFont("monospace", 10))
+        self._preview.setFont(theme.monospace_font(10))
         json_layout.addWidget(self._preview)
         preview_tabs.addTab(json_host, "JSON Preview")
 

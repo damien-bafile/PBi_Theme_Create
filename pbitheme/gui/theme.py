@@ -30,6 +30,21 @@ DARK_BORDER = "#3C3C3C"
 #: True while the dark palette is active (read by anything that needs the mode).
 dark_mode = False
 
+# Monospace resolution. "monospace" is a generic alias Qt may resolve
+# inconsistently; DESIGN.md prefers Courier New. Prefer it, then guarantee a
+# real fixed-width fallback via the style hint / a CSS fallback stack.
+MONOSPACE_STACK = '"Courier New", "DejaVu Sans Mono", "Consolas", monospace'
+
+
+def monospace_font(size: int = 10):
+    """A fixed-pitch QFont (Courier New where present, a monospace fallback else)."""
+    from PySide6.QtGui import QFont
+
+    f = QFont("Courier New", size)
+    f.setStyleHint(QFont.StyleHint.Monospace)
+    f.setFixedPitch(True)
+    return f
+
 
 def _set_status_for(dark: bool) -> None:
     global STATUS_CUSTOM_COLOR, STATUS_DEFAULT_COLOR, STATUS_MUTED_COLOR, dark_mode

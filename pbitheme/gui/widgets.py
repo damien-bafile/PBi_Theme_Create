@@ -96,7 +96,8 @@ class ColorButton(QPushButton):
         self.setText(self._color)
         self.setStyleSheet(
             f"background-color: {self._color}; color: {text};"
-            f"border: 1px solid {theme.BORDER_SUBTLE}; border-radius: 4px; font-family: monospace;"
+            f"border: 1px solid {theme.BORDER_SUBTLE}; border-radius: 4px;"
+            f"font-family: {theme.MONOSPACE_STACK};"
         )
         # Set accessible name and description for screen readers
         self.setAccessibleName(f"{self._label} color button")
