@@ -9,9 +9,10 @@ can also generate themes from scripts.
 
 ## Features
 
-- **Full visual coverage** — all **52** visual types Power BI's theme schema
-  defines are selectable; **49** have dedicated structured formatting and the
-  rest are themeable through the generic overrides.
+- **Full visual coverage** — every one of the **52** visual types Power BI's
+  theme schema defines is themeable (the editor lists **54** entries, exposing
+  both the schema and friendly names for Table and Matrix). **49** entries have
+  dedicated structured formatting; the other **5** use the generic overrides.
 - **Live visual preview** — every visual is drawn as an SVG mockup that updates
   as you edit, plus a live JSON preview of the exported theme.
 - **Per-visual formatting** — axes, gridlines, legend, data labels, table
@@ -114,19 +115,24 @@ needed. The published assets are `PowerBI_Theme_Creator.exe`,
 
 ## Power BI theme coverage
 
-**Every visual is covered.** All **52** visual types the Power BI report theme
-schema (v2.157) defines are selectable in the editor. **49** of the editor's
-visual entries have dedicated, structured formatting sections; the handful that
-don't — Azure Maps, Key influencers, Python, R and Q&A, which expose little
-beyond frame styling — are still fully themeable through the generic overrides
-(title, background, border, drop shadow, padding, tooltips, …). Everything
-exports to real Power BI theme *cards*, is validated
-against the bundled schema, and round-trips (export → import → export is
-stable). Anything not yet in a structured section can still be set through the
-**Advanced JSON** tab.
+**Every visual is covered.** The Power BI report theme schema (v2.157) defines
+**52** visual types, and the editor makes all of them selectable — listing
+**54** entries because it exposes both the schema and friendly names for Table
+(`tableEx` / `table`) and Matrix (`pivotTable` / `matrix`). **49** of the
+editor's entries have dedicated, structured formatting sections; the remaining
+**5** — Azure Maps, Key Drivers, Python, R and Q&A — are themed through the
+generic overrides (title, background, border, drop shadow, padding, tooltips, …).
+Everything exports to real Power BI theme *cards*, is validated against the
+bundled schema, and round-trips (export → import → export is stable). Anything
+not yet in a structured section can still be set through the **Advanced JSON**
+tab.
 
 Card-level depth within each visual (every property of every card) remains an
-ongoing sub-goal, tracked in the stages and matrix below.
+ongoing sub-goal, tracked in the stages and matrix below. Of the five
+generic-only visuals, R and Python genuinely expose nothing beyond frame styling
+(the schema gives them only `provider` / `source`), but **Azure Maps**, **Q&A**
+and **Key Drivers** do define deeper colour / font cards in the schema — set via
+Advanced JSON today, and candidates for future structured sections.
 
 **Legend:** ✅ done &nbsp;·&nbsp; ◐ partial &nbsp;·&nbsp; ☐ planned &nbsp;·&nbsp; — not applicable to this visual
 
@@ -255,7 +261,7 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
 | Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 64% |
 | Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ◐ | 68% |
 | Shape Map | ✅ | — | ✅ | — | ◐ | — | — | — | ◐ | 58% |
-| Azure Maps | ✅ | — | ✅ | ◐ | ☐ | — | — | — | ◐ | 58% |
+| Azure Maps | ✅ | — | — | — | — | — | — | — | ◐ | 40% |
 | Decomposition Tree | ✅ | — | — | ◐ | — | — | — | — | ◐ | 53% |
 | Key Drivers | ✅ | — | — | — | — | — | — | — | ◐ | 63% |
 | Q&A | ✅ | — | — | — | — | — | — | — | ◐ | 63% |
