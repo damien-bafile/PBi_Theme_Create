@@ -274,6 +274,16 @@ def test_undo_and_clear_all():
     assert dlg2._bg_check.isChecked() is True, "undo did not restore state before Clear All"
     print("  ✓ In-dialog undo/redo covers field edits and Clear All (one step)")
 
+    # Dark mode: the Edit-menu toggle switches palette + mode-aware status colours.
+    from pbitheme.gui import theme as _theme
+    light_custom = _theme.STATUS_CUSTOM_COLOR
+    w._dark_action.setChecked(True)
+    assert _theme.dark_mode is True, "dark mode flag not set"
+    assert _theme.STATUS_CUSTOM_COLOR != light_custom, "status colour did not adapt to dark mode"
+    w._dark_action.setChecked(False)
+    assert _theme.dark_mode is False and _theme.STATUS_CUSTOM_COLOR == light_custom, "did not revert to light"
+    print("  ✓ Dark-mode toggle switches palette and status colours")
+
 
 def run_all_tests():
     """Run all feature tests."""

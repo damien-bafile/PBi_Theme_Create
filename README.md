@@ -29,6 +29,9 @@ can also generate themes from scripts.
   **imported themes reverse-translate** back into the editor (clean round-trip).
 - **Advanced JSON** tab — set any property the schema supports, even ones not yet
   in the structured UI.
+- **Light / dark mode** — toggle via **Edit → Dark Mode** (remembered between
+  sessions); status cues stay legible in both. Plus per-visual **in-dialog
+  undo/redo** (Ctrl+Z/Ctrl+Y) and a dismissible first-run guide.
 - **Packaged & tested** — installs as a `pbitheme` command (`pip install -e .`),
   runs headless in CI across Python 3.10–3.12, and a build workflow produces a
   Windows `.exe` plus wheel/sdist on demand.

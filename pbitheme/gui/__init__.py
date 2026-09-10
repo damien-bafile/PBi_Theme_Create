@@ -28,8 +28,11 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Power BI Theme Creator")
     app.setOrganizationName("PBiThemeCreator")
+    from PySide6.QtCore import QSettings
     from . import theme
-    theme.apply_light_palette(app)  # own the canvas so DESIGN.md is real everywhere
+    # Own the canvas (so DESIGN.md is real everywhere), honouring the saved mode.
+    dark = QSettings().value("ui/darkMode", False, type=bool)
+    theme.apply_palette(app, bool(dark))
     window = MainWindow()
     window.show()
     return app.exec()

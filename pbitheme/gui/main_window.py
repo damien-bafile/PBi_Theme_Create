@@ -34,6 +34,7 @@ from ..screenshot import capture_widget
 from .widgets import ColorButton, DataColorsEditor, TextClassEditor, VisualStylesChecklist
 from .visual_style_dialog import VisualStyleDialog
 from .preview_panel import PreviewPanel
+from . import theme
 from .history import ThemeHistory
 
 
@@ -143,6 +144,13 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self._redo_action)
 
         edit_menu.addSeparator()
+
+        from PySide6.QtCore import QSettings
+        self._dark_action = QAction("&Dark Mode", self)
+        self._dark_action.setCheckable(True)
+        self._dark_action.setChecked(bool(QSettings().value("ui/darkMode", False, type=bool)))
+        self._dark_action.toggled.connect(self._on_toggle_dark)
+        edit_menu.addAction(self._dark_action)
 
     def _build_ui(self) -> None:
         splitter = QSplitter(Qt.Horizontal)
@@ -274,9 +282,13 @@ class MainWindow(QMainWindow):
         """
         from PySide6.QtCore import QSettings
 
+        if theme.dark_mode:
+            bg, border, fg = "#14304A", "#2A4A6A", theme.DARK_TEXT
+        else:
+            bg, border, fg = "#EFF6FF", "#BBD6FF", "#252423"
         banner = QFrame()
         banner.setStyleSheet(
-            "QFrame { background: #EFF6FF; border: 1px solid #BBD6FF; border-radius: 4px; }"
+            f"QFrame {{ background: {bg}; border: 1px solid {border}; border-radius: 4px; }}"
         )
         row = QHBoxLayout(banner)
         row.setContentsMargins(10, 6, 6, 6)
@@ -286,7 +298,7 @@ class MainWindow(QMainWindow):
             "Power BI theme. The right panel previews every change live."
         )
         msg.setWordWrap(True)
-        msg.setStyleSheet("border: none; background: transparent; color: #252423;")
+        msg.setStyleSheet(f"border: none; background: transparent; color: {fg};")
         row.addWidget(msg, 1)
         got_it = QPushButton("Got it")
         got_it.setToolTip("Don't show this again")
@@ -304,6 +316,16 @@ class MainWindow(QMainWindow):
             dismissed = False
         banner.setVisible(not dismissed)
         return banner
+
+    def _on_toggle_dark(self, checked: bool) -> None:
+        """Switch between the light and dark palette and remember the choice."""
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtCore import QSettings
+
+        theme.apply_palette(QApplication.instance(), checked)
+        QSettings().setValue("ui/darkMode", checked)
+        # Re-colour the ✓/✗ status labels for the new mode (they're mode-aware).
+        self._refresh_preview()
 
     def _setup_tab_order(self) -> None:
         """Define keyboard tab order for accessibility."""
