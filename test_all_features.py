@@ -286,31 +286,35 @@ def test_undo_and_clear_all():
 
 
 def test_schema_update_action():
-    """Test 8: the 'Check for Schema Update' handler shows the right dialog."""
+    """Test 8: the 'Check for Schema Update' handler shows the right inline banner."""
     print("\n✓ Test 8: Check for Schema Update")
     from pbitheme.driver import AppDriver
-    from PySide6.QtWidgets import QMessageBox
 
     d = AppDriver()
     w = d.window
-    calls = []
-    orig_info, orig_warn = QMessageBox.information, QMessageBox.warning
-    QMessageBox.information = staticmethod(lambda *a, **k: calls.append(("info", a[1])))
-    QMessageBox.warning = staticmethod(lambda *a, **k: calls.append(("warn", a[1])))
-    try:
-        w._on_schema_check_done({"bundled": "2.157", "latest": "2.161", "update_available": True, "error": None})
-        w._on_schema_check_done({"bundled": "2.157", "latest": "2.157", "update_available": False, "error": None})
-        w._on_schema_check_done({"bundled": "2.157", "latest": None, "update_available": False, "error": "no network"})
-    finally:
-        QMessageBox.information, QMessageBox.warning = orig_info, orig_warn
+    banner = w._schema_banner
 
-    kinds = [c[0] for c in calls]
-    assert kinds == ["info", "info", "warn"], f"unexpected dialogs: {calls}"
-    assert calls[0][1] == "Schema update available"
-    assert calls[1][1] == "Schema up to date"
-    assert calls[2][1] == "Couldn't check for updates"
+    # Update available → info variant, visible, mentions both versions.
+    w._on_schema_check_done({"bundled": "2.157", "latest": "2.161", "update_available": True, "error": None})
+    assert banner.isVisibleTo(w), "banner should be shown for update-available"
+    assert banner._variant == "info", f"expected info variant, got {banner._variant}"
+    assert "2.161" in banner._label.text() and "2.157" in banner._label.text()
+
+    # Up to date → success variant.
+    w._on_schema_check_done({"bundled": "2.157", "latest": "2.157", "update_available": False, "error": None})
+    assert banner._variant == "success", f"expected success variant, got {banner._variant}"
+    assert "up to date" in banner._label.text().lower()
+
+    # Network error → warning variant, surfaces the reason.
+    w._on_schema_check_done({"bundled": "2.157", "latest": None, "update_available": False, "error": "no network"})
+    assert banner._variant == "warning", f"expected warning variant, got {banner._variant}"
+    assert "no network" in banner._label.text()
+
+    # Dismissable, and the menu action is re-enabled after each check.
     assert w._update_action.isEnabled(), "update action was not re-enabled"
-    print("  ✓ Update-available / up-to-date / error branches all show the right dialog")
+    banner.hide()
+    assert not banner.isVisibleTo(w), "banner should hide when dismissed"
+    print("  ✓ Update-available / up-to-date / error branches show the right inline banner")
 
 
 def run_all_tests():

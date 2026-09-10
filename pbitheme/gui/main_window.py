@@ -10,15 +10,12 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
-    QFrame,
     QGroupBox,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
-    QPushButton,
     QScrollArea,
     QSplitter,
     QTabWidget,
@@ -31,7 +28,9 @@ from PySide6.QtCore import Qt, QThread, Signal
 from ..model import PowerBITheme, VISUAL_TYPES
 from ..pbix_import import extract_theme_from_pbix, NoThemeFoundError
 from ..screenshot import capture_widget
-from .widgets import ColorButton, DataColorsEditor, TextClassEditor, VisualStylesChecklist
+from .widgets import (
+    ColorButton, DataColorsEditor, TextClassEditor, VisualStylesChecklist, InlineBanner,
+)
 from .visual_style_dialog import VisualStyleDialog
 from .preview_panel import PreviewPanel
 from . import theme
@@ -287,6 +286,7 @@ class MainWindow(QMainWindow):
         outer = QVBoxLayout(container)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(self._build_welcome_banner())
+        outer.addWidget(self._build_schema_banner())
         outer.addWidget(splitter, 1)
         self.setCentralWidget(container)
 
@@ -303,28 +303,20 @@ class MainWindow(QMainWindow):
         """
         from PySide6.QtCore import QSettings
 
-        banner = QFrame()
+        banner = InlineBanner()
         self._welcome_banner = banner
-        row = QHBoxLayout(banner)
-        row.setContentsMargins(10, 6, 6, 6)
-        msg = QLabel(
+        banner.show_message(
             "<b>Welcome!</b> Set your palette and text on the left, click any "
             "<b>visual</b> to customize it, then <b>File → Save</b> to export a "
-            "Power BI theme. The right panel previews every change live."
+            "Power BI theme. The right panel previews every change live.",
+            "info",
         )
-        msg.setWordWrap(True)
-        self._welcome_msg = msg
-        self._restyle_welcome()
-        row.addWidget(msg, 1)
-        got_it = QPushButton("Got it")
-        got_it.setToolTip("Don't show this again")
 
         def _dismiss() -> None:
             QSettings().setValue("ui/welcomeDismissed", True)
             banner.hide()
 
-        got_it.clicked.connect(_dismiss)
-        row.addWidget(got_it, 0)
+        banner.add_button("Got it", _dismiss, "Don't show this again")
 
         try:
             dismissed = QSettings().value("ui/welcomeDismissed", False, type=bool)
@@ -333,18 +325,20 @@ class MainWindow(QMainWindow):
         banner.setVisible(not dismissed)
         return banner
 
-    def _restyle_welcome(self) -> None:
-        """Colour the welcome banner for the active light/dark mode."""
-        if not hasattr(self, "_welcome_banner"):
-            return
-        if theme.dark_mode:
-            bg, border, fg = "#14304A", "#2A4A6A", theme.DARK_TEXT
-        else:
-            bg, border, fg = "#EFF6FF", "#BBD6FF", "#252423"
-        self._welcome_banner.setStyleSheet(
-            f"QFrame {{ background: {bg}; border: 1px solid {border}; border-radius: 4px; }}"
-        )
-        self._welcome_msg.setStyleSheet(f"border: none; background: transparent; color: {fg};")
+    def _build_schema_banner(self) -> QWidget:
+        """A hidden-until-needed banner that reports schema-update results inline."""
+        banner = InlineBanner()
+        self._schema_banner = banner
+        banner.add_button("✕", banner.hide, "Dismiss")
+        banner.hide()
+        return banner
+
+    def _restyle_banners(self) -> None:
+        """Re-colour the inline banners for the active light/dark mode."""
+        for attr in ("_welcome_banner", "_schema_banner"):
+            banner = getattr(self, attr, None)
+            if banner is not None:
+                banner.restyle()
 
     def _on_toggle_dark(self, checked: bool) -> None:
         """Switch between the light and dark palette and remember the choice."""
@@ -353,7 +347,7 @@ class MainWindow(QMainWindow):
 
         theme.apply_palette(QApplication.instance(), checked)
         QSettings().setValue("ui/darkMode", checked)
-        self._restyle_welcome()  # banner uses hardcoded hex, so re-theme it too
+        self._restyle_banners()  # banners use hardcoded hex, so re-theme them too
         # Re-colour the ✓/✗ status labels for the new mode (they're mode-aware).
         self._refresh_preview()
 
@@ -613,25 +607,27 @@ class MainWindow(QMainWindow):
 
         bundled = info.get("bundled") or "unknown"
         if info.get("error"):
-            QMessageBox.warning(
-                self, "Couldn't check for updates",
-                f"Could not reach the schema source:\n{info['error']}\n\n"
+            self._schema_banner.show_message(
+                "<b>Couldn't check for schema updates.</b> "
+                f"Could not reach the source ({info['error']}). "
                 "Check your connection and try again.",
+                "warning",
             )
             self.statusBar().showMessage("Schema update check failed")
         elif info.get("update_available"):
             latest = info.get("latest")
-            QMessageBox.information(
-                self, "Schema update available",
-                "A newer Power BI report theme schema is available:\n\n"
-                f"  Bundled: v{bundled}\n  Latest: v{latest}\n\n"
-                "It will be included in a future release.",
+            self._schema_banner.show_message(
+                "<b>Schema update available.</b> A newer Power BI report theme "
+                f"schema is out (bundled <b>v{bundled}</b>, latest <b>v{latest}</b>). "
+                "It'll be included in a future release.",
+                "info",
             )
             self.statusBar().showMessage(f"Schema update available: v{latest}")
         else:
-            QMessageBox.information(
-                self, "Schema up to date",
-                f"You have the latest Power BI report theme schema (v{bundled}).",
+            self._schema_banner.show_message(
+                f"<b>Schema up to date.</b> You have the latest Power BI report "
+                f"theme schema (<b>v{bundled}</b>).",
+                "success",
             )
             self.statusBar().showMessage(f"Schema up to date (v{bundled})")
 

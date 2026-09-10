@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QDialogButtonBox,
     QDialog,
+    QFrame,
 )
 
 from ..model import (
@@ -58,6 +59,68 @@ def _readable_text_color(hex_color: str) -> str:
     contrast_white = (1.0 + 0.05) / (lum + 0.05)
     contrast_black = (lum + 0.05) / 0.05
     return theme.SURFACE_BACKGROUND if contrast_white >= contrast_black else theme.TEXT_STRONG
+
+
+# Per-variant banner colours: (light bg, light border, dark bg, dark border).
+_BANNER_VARIANTS = {
+    "info":    ("#EFF6FF", "#BBD6FF", "#14304A", "#2A4A6A"),
+    "success": ("#ECFDF3", "#A6E9C5", "#10312A", "#1E5E4A"),
+    "warning": ("#FEF3E7", "#F5C48A", "#3A2A12", "#6A4A1E"),
+}
+
+
+class InlineBanner(QFrame):
+    """A dismissible, mode-aware inline notification strip.
+
+    One reusable widget for both the first-run welcome message and transient
+    status notices (e.g. the schema-update result), so they share look and
+    theming instead of duplicating stylesheet logic. Call :meth:`restyle` when
+    the light/dark palette changes.
+    """
+
+    def __init__(self, parent: QWidget = None) -> None:
+        super().__init__(parent)
+        self._variant = "info"
+        row = QHBoxLayout(self)
+        row.setContentsMargins(10, 6, 6, 6)
+        row.setSpacing(6)
+        self._label = QLabel()
+        self._label.setWordWrap(True)
+        self._label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        self._label.setOpenExternalLinks(True)
+        row.addWidget(self._label, 1)
+        self._button_row = QHBoxLayout()
+        self._button_row.setContentsMargins(0, 0, 0, 0)
+        self._button_row.setSpacing(6)
+        row.addLayout(self._button_row, 0)
+
+    def add_button(self, text: str, on_click, tooltip: str = "") -> QPushButton:
+        """Append a trailing button (e.g. 'Got it' or a close '✕')."""
+        btn = QPushButton(text)
+        if tooltip:
+            btn.setToolTip(tooltip)
+        btn.clicked.connect(on_click)
+        self._button_row.addWidget(btn)
+        return btn
+
+    def show_message(self, html: str, variant: str = "info") -> None:
+        """Set the (rich-text) message, colour it by *variant*, and reveal."""
+        self._label.setText(html)
+        self._variant = variant if variant in _BANNER_VARIANTS else "info"
+        self.restyle()
+        self.show()
+
+    def restyle(self) -> None:
+        """Re-apply colours for the active light/dark mode and current variant."""
+        light_bg, light_border, dark_bg, dark_border = _BANNER_VARIANTS[self._variant]
+        if theme.dark_mode:
+            bg, border, fg = dark_bg, dark_border, theme.DARK_TEXT
+        else:
+            bg, border, fg = light_bg, light_border, theme.TEXT_PRIMARY
+        self.setStyleSheet(
+            f"InlineBanner {{ background: {bg}; border: 1px solid {border}; border-radius: 4px; }}"
+        )
+        self._label.setStyleSheet(f"border: none; background: transparent; color: {fg};")
 
 
 class ColorButton(QPushButton):
