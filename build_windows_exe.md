@@ -5,7 +5,7 @@ This guide explains how to create a standalone `.exe` file for Windows that requ
 ## Prerequisites
 
 - **Windows 10/11**
-- **Python 3.8+** (only needed during build, not on target machine)
+- **Python 3.12+** (only needed during build, not on target machine)
 - **PyInstaller** (installed automatically below)
 
 ## Quick Start

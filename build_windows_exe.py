@@ -46,8 +46,8 @@ def main():
         print("  (For production builds, use Windows machine for best compatibility)")
 
     # Check Python version
-    if sys.version_info < (3, 8):
-        print("✗ Python 3.8+ required")
+    if sys.version_info < (3, 12):
+        print("✗ Python 3.12+ required")
         return 1
     print_step(f"Python {sys.version_info.major}.{sys.version_info.minor} detected")
 

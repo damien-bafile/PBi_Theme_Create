@@ -38,7 +38,7 @@ A purpose-built visual editor specifically for Power BI themes, not a generic JS
 **Constraints:**
 - Must remain a desktop GUI app (PySide6 / Qt)
 - Must follow team/company branding and style standards
-- Python 3.8+ required
+- Python 3.12+ required
 
 ## Brand Commitments
 

@@ -33,7 +33,7 @@ can also generate themes from scripts.
   sessions); status cues stay legible in both. Plus per-visual **in-dialog
   undo/redo** (Ctrl+Z/Ctrl+Y) and a dismissible first-run guide.
 - **Packaged & tested** — installs as a `pbitheme` command (`pip install -e .`),
-  runs headless in CI across Python 3.10–3.12, and a build workflow produces a
+  runs headless in CI on Python 3.12, and a build workflow produces a
   Windows `.exe` plus wheel/sdist on demand.
 
 ## Install & run
@@ -48,7 +48,7 @@ pip install -e .        # installs PySide6 + jsonschema
 python main.py          # or: pbitheme  /  python -m pbitheme
 ```
 
-Requires Python 3.8+ and PySide6.
+Requires Python 3.12+ and PySide6.
 
 ## Using the theme in Power BI
 
