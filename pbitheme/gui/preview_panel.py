@@ -116,3 +116,6 @@ class PreviewPanel(QWidget):
                 # Load SVG from string using QByteArray
                 svg_bytes = QByteArray(svg_data.encode("utf-8"))
                 svg_widget.load(svg_bytes)
+                # Preserve the mockup's aspect ratio instead of stretching it to
+                # fill a wide/short tile (which squashed it vertically).
+                svg_widget.renderer().setAspectRatioMode(Qt.KeepAspectRatio)

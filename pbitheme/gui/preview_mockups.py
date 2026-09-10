@@ -138,7 +138,7 @@ def extract_generic(style_obj: Dict[str, Any] | None) -> Dict[str, Any]:
 def _frame(width: int, height: int, generic: Dict[str, Any], theme_bg: str) -> List[str]:
     """Background rect (+ optional generic background/border) for any mockup."""
     generic = generic or {}
-    parts = [f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">']
+    parts = [f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">']
     gborder = generic.get("border")
     radius = int(gborder.get("radius", 0)) if gborder else 0
     rx = f' rx="{radius}"' if radius else ""

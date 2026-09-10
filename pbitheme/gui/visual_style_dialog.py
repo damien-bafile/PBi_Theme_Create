@@ -1021,3 +1021,4 @@ class VisualStyleDialog(QDialog):
         )
         if svg_data:
             self._preview_svg.load(QByteArray(svg_data.encode("utf-8")))
+            self._preview_svg.renderer().setAspectRatioMode(Qt.KeepAspectRatio)
