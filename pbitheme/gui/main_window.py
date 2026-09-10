@@ -10,6 +10,7 @@ from PySide6.QtGui import QAction, QFont
 from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
+    QPushButton,
     QScrollArea,
     QSplitter,
     QTabWidget,
@@ -215,6 +217,13 @@ class MainWindow(QMainWindow):
         self._visual_checklist = VisualStylesChecklist()
         self._visual_checklist.visualRequested.connect(self._on_edit_visual_style)
         visual_layout.addWidget(self._visual_checklist)
+        # Empty state: guide the user until at least one visual is customized.
+        self._visual_hint = QLabel(
+            "No visuals customized yet — click any visual above to style it."
+        )
+        self._visual_hint.setWordWrap(True)
+        self._visual_hint.setStyleSheet("color: #605E5C; font-style: italic; padding: 2px;")
+        visual_layout.addWidget(self._visual_hint)
         form.insertWidget(1, visual_box)
 
         form.addStretch(1)
@@ -246,14 +255,55 @@ class MainWindow(QMainWindow):
         splitter.setStretchFactor(1, 2)
 
         container = QWidget()
-        outer = QHBoxLayout(container)
-        outer.addWidget(splitter)
+        outer = QVBoxLayout(container)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(self._build_welcome_banner())
+        outer.addWidget(splitter, 1)
         self.setCentralWidget(container)
 
         self.statusBar().showMessage("Ready")
 
         # Set up keyboard navigation (tab order)
         self._setup_tab_order()
+
+    def _build_welcome_banner(self) -> QWidget:
+        """A dismissible first-run banner that explains the basic workflow.
+
+        Shown only until the user dismisses it (persisted via QSettings), so it
+        onboards newcomers without nagging returning users.
+        """
+        from PySide6.QtCore import QSettings
+
+        banner = QFrame()
+        banner.setStyleSheet(
+            "QFrame { background: #EFF6FF; border: 1px solid #BBD6FF; border-radius: 4px; }"
+        )
+        row = QHBoxLayout(banner)
+        row.setContentsMargins(10, 6, 6, 6)
+        msg = QLabel(
+            "<b>Welcome!</b> Set your palette and text on the left, click any "
+            "<b>visual</b> to customize it, then <b>File → Save</b> to export a "
+            "Power BI theme. The right panel previews every change live."
+        )
+        msg.setWordWrap(True)
+        msg.setStyleSheet("border: none; background: transparent; color: #252423;")
+        row.addWidget(msg, 1)
+        got_it = QPushButton("Got it")
+        got_it.setToolTip("Don't show this again")
+
+        def _dismiss() -> None:
+            QSettings().setValue("ui/welcomeDismissed", True)
+            banner.hide()
+
+        got_it.clicked.connect(_dismiss)
+        row.addWidget(got_it, 0)
+
+        try:
+            dismissed = QSettings().value("ui/welcomeDismissed", False, type=bool)
+        except Exception:
+            dismissed = False
+        banner.setVisible(not dismissed)
+        return banner
 
     def _setup_tab_order(self) -> None:
         """Define keyboard tab order for accessibility."""
@@ -303,6 +353,8 @@ class MainWindow(QMainWindow):
         self._preview.setPlainText(self._theme.to_json())
         self._visual_checklist.set_theme(self._theme)
         self._visual_preview.update_preview(self._theme, self._visual_styles)
+        if hasattr(self, "_visual_hint"):
+            self._visual_hint.setVisible(not any(self._visual_styles.values()))
         self._update_history_actions()
         if not self._loading:
             self._set_dirty(True)

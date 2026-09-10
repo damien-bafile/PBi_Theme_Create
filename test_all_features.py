@@ -257,6 +257,23 @@ def test_undo_and_clear_all():
     assert vals.get("dataLabelBold") is False, "Clear All did not reset Visual Formatting toggle"
     print("  ✓ Clear All Overrides resets the Visual Formatting tab")
 
+    # In-dialog Ctrl+Z: a real field edit is undoable, and Clear All is one step.
+    dlg2 = d.open_visual_dialog("columnChart")
+    cw = dlg2._formatter_panel._field_widgets["xAxisLabelColor"]
+    base = cw.color()
+    cw.set_color("#ABCDEF"); cw.colorChanged.emit("#ABCDEF")
+    assert dlg2._formatter_panel.get_values().get("xAxisLabelColor") == "#ABCDEF"
+    dlg2._undo_dialog()
+    assert dlg2._formatter_panel.get_values().get("xAxisLabelColor") == base, "in-dialog undo did not revert field"
+    dlg2._redo_dialog()
+    assert dlg2._formatter_panel.get_values().get("xAxisLabelColor") == "#ABCDEF", "in-dialog redo did not reapply"
+    dlg2._bg_check.setChecked(True)
+    dlg2._clear_all()
+    assert dlg2._bg_check.isChecked() is False
+    dlg2._undo_dialog()
+    assert dlg2._bg_check.isChecked() is True, "undo did not restore state before Clear All"
+    print("  ✓ In-dialog undo/redo covers field edits and Clear All (one step)")
+
 
 def run_all_tests():
     """Run all feature tests."""

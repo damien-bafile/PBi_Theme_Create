@@ -7,7 +7,7 @@ import json
 from typing import Any, Dict
 
 from PySide6.QtCore import Qt, QByteArray
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -121,6 +121,13 @@ class VisualStyleDialog(QDialog):
         # "customized" — the ✓ badge should mean the user actually changed something.
         self._existing_was_empty = not bool(existing_obj)
         self._user_touched = False
+        # In-dialog undo/redo (Ctrl+Z / Ctrl+Y) over the field state.
+        self._undo_stack: list[Dict[str, Any]] = []
+        self._redo_stack: list[Dict[str, Any]] = []
+        self._undo_baseline: Dict[str, Any] | None = None
+        self._restoring = False
+        self._undo_ready = False
+        self._undo_widgets: list = []
 
         root_layout = QHBoxLayout(self)
 
@@ -607,6 +614,34 @@ class VisualStyleDialog(QDialog):
         # Initial preview update
         self._update_preview()
 
+        # ---- In-dialog undo/redo ---- #
+        # Register every field so a snapshot captures the full dialog state.
+        self._undo_widgets = [
+            self._bg_check, self._bg_color, self._bg_alpha,
+            self._border_check, self._border_color, self._border_width, self._border_radius,
+            self._shadow_check, self._shadow_color,
+            self._title_check, self._title_font, self._title_size, self._title_color,
+            self._labels_check, self._labels_color, self._labels_size,
+            self._legend_check, self._legend_pos, self._legend_color,
+            self._vh_check, self._vh_background, self._vh_foreground,
+            self._padding_check, self._padding_value,
+            self._subtitle_check, self._subtitle_text, self._subtitle_color, self._subtitle_size,
+            self._divider_check, self._divider_color, self._divider_width, self._divider_style,
+            self._spacing_check, self._spacing_below_title, self._spacing_vertical,
+            self._general_check, self._general_alt, self._general_keep_order,
+            self._tooltip_check, self._tooltip_bg, self._tooltip_title, self._tooltip_value,
+            self._htooltip_check, self._htooltip_bg, self._htooltip_title,
+        ]
+        self._undo_baseline = self._snapshot()
+        self._undo_ready = True
+        for _seq, _slot in (
+            (QKeySequence.Undo, self._undo_dialog),
+            (QKeySequence.Redo, self._redo_dialog),
+            (QKeySequence("Ctrl+Y"), self._redo_dialog),
+        ):
+            _sc = QShortcut(_seq, self)
+            _sc.activated.connect(_slot)
+
         # Set initial focus to first tab
         tabs.setFocus()
 
@@ -731,7 +766,18 @@ class VisualStyleDialog(QDialog):
             self._clear_all()
 
     def _clear_all(self) -> None:
-        """Uncheck all sections and reset JSON to empty."""
+        """Uncheck all sections and reset JSON/formatting to defaults (one undo step)."""
+        # Suppress per-widget history so the whole clear is a single Ctrl+Z step.
+        was_restoring = self._restoring
+        self._restoring = True
+        try:
+            self._clear_all_fields()
+        finally:
+            self._restoring = was_restoring
+        self._record_dialog_history()
+        self._update_preview()
+
+    def _clear_all_fields(self) -> None:
         self._bg_check.setChecked(False)
         self._border_check.setChecked(False)
         self._title_check.setChecked(False)
@@ -751,7 +797,6 @@ class VisualStyleDialog(QDialog):
         if self._formatter_panel:
             self._formatter_panel.reset_to_defaults()
         self._advanced_edit.setPlainText("{}")
-        self._update_preview()
 
     def _build_overrides(self) -> Dict[str, Any]:
         """Collect the current formatting + generic overrides into one dict.
@@ -862,6 +907,86 @@ class VisualStyleDialog(QDialog):
     def _note_touch(self, *args) -> None:
         """Record that the user actually changed a control (drives the ✓ badge)."""
         self._user_touched = True
+        self._record_dialog_history()
+
+    # ------------------------------------------------------------------ #
+    # In-dialog undo / redo
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _capture_widget(w) -> Any:
+        if isinstance(w, ColorButton):
+            return w.color()
+        if isinstance(w, QCheckBox):
+            return w.isChecked()
+        if isinstance(w, QSpinBox):
+            return w.value()
+        if isinstance(w, QFontComboBox):  # subclass of QComboBox — check first
+            return w.currentText()
+        if isinstance(w, QComboBox):
+            return w.currentIndex()
+        if isinstance(w, QLineEdit):
+            return w.text()
+        return None
+
+    @staticmethod
+    def _restore_widget(w, v) -> None:
+        if isinstance(w, ColorButton):
+            w.set_color(v)
+        elif isinstance(w, QCheckBox):
+            w.setChecked(bool(v))
+        elif isinstance(w, QSpinBox):
+            w.setValue(int(v))
+        elif isinstance(w, QFontComboBox):
+            w.setCurrentText(v)
+        elif isinstance(w, QComboBox):
+            w.setCurrentIndex(int(v))
+        elif isinstance(w, QLineEdit):
+            w.setText(v)
+
+    def _snapshot(self) -> Dict[str, Any]:
+        return {
+            "formatting": dict(self._formatter_panel.get_values()) if self._formatter_panel else {},
+            "generic": [self._capture_widget(w) for w in self._undo_widgets],
+            "advanced": self._advanced_edit.toPlainText(),
+        }
+
+    def _restore(self, snap: Dict[str, Any]) -> None:
+        self._restoring = True
+        try:
+            if self._formatter_panel:
+                self._formatter_panel.reset_to_defaults()
+                self._formatter_panel.set_values(snap.get("formatting", {}))
+            for w, v in zip(self._undo_widgets, snap.get("generic", [])):
+                self._restore_widget(w, v)
+            self._advanced_edit.setPlainText(snap.get("advanced", "{}"))
+        finally:
+            self._restoring = False
+        self._update_preview()
+
+    def _record_dialog_history(self) -> None:
+        """Commit one undo step: push the pre-edit baseline, rebase to now."""
+        if self._restoring or not self._undo_ready:
+            return
+        if self._undo_baseline is not None:
+            self._undo_stack.append(self._undo_baseline)
+            if len(self._undo_stack) > 100:
+                self._undo_stack.pop(0)
+        self._redo_stack.clear()
+        self._undo_baseline = self._snapshot()
+
+    def _undo_dialog(self) -> None:
+        if not self._undo_stack:
+            return
+        self._redo_stack.append(self._undo_baseline or self._snapshot())
+        self._undo_baseline = self._undo_stack.pop()
+        self._restore(self._undo_baseline)
+
+    def _redo_dialog(self) -> None:
+        if not self._redo_stack:
+            return
+        self._undo_stack.append(self._undo_baseline or self._snapshot())
+        self._undo_baseline = self._redo_stack.pop()
+        self._restore(self._undo_baseline)
 
     def _update_preview(self) -> None:
         """Re-render the live preview from the *exact* overrides that will be saved."""
