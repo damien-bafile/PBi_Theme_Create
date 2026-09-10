@@ -566,10 +566,21 @@ class VisualStyleDialog(QDialog):
 
         left_layout.addWidget(tabs)
 
-        # ---- Clear all button ---- #
+        # ---- Undo / Redo + Clear all ---- #
+        action_row = QHBoxLayout()
+        self._undo_btn = QPushButton("↶ Undo")
+        self._undo_btn.setToolTip("Undo (Ctrl+Z)")
+        self._undo_btn.clicked.connect(self._undo_dialog)
+        self._redo_btn = QPushButton("↷ Redo")
+        self._redo_btn.setToolTip("Redo (Ctrl+Y)")
+        self._redo_btn.clicked.connect(self._redo_dialog)
+        action_row.addWidget(self._undo_btn)
+        action_row.addWidget(self._redo_btn)
+        action_row.addStretch(1)
         clear_btn = QPushButton("Clear All Overrides")
         clear_btn.clicked.connect(self._on_clear_all_clicked)
-        left_layout.addWidget(clear_btn)
+        action_row.addWidget(clear_btn)
+        left_layout.addLayout(action_row)
 
         # ---- Dialog buttons ---- #
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -634,6 +645,7 @@ class VisualStyleDialog(QDialog):
         ]
         self._undo_baseline = self._snapshot()
         self._undo_ready = True
+        self._update_dialog_undo_actions()
         for _seq, _slot in (
             (QKeySequence.Undo, self._undo_dialog),
             (QKeySequence.Redo, self._redo_dialog),
@@ -759,7 +771,7 @@ class VisualStyleDialog(QDialog):
         resp = QMessageBox.question(
             self, "Clear all overrides?",
             "Reset every override for this visual back to defaults? "
-            "This can't be undone from inside the dialog.",
+            "You can undo this with Ctrl+Z.",
             QMessageBox.Yes | QMessageBox.Cancel, QMessageBox.Cancel,
         )
         if resp == QMessageBox.Yes:
@@ -963,6 +975,11 @@ class VisualStyleDialog(QDialog):
             self._restoring = False
         self._update_preview()
 
+    def _update_dialog_undo_actions(self) -> None:
+        if hasattr(self, "_undo_btn"):
+            self._undo_btn.setEnabled(bool(self._undo_stack))
+            self._redo_btn.setEnabled(bool(self._redo_stack))
+
     def _record_dialog_history(self) -> None:
         """Commit one undo step: push the pre-edit baseline, rebase to now."""
         if self._restoring or not self._undo_ready:
@@ -973,6 +990,7 @@ class VisualStyleDialog(QDialog):
                 self._undo_stack.pop(0)
         self._redo_stack.clear()
         self._undo_baseline = self._snapshot()
+        self._update_dialog_undo_actions()
 
     def _undo_dialog(self) -> None:
         if not self._undo_stack:
@@ -980,6 +998,7 @@ class VisualStyleDialog(QDialog):
         self._redo_stack.append(self._undo_baseline or self._snapshot())
         self._undo_baseline = self._undo_stack.pop()
         self._restore(self._undo_baseline)
+        self._update_dialog_undo_actions()
 
     def _redo_dialog(self) -> None:
         if not self._redo_stack:
@@ -987,6 +1006,7 @@ class VisualStyleDialog(QDialog):
         self._undo_stack.append(self._undo_baseline or self._snapshot())
         self._undo_baseline = self._redo_stack.pop()
         self._restore(self._undo_baseline)
+        self._update_dialog_undo_actions()
 
     def _update_preview(self) -> None:
         """Re-render the live preview from the *exact* overrides that will be saved."""

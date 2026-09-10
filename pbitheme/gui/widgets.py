@@ -214,15 +214,20 @@ class VisualStylesChecklist(QWidget):
 
     visualRequested = Signal(str)
 
-    # Name buttons read as links so it's obvious the rows open an editor.
-    _NAME_STYLE = (
-        "QPushButton { text-align: left; border: none; padding: 2px; }"
-        "QPushButton:hover { text-decoration: underline; color: #118DFF; }"
-    )
+    @staticmethod
+    def _name_style() -> str:
+        # Explicit mode-aware colour (a bare QSS rule otherwise drops the palette
+        # text colour and renders dim on the dark theme). Rows read as links.
+        col = theme.DARK_TEXT if theme.dark_mode else theme.TEXT_PRIMARY
+        return (
+            f"QPushButton {{ text-align: left; border: none; padding: 2px; color: {col}; }}"
+            "QPushButton:hover { text-decoration: underline; color: #118DFF; }"
+        )
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._status_labels: dict[str, QLabel] = {}
+        self._name_buttons: dict[str, QPushButton] = {}
         self._theme: PowerBITheme | None = None
         self._query = ""
 
@@ -239,7 +244,9 @@ class VisualStylesChecklist(QWidget):
         # scrolls, and this inner list keeps a sensible height (~10 rows) rather
         # than collapsing to a cramped double-scrolled box.
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setMinimumHeight(260)
+        # Tall enough to not feel cramped, short enough that the colour sections
+        # below still peek above the fold.
+        scroll.setMinimumHeight(170)
         container = QWidget()
         self._grid = QGridLayout(container)
         self._grid.setColumnStretch(0, 1)   # visual name (stretches)
@@ -265,12 +272,15 @@ class VisualStylesChecklist(QWidget):
             if item and item.widget():
                 item.widget().deleteLater()
         self._status_labels = {}
+        self._name_buttons = {}
+        style = self._name_style()
         matches = [(k, l) for k, l in VISUAL_TYPES if self._query in l.lower()]
         for row, (key, label) in enumerate(matches):
             name_btn = QPushButton(label.replace("&", "&&"))  # && escapes the mnemonic
             name_btn.setFlat(True)
             name_btn.setCursor(Qt.PointingHandCursor)
-            name_btn.setStyleSheet(self._NAME_STYLE)
+            name_btn.setStyleSheet(style)
+            self._name_buttons[key] = name_btn
             name_btn.clicked.connect(lambda _c=False, k=key: self.visualRequested.emit(k))
             status_label = QLabel("✗ Default")
             # Fixed width + right alignment so the status never truncates.
@@ -283,6 +293,8 @@ class VisualStylesChecklist(QWidget):
         self._refresh_status()
 
     def _refresh_status(self) -> None:
+        # "Custom" is the notable state — green + bold so it stands out; "Default"
+        # is the quiet majority — a muted (still-AA) grey so 50+ rows aren't a wall.
         for key, label in self._status_labels.items():
             customised = self._theme is not None and self._theme.is_visual_customised(key)
             if customised:
@@ -290,9 +302,13 @@ class VisualStylesChecklist(QWidget):
                 label.setStyleSheet(f"color: {theme.STATUS_CUSTOM_COLOR}; font-weight: bold;")
             else:
                 label.setText("✗ Default")
-                label.setStyleSheet(f"color: {theme.STATUS_DEFAULT_COLOR}; font-weight: bold;")
+                label.setStyleSheet(f"color: {theme.STATUS_MUTED_COLOR};")
 
     def set_theme(self, pbi_theme: PowerBITheme) -> None:
         """Update the checklist based on which visuals are customised."""
         self._theme = pbi_theme
+        # Re-apply name colours so a light/dark toggle recolours existing rows.
+        style = self._name_style()
+        for btn in self._name_buttons.values():
+            btn.setStyleSheet(style)
         self._refresh_status()

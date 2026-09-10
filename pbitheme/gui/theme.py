@@ -3,10 +3,11 @@
 # Status indicator colours. These are mutated by apply_*_palette so they stay
 # WCAG-AA against the active surface (dark greens/reds on white, brighter ones
 # on the dark palette). Read them at refresh time, not import time.
-STATUS_CUSTOM_COLOR = "#005620"   # customized elements
+STATUS_CUSTOM_COLOR = "#005620"   # customized elements (the notable state — glows)
 STATUS_DEFAULT_COLOR = "#8b0000"  # default / uncustomized elements
-_STATUS_LIGHT = ("#005620", "#8b0000")
-_STATUS_DARK = ("#3FB950", "#F85149")  # bright green / red, AA on dark chrome
+STATUS_MUTED_COLOR = "#605E5C"    # muted, still-AA grey for the "default" majority
+_STATUS_LIGHT = ("#005620", "#8b0000", "#605E5C")
+_STATUS_DARK = ("#3FB950", "#F85149", "#9E9E9E")  # green / red / grey, AA on dark
 
 # UI text and structural colors
 TEXT_PRIMARY = "#252423"
@@ -31,8 +32,10 @@ dark_mode = False
 
 
 def _set_status_for(dark: bool) -> None:
-    global STATUS_CUSTOM_COLOR, STATUS_DEFAULT_COLOR, dark_mode
-    STATUS_CUSTOM_COLOR, STATUS_DEFAULT_COLOR = _STATUS_DARK if dark else _STATUS_LIGHT
+    global STATUS_CUSTOM_COLOR, STATUS_DEFAULT_COLOR, STATUS_MUTED_COLOR, dark_mode
+    STATUS_CUSTOM_COLOR, STATUS_DEFAULT_COLOR, STATUS_MUTED_COLOR = (
+        _STATUS_DARK if dark else _STATUS_LIGHT
+    )
     dark_mode = dark
 
 

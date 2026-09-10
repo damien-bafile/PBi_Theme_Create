@@ -282,14 +282,8 @@ class MainWindow(QMainWindow):
         """
         from PySide6.QtCore import QSettings
 
-        if theme.dark_mode:
-            bg, border, fg = "#14304A", "#2A4A6A", theme.DARK_TEXT
-        else:
-            bg, border, fg = "#EFF6FF", "#BBD6FF", "#252423"
         banner = QFrame()
-        banner.setStyleSheet(
-            f"QFrame {{ background: {bg}; border: 1px solid {border}; border-radius: 4px; }}"
-        )
+        self._welcome_banner = banner
         row = QHBoxLayout(banner)
         row.setContentsMargins(10, 6, 6, 6)
         msg = QLabel(
@@ -298,7 +292,8 @@ class MainWindow(QMainWindow):
             "Power BI theme. The right panel previews every change live."
         )
         msg.setWordWrap(True)
-        msg.setStyleSheet(f"border: none; background: transparent; color: {fg};")
+        self._welcome_msg = msg
+        self._restyle_welcome()
         row.addWidget(msg, 1)
         got_it = QPushButton("Got it")
         got_it.setToolTip("Don't show this again")
@@ -317,6 +312,19 @@ class MainWindow(QMainWindow):
         banner.setVisible(not dismissed)
         return banner
 
+    def _restyle_welcome(self) -> None:
+        """Colour the welcome banner for the active light/dark mode."""
+        if not hasattr(self, "_welcome_banner"):
+            return
+        if theme.dark_mode:
+            bg, border, fg = "#14304A", "#2A4A6A", theme.DARK_TEXT
+        else:
+            bg, border, fg = "#EFF6FF", "#BBD6FF", "#252423"
+        self._welcome_banner.setStyleSheet(
+            f"QFrame {{ background: {bg}; border: 1px solid {border}; border-radius: 4px; }}"
+        )
+        self._welcome_msg.setStyleSheet(f"border: none; background: transparent; color: {fg};")
+
     def _on_toggle_dark(self, checked: bool) -> None:
         """Switch between the light and dark palette and remember the choice."""
         from PySide6.QtWidgets import QApplication
@@ -324,6 +332,7 @@ class MainWindow(QMainWindow):
 
         theme.apply_palette(QApplication.instance(), checked)
         QSettings().setValue("ui/darkMode", checked)
+        self._restyle_welcome()  # banner uses hardcoded hex, so re-theme it too
         # Re-colour the ✓/✗ status labels for the new mode (they're mode-aware).
         self._refresh_preview()
 

@@ -19,6 +19,7 @@ from PySide6.QtSvgWidgets import QSvgWidget
 from ..model import PowerBITheme
 from .preview_mockups import generate_all_mockups
 from .theme import BORDER_HAIRLINE
+from . import theme as gui_theme
 
 
 #: Viewport width (px) at/above which the mockups lay out in two columns.
@@ -56,7 +57,7 @@ class PreviewPanel(QWidget):
         self._labels: dict[str, QLabel] = {}
         for label_text, key in self._mockups:
             label = QLabel(label_text)
-            label.setStyleSheet("font-weight: bold; margin-top: 8px;")
+            label.setStyleSheet(self._label_style())
             self._labels[key] = label
             svg_widget = QSvgWidget()
             # Small minimum so a single narrow column never triggers horizontal scroll;
@@ -94,8 +95,17 @@ class PreviewPanel(QWidget):
         want = 2 if self._scroll.viewport().width() >= TWO_COLUMN_MIN_WIDTH else 1
         self._populate_grid(want)
 
+    @staticmethod
+    def _label_style() -> str:
+        col = gui_theme.DARK_TEXT if gui_theme.dark_mode else gui_theme.TEXT_PRIMARY
+        return f"font-weight: bold; margin-top: 8px; color: {col};"
+
     def update_preview(self, theme: PowerBITheme, visual_styles: Dict[str, Any] | None = None) -> None:
         """Update all mockups to reflect the current theme and visual styles."""
+        # Re-apply heading colours so a light/dark toggle recolours them.
+        style = self._label_style()
+        for lbl in self._labels.values():
+            lbl.setStyleSheet(style)
         self._theme = theme
         visual_styles = visual_styles or {}
         mockups = generate_all_mockups(theme, visual_styles=visual_styles, size=300)
