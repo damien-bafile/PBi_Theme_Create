@@ -639,6 +639,74 @@ QNA_SECTIONS = [
     ),
 ]
 
+# Azure Maps -- colours + typography (the 20 fills, font family/size, label
+# emphasis). Map-behaviour toggles stay in Advanced JSON. `defaultColor` drives
+# the live preview (the bubble/pin fill).
+AZURE_MAP_SECTIONS = [
+    FormatSection(
+        "Data Points",
+        [
+            FormatField("defaultColor", "Fill Color", "color", default="#118DFF"),
+            FormatField("fill", "Range Color", "color", default="#118DFF", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Bubbles",
+        [
+            FormatField("fillColor", "Fill Color", "color", default="#118DFF", preview=False),
+            FormatField("strokeColor", "Border Color", "color", default="#FFFFFF", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Clusters",
+        [
+            FormatField("clusteredBubbleFillColor", "Cluster Color", "color", default="#118DFF", preview=False),
+            FormatField("clusteredBubbleStrokeColor", "Border Color", "color", default="#FFFFFF", preview=False),
+            FormatField("clusteredBubbleFontColor", "Text Color", "color", default="#FFFFFF", preview=False),
+            _font_size_field("clusteredBubbleFontSize", "Text Size (pt)"),
+        ],
+    ),
+    FormatSection(
+        "Data Labels",
+        [
+            FormatField("color", "Font Color", "color", default="#FFFFFF", preview=False),
+            _font_family_field("fontFamily"),
+            _font_size_field("fontSize"),
+            FormatField("bold", "Bold", "boolean", default=False, preview=False),
+            FormatField("italic", "Italic", "boolean", default=False, preview=False),
+            FormatField("underline", "Underline", "boolean", default=False, preview=False),
+            FormatField("enableBackground", "Show Background", "boolean", default=False, preview=False),
+            FormatField("backgroundColor", "Background Color", "color", default="#000000", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Category Labels",
+        [
+            FormatField("labelColor", "Color", "color", default="#333333", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Heat Map",
+        [
+            FormatField("heatMapColorLow", "Low (0%)", "color", default="#0000FF", preview=False),
+            FormatField("heatMapColorCenter", "Center (50%)", "color", default="#00FF00", preview=False),
+            FormatField("heatMapColorHigh", "High (100%)", "color", default="#FF0000", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Reference Layer",
+        [
+            FormatField("bubbleFillColor", "Bubble Fill", "color", default="#118DFF", preview=False),
+            FormatField("bubbleStrokeColor", "Bubble Border", "color", default="#FFFFFF", preview=False),
+            FormatField("lineStrokeColor", "Line Color", "color", default="#118DFF", preview=False),
+            FormatField("polygonFillColor", "Polygon Fill", "color", default="#118DFF", preview=False),
+            FormatField("polygonStrokeColor", "Polygon Border", "color", default="#FFFFFF", preview=False),
+            FormatField("unmappedObjectFillColor", "Unmapped Fill", "color", default="#888888", preview=False),
+            FormatField("unmappedObjectStrokeColor", "Unmapped Border", "color", default="#FFFFFF", preview=False),
+        ],
+    ),
+]
+
 _MAP_THEMES = [
     ("road", "Road"), ("aerial", "Aerial"), ("grayscale", "Grayscale"),
     ("canvasLight", "Light"), ("canvasDark", "Dark"),
@@ -1038,6 +1106,7 @@ VISUAL_FORMATTING = {
     "decompositionTreeVisual": DECOMP_SECTIONS,
     "keyDriversVisual": KEY_DRIVERS_SECTIONS,
     "qnaVisual": QNA_SECTIONS,
+    "azureMapVisual": AZURE_MAP_SECTIONS,
     "map": MAP_SECTIONS,
     "filledMap": FILLED_MAP_SECTIONS,
     "shapeMap": SHAPE_MAP_SECTIONS,

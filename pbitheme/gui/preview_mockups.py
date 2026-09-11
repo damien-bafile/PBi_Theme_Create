@@ -1437,8 +1437,9 @@ def generate_map_svg(theme, formatting=None, generic=None, width=300, height=200
     """Map placeholder -- pins, filled regions (choropleth) or outlined shapes."""
     formatting, generic = formatting or {}, generic or {}
     colors = _series_colors(theme, 4)
-    # A single data-point / region / shape colour override.
-    data_col = _col(formatting, "mapDataColor", "") or _col(formatting, "shapeMapColor", "")
+    # A single data-point / region / shape colour override (Azure uses defaultColor).
+    data_col = (_col(formatting, "mapDataColor", "") or _col(formatting, "shapeMapColor", "")
+                or _col(formatting, "defaultColor", ""))
     border_col = _col(formatting, "shapeMapBorderColor", "#FFFFFF")
     stroke_col = _col(formatting, "mapStrokeColor", "#FFFFFF")
     parts = _frame(width, height, generic, theme.background)

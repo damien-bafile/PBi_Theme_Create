@@ -12,7 +12,7 @@ can also generate themes from scripts.
 - **Full visual coverage** — every one of the **52** visual types Power BI's
   theme schema defines is themeable (the editor lists **54** entries, exposing
   both the schema and friendly names for Table and Matrix). **50** entries have
-  dedicated structured formatting; the other **3** use the generic overrides.
+  dedicated structured formatting; the other **2** use the generic overrides.
 - **Live visual preview** — every visual is drawn as an SVG mockup that updates
   as you edit, plus a live JSON preview of the exported theme.
 - **Per-visual formatting** — axes, gridlines, legend, data labels, table
@@ -118,9 +118,9 @@ needed. The published assets are `PowerBI_Theme_Creator.exe`,
 **Every visual is covered.** The Power BI report theme schema (v2.157) defines
 **52** visual types, and the editor makes all of them selectable — listing
 **54** entries because it exposes both the schema and friendly names for Table
-(`tableEx` / `table`) and Matrix (`pivotTable` / `matrix`). **51** of the
+(`tableEx` / `table`) and Matrix (`pivotTable` / `matrix`). **52** of the
 editor's entries have dedicated, structured formatting sections; the remaining
-**3** — Azure Maps, Python and R — are themed through the
+**2** — Python and R — are themed through the
 generic overrides (title, background, border, drop shadow, padding, tooltips, …).
 Everything exports to real Power BI theme *cards*, is validated against the
 bundled schema, and round-trips (export → import → export is stable). Anything
@@ -128,12 +128,11 @@ not yet in a structured section can still be set through the **Advanced JSON**
 tab.
 
 Card-level depth within each visual (every property of every card) remains an
-ongoing sub-goal, tracked in the stages and matrix below. Of the three
-generic-only visuals, R and Python genuinely expose nothing beyond frame styling
-(the schema gives them only `provider` / `source`); only **Azure Maps** still
-has deeper colour / font cards in the schema (149 of them) reachable via Advanced
-JSON today — a candidate for a future structured section. (**Key Drivers** and
-**Q&A** graduated to structured sections in Stages 10–11 below.)
+ongoing sub-goal, tracked in the stages and matrix below. The only two
+generic-only visuals left, **R** and **Python**, genuinely expose nothing beyond
+frame styling — the schema gives them just `provider` / `source`, so there is
+nothing more to surface. (**Key Drivers**, **Q&A** and **Azure Maps** graduated
+to structured sections in Stages 10–12 below.)
 
 **Legend:** ✅ done &nbsp;·&nbsp; ◐ partial &nbsp;·&nbsp; ☐ planned &nbsp;·&nbsp; — not applicable to this visual
 
@@ -241,6 +240,18 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   **live-previewed**; the rest are valid export-only cards. Like Key Drivers,
   everything emits onto the visual's `*` card (per the schema), validates, and
   round-trips.
+- **Stage 12 — Azure Maps structured section — ✅ complete.** Promoted **Azure
+  Maps** — the last visual with real themeable depth — from generic-only to a
+  colours + typography section covering all **20** of its schema `fill` colours
+  plus font family / size and label emphasis (**27** fields) across seven groups:
+  **Data Points**, **Bubbles**, **Clusters**, **Data Labels**, **Category
+  Labels**, **Heat Map** (low / center / high gradient) and **Reference Layer**
+  (bubbles / lines / polygons / unmapped objects). The bubble fill
+  (`defaultColor`) is **live-previewed** on the map pins; the rest are valid
+  export-only cards. Emits onto the `*` card, exported under the schema name
+  `azureMap`, validates and round-trips. (Azure's ~40 map-behaviour toggles —
+  traffic, boundaries, navigation, world-wrap — stay in Advanced JSON by design:
+  a theme should brand the visual, not dictate analytical map behaviour.)
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.
@@ -280,7 +291,7 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
 | Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 64% |
 | Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ◐ | 68% |
 | Shape Map | ✅ | — | ✅ | — | ◐ | — | — | — | ◐ | 58% |
-| Azure Maps | ✅ | — | — | — | — | — | — | — | ◐ | 40% |
+| Azure Maps | ✅ | — | — | ◐ | ✅ | — | — | — | ◐ | 68% |
 | Decomposition Tree | ✅ | — | — | ◐ | — | — | — | — | ◐ | 53% |
 | Key Drivers | ✅ | — | — | ◐ | ✅ | — | — | — | ◐ | 72% |
 | Q&A | ✅ | — | — | ◐ | ✅ | — | — | — | ◐ | 73% |

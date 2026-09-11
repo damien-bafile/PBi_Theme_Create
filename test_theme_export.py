@@ -213,6 +213,23 @@ def main() -> int:
     qna_back = import_visual_styles(qv).get("qnaVisual", {}).get("*", {}).get("formatting", {})
     check({k: qna_back.get(k) for k in qna_fmt} == qna_fmt, "Q&A settings did not round-trip")
 
+    # 8d) Azure Maps: colours + typography on "*", exported under the schema name
+    #     `azureMap`, validate, and round-trip through the app key `azureMapVisual`.
+    az_fmt = {
+        "defaultColor": "#118DFF", "heatMapColorHigh": "#FF0000", "labelColor": "#333333",
+        "polygonFillColor": "#0A5A0A", "unmappedObjectStrokeColor": "#FFFFFF",
+        "bold": True, "enableBackground": True, "fontFamily": "Arial", "fontSize": 12,
+    }
+    az = build_visual_styles({"azureMapVisual": _style(dict(az_fmt))})
+    check("azureMap" in az and "azureMapVisual" not in az, "azureMapVisual not mapped to azureMap")
+    astar = az["azureMap"]["*"]
+    check("*" in astar and isinstance(astar["*"], list), "Azure props not on the '*' card")
+    check(_is_solid(astar["*"][0]["defaultColor"]), "Azure defaultColor not a solid fill")
+    atheme = PowerBITheme("AZ"); atheme.visual_styles = {"azureMapVisual": _style(dict(az_fmt))}
+    check(validate_theme(atheme.to_dict()) == [], "Azure Maps theme failed schema validation")
+    az_back = import_visual_styles(az).get("azureMapVisual", {}).get("*", {}).get("formatting", {})
+    check({k: az_back.get(k) for k in az_fmt} == az_fmt, "Azure Maps settings did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({

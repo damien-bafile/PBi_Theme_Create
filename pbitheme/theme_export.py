@@ -95,6 +95,21 @@ _QNA_BOOLS = (
 )
 _QNA_FONTS = ("questionFontFamily", "restatementFontFamily", "cardFontFamily", "headerFontFamily")
 _QNA_SIZES = ("questionFontSize", "restatementFontSize", "cardFontSize", "headerFontSize")
+# Azure Maps (app key azureMapVisual -> schema `azureMap`): colours + typography,
+# all flat on the "*" card. Behaviour toggles are left in Advanced JSON.
+_AZURE = {"azureMapVisual"}
+_AZURE_FILLS = (
+    "defaultColor", "fill", "fillColor", "strokeColor",
+    "clusteredBubbleFillColor", "clusteredBubbleStrokeColor", "clusteredBubbleFontColor",
+    "color", "backgroundColor", "labelColor",
+    "heatMapColorLow", "heatMapColorCenter", "heatMapColorHigh",
+    "bubbleFillColor", "bubbleStrokeColor", "lineStrokeColor",
+    "polygonFillColor", "polygonStrokeColor",
+    "unmappedObjectFillColor", "unmappedObjectStrokeColor",
+)
+_AZURE_BOOLS = ("bold", "italic", "underline", "enableBackground")
+_AZURE_FONTS = ("fontFamily",)
+_AZURE_SIZES = ("fontSize", "clusteredBubbleFontSize")
 
 _GRIDLINE_STYLE = {"Solid": "solid", "Dashed": "dashed", "Dotted": "dotted"}
 
@@ -107,6 +122,27 @@ def _set(card: Dict[str, Any], key: str, value: Any) -> None:
     """Set a card property, skipping None (e.g. an invalid colour)."""
     if value is not None:
         card[key] = value
+
+
+def _flat_star(fmt: Dict[str, Any], fills=(), bools=(), fonts=(), sizes=()) -> Dict[str, Any]:
+    """Build the visual's catch-all ``"*"`` card of flat fill/bool/font/size props.
+
+    Used by visuals whose schema defines their properties directly on ``*``
+    (Key drivers, Q&A, Azure Maps) rather than under named sub-cards.
+    """
+    star: Dict[str, Any] = {}
+    for prop in fills:
+        _set(star, prop, _fill(fmt.get(prop, "")))
+    for prop in bools:
+        if prop in fmt:
+            star[prop] = bool(fmt[prop])
+    for prop in fonts:
+        if fmt.get(prop):
+            star[prop] = fmt[prop]
+    for prop in sizes:
+        if prop in fmt:
+            star[prop] = int(fmt[prop])
+    return star
 
 
 def _apply_font_style(card: Dict[str, Any], fmt: Dict[str, Any],
@@ -666,28 +702,19 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(lh, "levelTitleFontColor", _fill(fmt.get("levelTitleColor", "")))
         _set(card("dataLabels"), "dataLabelFontColor", _fill(fmt.get("treeDataLabelColor", "")))
 
-    # ---- Key drivers: analysis colours as flat fills on the "*" card ---- #
+    # ---- Flat "*"-card visuals: key drivers, Q&A, Azure Maps ---- #
     elif app_key in _KEY_DRIVERS:
-        star: Dict[str, Any] = {}
-        for prop in _KEY_DRIVER_FILLS:
-            _set(star, prop, _fill(fmt.get(prop, "")))
+        star = _flat_star(fmt, fills=_KEY_DRIVER_FILLS)
         if star:
             cards["*"] = star
 
-    # ---- Q&A: fonts / colours / states as flat props on the "*" card ---- #
     elif app_key in _QNA:
-        star = {}
-        for prop in _QNA_FILLS:
-            _set(star, prop, _fill(fmt.get(prop, "")))
-        for prop in _QNA_BOOLS:
-            if prop in fmt:
-                star[prop] = bool(fmt[prop])
-        for prop in _QNA_FONTS:
-            if fmt.get(prop):
-                star[prop] = fmt[prop]
-        for prop in _QNA_SIZES:
-            if prop in fmt:
-                star[prop] = int(fmt[prop])
+        star = _flat_star(fmt, _QNA_FILLS, _QNA_BOOLS, _QNA_FONTS, _QNA_SIZES)
+        if star:
+            cards["*"] = star
+
+    elif app_key in _AZURE:
+        star = _flat_star(fmt, _AZURE_FILLS, _AZURE_BOOLS, _AZURE_FONTS, _AZURE_SIZES)
         if star:
             cards["*"] = star
 
@@ -975,6 +1002,22 @@ def _put(fmt: Dict[str, Any], key: str, value: Any) -> None:
         fmt[key] = value
 
 
+def _flat_star_inv(fmt: Dict[str, Any], star: Dict[str, Any],
+                   fills=(), bools=(), fonts=(), sizes=()) -> None:
+    """Reconstruct flat ``"*"``-card props back into ``formatting`` (inverse of _flat_star)."""
+    for prop in fills:
+        _put(fmt, prop, _hex(star, prop))
+    for prop in bools:
+        if prop in star:
+            fmt[prop] = bool(star[prop])
+    for prop in fonts:
+        if star.get(prop):
+            fmt[prop] = star[prop]
+    for prop in sizes:
+        if prop in star:
+            fmt[prop] = star[prop]
+
+
 def _axis_gridlines_inv(fmt: Dict[str, Any], c: Dict[str, Any]) -> None:
     if "gridlineShow" in c and not c["gridlineShow"]:
         fmt["gridlineStyle"] = "None"
@@ -1020,7 +1063,7 @@ def _consumed_cards(app_key: str) -> set:
         return {"fill", "outline"}
     if app_key in _DECOMP:
         return {"levelHeader", "dataLabels"}
-    if app_key in _KEY_DRIVERS | _QNA:
+    if app_key in _KEY_DRIVERS | _QNA | _AZURE:
         return {"*"}
     if app_key in _MAP:
         return {"dataPoint", "categoryLabels", "stroke", "mapStyles", "mapControls"}
@@ -1466,23 +1509,13 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "treeDataLabelColor", _hex(c("dataLabels"), "dataLabelFontColor"))
 
     elif app_key in _KEY_DRIVERS:
-        star = c("*")
-        for prop in _KEY_DRIVER_FILLS:
-            _put(fmt, prop, _hex(star, prop))
+        _flat_star_inv(fmt, c("*"), fills=_KEY_DRIVER_FILLS)
 
     elif app_key in _QNA:
-        star = c("*")
-        for prop in _QNA_FILLS:
-            _put(fmt, prop, _hex(star, prop))
-        for prop in _QNA_BOOLS:
-            if prop in star:
-                fmt[prop] = bool(star[prop])
-        for prop in _QNA_FONTS:
-            if star.get(prop):
-                fmt[prop] = star[prop]
-        for prop in _QNA_SIZES:
-            if prop in star:
-                fmt[prop] = star[prop]
+        _flat_star_inv(fmt, c("*"), _QNA_FILLS, _QNA_BOOLS, _QNA_FONTS, _QNA_SIZES)
+
+    elif app_key in _AZURE:
+        _flat_star_inv(fmt, c("*"), _AZURE_FILLS, _AZURE_BOOLS, _AZURE_FONTS, _AZURE_SIZES)
 
     elif app_key in _MAP:
         _put(fmt, "mapDataColor", _hex(c("dataPoint"), "defaultColor"))
