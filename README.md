@@ -272,6 +272,12 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   expand/collapse card placement is inferred — the schema flattens card names
   away — so if Power BI Desktop reads those from a different card, only that card
   name needs adjusting.)
+- **Stage 15 — Gridline & data-label detail — ✅ complete.** More card-level depth
+  on cards the app already emits: cartesian **gridline transparency** (on
+  `valueAxis`, sibling of the existing gridline colour / thickness) and
+  **data-label background colour + transparency** (on the `labels` card, filling
+  the gap where the app toggled *Show Background* but never set its colour). All
+  export-only, schema-valid and round-tripping.
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.

@@ -245,6 +245,7 @@ CHART_SECTIONS = [
                        options=[("None", "None"), ("Solid", "Solid"), ("Dashed", "Dashed")]),
             FormatField("gridlineColor", "Color", "color", default="#CCCCCC"),
             FormatField("gridlineThickness", "Thickness (px)", "number", min_val=1, max_val=3, suffix="px"),
+            FormatField("gridlineTransparency", "Transparency (%)", "number", min_val=0, max_val=100, suffix="%", preview=False),
         ],
     ),
     FormatSection(
@@ -256,6 +257,8 @@ CHART_SECTIONS = [
             FormatField("dataLabelItalic", "Italic", "boolean", default=False),
             FormatField("dataLabelFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
             FormatField("dataLabelBackground", "Show Background", "boolean", default=False),
+            FormatField("dataLabelBackgroundColor", "Background Color", "color", default="#FFFFFF", preview=False),
+            FormatField("dataLabelBackgroundTransparency", "Background Transparency (%)", "number", min_val=0, max_val=100, suffix="%", preview=False),
             FormatField("dataLabelDisplayUnits", "Display Units", "dropdown",
                        options=[("1", "None"), ("1000", "Thousands"), ("1000000", "Millions"),
                                 ("1000000000", "Billions")]),

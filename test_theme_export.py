@@ -307,6 +307,23 @@ def main() -> int:
     mb_back = import_visual_styles(mv).get("matrix", {}).get("*", {}).get("formatting", {})
     check({k: mb_back.get(k) for k in mat_fmt} == mat_fmt, "matrix expand/collapse did not round-trip")
 
+    # 8i) Gridline transparency (valueAxis) + data-label background colour /
+    #     transparency (labels card) — siblings of props the app already emits.
+    gl_fmt = {
+        "gridlineStyle": "Solid", "gridlineColor": "#CCCCCC", "gridlineTransparency": 40,
+        "dataLabelBackground": True, "dataLabelBackgroundColor": "#EEEEEE",
+        "dataLabelBackgroundTransparency": 25,
+    }
+    gv = build_visual_styles({"barChart": _style(dict(gl_fmt))})
+    gstar = gv["barChart"]["*"]
+    check(gstar["valueAxis"][0].get("gridlineTransparency") == 40, "gridlineTransparency missing on valueAxis")
+    check(_is_solid(gstar["labels"][0].get("backgroundColor", {})), "labels.backgroundColor missing")
+    check(gstar["labels"][0].get("backgroundTransparency") == 25, "labels.backgroundTransparency missing")
+    gtheme = PowerBITheme("GL"); gtheme.visual_styles = {"barChart": _style(dict(gl_fmt))}
+    check(validate_theme(gtheme.to_dict()) == [], "gridline/label-bg theme failed schema validation")
+    gl_back = import_visual_styles(gv).get("barChart", {}).get("*", {}).get("formatting", {})
+    check({k: gl_back.get(k) for k in gl_fmt} == gl_fmt, "gridline/label-bg settings did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({

@@ -193,6 +193,8 @@ def _axis_gridlines(card: Dict[str, Any], fmt: Dict[str, Any]) -> None:
         _set(card, "gridlineColor", _fill(fmt["gridlineColor"]))
     if "gridlineThickness" in fmt:
         card["gridlineThickness"] = fmt["gridlineThickness"]
+    if "gridlineTransparency" in fmt:
+        card["gridlineTransparency"] = int(fmt["gridlineTransparency"])
 
 
 def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
@@ -304,6 +306,10 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             lab["fontFamily"] = fmt["dataLabelFontFamily"]
         if app_key not in _SCATTER and "dataLabelBackground" in fmt:
             lab["enableBackground"] = bool(fmt["dataLabelBackground"])
+        if app_key not in _SCATTER:
+            _set(lab, "backgroundColor", _fill(fmt.get("dataLabelBackgroundColor", "")))
+            if "dataLabelBackgroundTransparency" in fmt:
+                lab["backgroundTransparency"] = int(fmt["dataLabelBackgroundTransparency"])
         if app_key not in _SCATTER:
             if "dataLabelDisplayUnits" in fmt:
                 lab["labelDisplayUnits"] = int(fmt["dataLabelDisplayUnits"])
@@ -1082,6 +1088,8 @@ def _axis_gridlines_inv(fmt: Dict[str, Any], c: Dict[str, Any]) -> None:
     _put(fmt, "gridlineColor", _hex(c, "gridlineColor"))
     if "gridlineThickness" in c:
         fmt["gridlineThickness"] = c["gridlineThickness"]
+    if "gridlineTransparency" in c:
+        fmt["gridlineTransparency"] = c["gridlineTransparency"]
 
 
 # Per-family sets of cards that reconstruct the flat `formatting` dict (and are
@@ -1235,6 +1243,9 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["dataLabelFontFamily"] = lab["fontFamily"]
         if "enableBackground" in lab:
             fmt["dataLabelBackground"] = bool(lab["enableBackground"])
+        _put(fmt, "dataLabelBackgroundColor", _hex(lab, "backgroundColor"))
+        if "backgroundTransparency" in lab:
+            fmt["dataLabelBackgroundTransparency"] = lab["backgroundTransparency"]
         if "labelDisplayUnits" in lab:
             fmt["dataLabelDisplayUnits"] = str(lab["labelDisplayUnits"])
         if "labelPrecision" in lab:
