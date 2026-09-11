@@ -197,6 +197,9 @@ CHART_SECTIONS = [
             FormatField("xAxisTitleText", "Title Text", "text", default=""),
             FormatField("xAxisTitleColor", "Title Color", "color", default="#252423"),
             FormatField("xAxisTitleFontSize", "Title Size (pt)", "number", min_val=8, max_val=20, default=10, suffix="pt"),
+            FormatField("xAxisTitleBold", "Title Bold", "boolean", default=False, preview=False),
+            FormatField("xAxisTitleItalic", "Title Italic", "boolean", default=False, preview=False),
+            FormatField("xAxisTitleFontFamily", "Title Font", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
     FormatSection(
@@ -221,6 +224,9 @@ CHART_SECTIONS = [
             FormatField("yAxisTitleText", "Title Text", "text", default=""),
             FormatField("yAxisTitleColor", "Title Color", "color", default="#252423"),
             FormatField("yAxisTitleFontSize", "Title Size (pt)", "number", min_val=8, max_val=20, default=10, suffix="pt"),
+            FormatField("yAxisTitleBold", "Title Bold", "boolean", default=False, preview=False),
+            FormatField("yAxisTitleItalic", "Title Italic", "boolean", default=False, preview=False),
+            FormatField("yAxisTitleFontFamily", "Title Font", "dropdown", options=FONT_OPTIONS, preview=False),
         ],
     ),
     FormatSection(

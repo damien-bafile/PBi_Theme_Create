@@ -222,6 +222,12 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if fmt.get("xAxisTitleText"):
             cat["titleText"] = fmt["xAxisTitleText"]
             cat["showAxisTitle"] = True
+        if "xAxisTitleBold" in fmt:
+            cat["titleBold"] = bool(fmt["xAxisTitleBold"])
+        if "xAxisTitleItalic" in fmt:
+            cat["titleItalic"] = bool(fmt["xAxisTitleItalic"])
+        if fmt.get("xAxisTitleFontFamily"):
+            cat["titleFontFamily"] = fmt["xAxisTitleFontFamily"]
 
         val = card("valueAxis")
         _set(val, "labelColor", _fill(fmt.get("yAxisLabelColor", "")))
@@ -243,6 +249,12 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if fmt.get("yAxisTitleText"):
             val["titleText"] = fmt["yAxisTitleText"]
             val["showAxisTitle"] = True
+        if "yAxisTitleBold" in fmt:
+            val["titleBold"] = bool(fmt["yAxisTitleBold"])
+        if "yAxisTitleItalic" in fmt:
+            val["titleItalic"] = bool(fmt["yAxisTitleItalic"])
+        if fmt.get("yAxisTitleFontFamily"):
+            val["titleFontFamily"] = fmt["yAxisTitleFontFamily"]
         if "yAxisLogScale" in fmt:
             val["logAxisScale"] = bool(fmt["yAxisLogScale"])
         if fmt.get("yAxisSetRange"):
@@ -1134,6 +1146,12 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["xAxisTitleFontSize"] = cat["titleFontSize"]
         if "titleText" in cat:
             fmt["xAxisTitleText"] = cat["titleText"]
+        if "titleBold" in cat:
+            fmt["xAxisTitleBold"] = bool(cat["titleBold"])
+        if "titleItalic" in cat:
+            fmt["xAxisTitleItalic"] = bool(cat["titleItalic"])
+        if "titleFontFamily" in cat:
+            fmt["xAxisTitleFontFamily"] = cat["titleFontFamily"]
         val = c("valueAxis")
         _put(fmt, "yAxisLabelColor", _hex(val, "labelColor"))
         if "fontSize" in val:
@@ -1153,6 +1171,12 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["yAxisTitleFontSize"] = val["titleFontSize"]
         if "titleText" in val:
             fmt["yAxisTitleText"] = val["titleText"]
+        if "titleBold" in val:
+            fmt["yAxisTitleBold"] = bool(val["titleBold"])
+        if "titleItalic" in val:
+            fmt["yAxisTitleItalic"] = bool(val["titleItalic"])
+        if "titleFontFamily" in val:
+            fmt["yAxisTitleFontFamily"] = val["titleFontFamily"]
         if "logAxisScale" in val:
             fmt["yAxisLogScale"] = bool(val["logAxisScale"])
         if "start" in val or "end" in val:

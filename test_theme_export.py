@@ -250,6 +250,21 @@ def main() -> int:
     ln_back = import_visual_styles(ln).get("lineChart", {}).get("*", {}).get("formatting", {})
     check({k: ln_back.get(k) for k in ln_fmt} == ln_fmt, "line/marker settings did not round-trip")
 
+    # 8h) Axis-title depth: bold / italic / font-family land on the existing
+    #     categoryAxis / valueAxis cards (siblings of titleColor / titleFontSize).
+    at_fmt = {
+        "xAxisTitleBold": True, "xAxisTitleItalic": True, "xAxisTitleFontFamily": "Arial",
+        "yAxisTitleBold": True, "yAxisTitleFontFamily": "Georgia",
+    }
+    at = build_visual_styles({"barChart": _style(dict(at_fmt))})
+    cat = at["barChart"]["*"]["categoryAxis"][0]
+    check(cat.get("titleBold") is True and cat.get("titleFontFamily") == "Arial",
+          "axis title emphasis not on categoryAxis")
+    atheme2 = PowerBITheme("AT"); atheme2.visual_styles = {"barChart": _style(dict(at_fmt))}
+    check(validate_theme(atheme2.to_dict()) == [], "axis-title theme failed schema validation")
+    at_back = import_visual_styles(at).get("barChart", {}).get("*", {}).get("formatting", {})
+    check({k: at_back.get(k) for k in at_fmt} == at_fmt, "axis-title emphasis did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({
