@@ -869,8 +869,11 @@ SLICER_SECTIONS = [
             FormatField("headerShow", "Show Header", "boolean", default=True),
             FormatField("headerFontColor", "Font Color", "color", default="#252423"),
             FormatField("headerBackground", "Background", "color", default="#FFFFFF"),
+            FormatField("headerFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
             FormatField("headerTextSize", "Font Size (pt)", "number", min_val=8, max_val=28, suffix="pt"),
             FormatField("headerBold", "Bold", "boolean", default=False),
+            FormatField("headerItalic", "Italic", "boolean", default=False, preview=False),
+            FormatField("headerUnderline", "Underline", "boolean", default=False, preview=False),
         ],
     ),
     FormatSection(
@@ -878,8 +881,11 @@ SLICER_SECTIONS = [
         [
             FormatField("itemsFontColor", "Font Color", "color", default="#252423"),
             FormatField("itemsBackground", "Background", "color", default="#FFFFFF"),
+            FormatField("itemsFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
             FormatField("itemsTextSize", "Font Size (pt)", "number", min_val=8, max_val=28, suffix="pt"),
             FormatField("itemsBold", "Bold", "boolean", default=False),
+            FormatField("itemsItalic", "Italic", "boolean", default=False, preview=False),
+            FormatField("itemsUnderline", "Underline", "boolean", default=False, preview=False),
         ],
     ),
     FormatSection(

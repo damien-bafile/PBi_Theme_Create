@@ -265,6 +265,25 @@ def main() -> int:
     at_back = import_visual_styles(at).get("barChart", {}).get("*", {}).get("formatting", {})
     check({k: at_back.get(k) for k in at_fmt} == at_fmt, "axis-title emphasis did not round-trip")
 
+    # 8g) Slicer depth: font family + italic + underline added to the existing
+    #     header / items cards; export shape, validation and round-trip.
+    sl_fmt = {
+        "headerFontFamily": "Georgia", "headerItalic": True, "headerUnderline": True,
+        "itemsFontFamily": "Arial", "itemsItalic": True, "itemsUnderline": False,
+        "itemsBold": True,
+    }
+    sv = build_visual_styles({"slicer": _style(dict(sl_fmt))})
+    sstar = sv["slicer"]["*"]
+    check(sstar["header"][0].get("fontFamily") == "Georgia", "slicer header.fontFamily missing")
+    check(sstar["header"][0].get("italic") is True, "slicer header.italic missing")
+    check(sstar["header"][0].get("underline") is True, "slicer header.underline missing")
+    check(sstar["items"][0].get("fontFamily") == "Arial", "slicer items.fontFamily missing")
+    check(sstar["items"][0].get("italic") is True, "slicer items.italic missing")
+    stheme = PowerBITheme("SL"); stheme.visual_styles = {"slicer": _style(dict(sl_fmt))}
+    check(validate_theme(stheme.to_dict()) == [], "slicer theme failed schema validation")
+    sl_back = import_visual_styles(sv).get("slicer", {}).get("*", {}).get("formatting", {})
+    check({k: sl_back.get(k) for k in sl_fmt} == sl_fmt, "slicer depth settings did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({
