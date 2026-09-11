@@ -213,6 +213,29 @@ def main() -> int:
     qna_back = import_visual_styles(qv).get("qnaVisual", {}).get("*", {}).get("formatting", {})
     check({k: qna_back.get(k) for k in qna_fmt} == qna_fmt, "Q&A settings did not round-trip")
 
+    # 8f) Table/Matrix depth: banded alternate font colour (values card) and the
+    #     matrix expand/collapse +/- icons (rowHeaders card), export + round-trip.
+    tbl_fmt = {
+        "bandedRows": True, "valuesBackgroundColor": "#FFFFFF", "alternateRowColor": "#EEEEEE",
+        "valuesTextColor": "#101010", "alternateRowTextColor": "#909090",
+    }
+    tv = build_visual_styles({"table": _style(dict(tbl_fmt))})
+    tvals = tv["tableEx"]["*"]["values"][0]
+    check(_is_solid(tvals.get("fontColorSecondary", {})), "values.fontColorSecondary (alt font) missing")
+    tb_back = import_visual_styles(tv).get("table", {}).get("*", {}).get("formatting", {})
+    check({k: tb_back.get(k) for k in tbl_fmt} == tbl_fmt, "table banded font settings did not round-trip")
+
+    mat_fmt = {
+        "showExpandCollapse": True, "expandCollapseColor": "#123456", "expandCollapseSize": 14,
+    }
+    mv = build_visual_styles({"matrix": _style(dict(mat_fmt))})
+    mrh = mv["pivotTable"]["*"]["rowHeaders"][0]
+    check(mrh.get("showExpandCollapseButtons") is True, "rowHeaders.showExpandCollapseButtons missing")
+    check(_is_solid(mrh.get("expandCollapseButtonsColor", {})), "rowHeaders.expandCollapseButtonsColor missing")
+    check("rowHeaders" not in tv["tableEx"]["*"], "plain table must not emit rowHeaders/expand-collapse")
+    mb_back = import_visual_styles(mv).get("matrix", {}).get("*", {}).get("formatting", {})
+    check({k: mb_back.get(k) for k in mat_fmt} == mat_fmt, "matrix expand/collapse did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({
