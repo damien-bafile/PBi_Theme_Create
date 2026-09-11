@@ -230,6 +230,26 @@ def main() -> int:
     az_back = import_visual_styles(az).get("azureMapVisual", {}).get("*", {}).get("formatting", {})
     check({k: az_back.get(k) for k in az_fmt} == az_fmt, "Azure Maps settings did not round-trip")
 
+    # 8e) Line/area/combo depth: the lineStyles card (width / style / interpolation
+    #     + markers) exports on line visuals only, validates, and round-trips.
+    ln_fmt = {
+        "lineWidth": 3, "lineStyleType": "dashed", "lineInterp": "smooth",
+        "lineMarkerShow": True, "lineMarkerShape": "diamond", "lineMarkerSize": 6,
+        "lineMarkerColor": "#E66C37",
+    }
+    ln = build_visual_styles({"lineChart": _style(dict(ln_fmt))})
+    lstyles = ln["lineChart"]["*"].get("lineStyles")
+    check(isinstance(lstyles, list) and lstyles[0].get("strokeWidth") == 3, "lineStyles.strokeWidth missing")
+    check(lstyles[0].get("lineChartType") == "smooth", "lineStyles.lineChartType missing")
+    check(_is_solid(lstyles[0]["markerColor"]), "lineStyles.markerColor not a solid fill")
+    # Bar charts must NOT get a lineStyles card.
+    bar_only = build_visual_styles({"barChart": _style({"xAxisLabelColor": "#0F0"})})
+    check("lineStyles" not in bar_only["barChart"]["*"], "barChart must not emit lineStyles")
+    ltheme = PowerBITheme("LN"); ltheme.visual_styles = {"lineChart": _style(dict(ln_fmt))}
+    check(validate_theme(ltheme.to_dict()) == [], "line theme failed schema validation")
+    ln_back = import_visual_styles(ln).get("lineChart", {}).get("*", {}).get("formatting", {})
+    check({k: ln_back.get(k) for k in ln_fmt} == ln_fmt, "line/marker settings did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({

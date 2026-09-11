@@ -307,6 +307,28 @@ SMALL_MULTIPLES_SECTION = FormatSection(
 # Cartesian charts that additionally expose the small-multiples layout card.
 CHART_SECTIONS_SM = CHART_SECTIONS + [SMALL_MULTIPLES_SECTION]
 
+# Line / area / combo charts add a "Lines & Markers" card (the Power BI
+# `lineStyles` card): default line width / style / interpolation and marker
+# show / shape / size / colour. Export-only (the simplified mockup can't show
+# stroke width or marker shape meaningfully) but schema-valid and round-tripping.
+_LINE_MARKER_SECTION = FormatSection(
+    "Lines & Markers",
+    [
+        FormatField("lineWidth", "Line Width (px)", "number", min_val=0, max_val=10, default=2, suffix="px", preview=False),
+        FormatField("lineStyleType", "Line Style", "dropdown",
+                    options=[("solid", "Solid"), ("dashed", "Dashed"), ("dotted", "Dotted")], preview=False),
+        FormatField("lineInterp", "Interpolation", "dropdown",
+                    options=[("linear", "Linear"), ("smooth", "Smooth"), ("step", "Stepped")], preview=False),
+        FormatField("lineMarkerShow", "Show Markers", "boolean", default=False, preview=False),
+        FormatField("lineMarkerShape", "Marker Shape", "dropdown",
+                    options=[("circle", "Circle"), ("square", "Square"), ("diamond", "Diamond"),
+                             ("triangle", "Triangle"), ("x", "X"), ("shortDash", "Dash")], preview=False),
+        FormatField("lineMarkerSize", "Marker Size", "number", min_val=1, max_val=30, default=5, preview=False),
+        FormatField("lineMarkerColor", "Marker Color", "color", default="#118DFF", preview=False),
+    ],
+)
+LINE_SECTIONS = CHART_SECTIONS_SM + [_LINE_MARKER_SECTION]
+
 # Scatter = chart sections plus marker / bubble options + a ratio line.
 SCATTER_SECTIONS = CHART_SECTIONS + [
     FormatSection(
@@ -1075,12 +1097,12 @@ VISUAL_FORMATTING = {
     "columnChart": CHART_SECTIONS_SM,
     "clusteredColumnChart": CHART_SECTIONS_SM,
     "hundredPercentStackedColumnChart": CHART_SECTIONS_SM,
-    "lineChart": CHART_SECTIONS_SM,
-    "lineClusteredColumnComboChart": CHART_SECTIONS_SM,
-    "lineStackedColumnComboChart": CHART_SECTIONS_SM,
-    "areaChart": CHART_SECTIONS_SM,
-    "stackedAreaChart": CHART_SECTIONS_SM,
-    "hundredPercentStackedAreaChart": CHART_SECTIONS_SM,
+    "lineChart": LINE_SECTIONS,
+    "lineClusteredColumnComboChart": LINE_SECTIONS,
+    "lineStackedColumnComboChart": LINE_SECTIONS,
+    "areaChart": LINE_SECTIONS,
+    "stackedAreaChart": LINE_SECTIONS,
+    "hundredPercentStackedAreaChart": LINE_SECTIONS,
     "scatterChart": SCATTER_SECTIONS,
     "ribbonChart": CHART_SECTIONS_SM,
     "waterfallChart": WATERFALL_SECTIONS,

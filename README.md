@@ -252,6 +252,14 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   `azureMap`, validates and round-trips. (Azure's ~40 map-behaviour toggles —
   traffic, boundaries, navigation, world-wrap — stay in Advanced JSON by design:
   a theme should brand the visual, not dictate analytical map behaviour.)
+- **Stage 13 — Line & marker depth — ✅ complete.** With every visual now
+  structured, this begins the card-level depth pass. Added a **Lines & Markers**
+  section to the six **line / area / combo** charts (the Power BI `lineStyles`
+  card): default **line width**, **line style** (solid / dashed / dotted),
+  **interpolation** (linear / smooth / stepped), and **markers** (show / shape /
+  size / colour). Export-only (the simplified mockup can't render stroke width or
+  marker shape), schema-valid, round-tripping, and gated so bar / column charts
+  don't emit it.
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.
@@ -266,12 +274,12 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
 | Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 70% |
 | 100% Stacked Bar Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
 | 100% Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
-| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
-| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
-| Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
-| 100% Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
-| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
-| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 72% |
+| Line Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 76% |
+| Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 76% |
+| Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 76% |
+| 100% Stacked Area Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 76% |
+| Line & Clustered Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 76% |
+| Line & Stacked Column Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ✅ | 76% |
 | Ribbon Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 70% |
 | Scatter Chart | ✅ | ✅ | ✅ | ✅ | ◐ | — | — | — | ✅ | 73% |
 | Waterfall Chart | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | ◐ | 75% |
@@ -312,6 +320,7 @@ totals / subtotals, banded rows, **data bars**, sparklines, column sizing and th
 built-in **style preset**. **Colors** = per-series / default data point,
 sentiment, ribbon bands, pie slices, shape fills, map data points. **Other** =
 reference lines, trend, **ratio line** (scatter), **plot-area transparency**,
+**line width / style / interpolation + markers** (line / area / combo charts),
 **data & header tooltips** (all visuals), **small multiples** (cartesian charts),
 and the visual-specific cards for buttons / shapes / trees / maps / images
 (Stages 4-7).*

@@ -43,6 +43,11 @@ _CARTESIAN = {
     "lineStackedColumnComboChart", "ribbonChart", "waterfallChart",
 }
 _SCATTER = {"scatterChart"}
+# Cartesian visuals that draw lines (get the lineStyles card): line, area, combo.
+_LINE_FAMILY = {
+    "lineChart", "areaChart", "stackedAreaChart", "hundredPercentStackedAreaChart",
+    "lineClusteredColumnComboChart", "lineStackedColumnComboChart",
+}
 _ACTION_BUTTON = {"actionButton"}
 _SHAPE_VIS = {"basicShape"}
 _DECOMP = {"decompositionTreeVisual"}
@@ -334,6 +339,22 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             rl = card("ratioLine")
             rl["show"] = bool(fmt["ratioLineShow"])
             _set(rl, "lineColor", _fill(fmt.get("ratioLineColor", "")))
+        # Line / area / combo: line width + style + interpolation, and markers.
+        if app_key in _LINE_FAMILY:
+            ls = card("lineStyles")
+            if "lineWidth" in fmt:
+                ls["strokeWidth"] = int(fmt["lineWidth"])
+            if fmt.get("lineStyleType"):
+                ls["lineStyle"] = fmt["lineStyleType"]
+            if fmt.get("lineInterp"):
+                ls["lineChartType"] = fmt["lineInterp"]
+            if "lineMarkerShow" in fmt:
+                ls["markerShow"] = bool(fmt["lineMarkerShow"])
+            if fmt.get("lineMarkerShape"):
+                ls["markerShape"] = fmt["lineMarkerShape"]
+            if "lineMarkerSize" in fmt:
+                ls["markerSize"] = int(fmt["lineMarkerSize"])
+            _set(ls, "markerColor", _fill(fmt.get("lineMarkerColor", "")))
 
     # ---- Pie / donut / treemap: legend + slice labels ---- #
     elif app_key in _PIE | _TREEMAP:
@@ -1038,7 +1059,7 @@ def _consumed_cards(app_key: str) -> set:
     if app_key in _CARTESIAN | _SCATTER:
         return {"categoryAxis", "valueAxis", "legend", "labels", "categoryLabels", "dataPoint",
                 "y1AxisReferenceLine", "trend", "sentimentColors", "bubbles", "markers",
-                "smallMultiplesLayout", "plotArea", "ratioLine"}
+                "smallMultiplesLayout", "plotArea", "ratioLine", "lineStyles"}
     if app_key in _PIE | _TREEMAP:
         return {"legend", "labels", "slices"}
     if app_key in _FUNNEL:
@@ -1213,6 +1234,21 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             if "show" in rl:
                 fmt["ratioLineShow"] = bool(rl["show"])
             _put(fmt, "ratioLineColor", _hex(rl, "lineColor"))
+        if app_key in _LINE_FAMILY:
+            ls = c("lineStyles")
+            if "strokeWidth" in ls:
+                fmt["lineWidth"] = ls["strokeWidth"]
+            if "lineStyle" in ls:
+                fmt["lineStyleType"] = ls["lineStyle"]
+            if "lineChartType" in ls:
+                fmt["lineInterp"] = ls["lineChartType"]
+            if "markerShow" in ls:
+                fmt["lineMarkerShow"] = bool(ls["markerShow"])
+            if "markerShape" in ls:
+                fmt["lineMarkerShape"] = ls["markerShape"]
+            if "markerSize" in ls:
+                fmt["lineMarkerSize"] = ls["markerSize"]
+            _put(fmt, "lineMarkerColor", _hex(ls, "markerColor"))
 
     elif app_key in _PIE | _TREEMAP:
         leg = c("legend")
