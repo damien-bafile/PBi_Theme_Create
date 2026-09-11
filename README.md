@@ -260,6 +260,18 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   size / colour). Export-only (the simplified mockup can't render stroke width or
   marker shape), schema-valid, round-tripping, and gated so bar / column charts
   don't emit it.
+- **Stage 14 — Axis-title, slicer & table/matrix depth — ✅ complete.** A batch
+  of card-level additions onto cards the app already emits (so the mappings are
+  proven, not inferred): **axis titles** gain **bold / italic / font family** on
+  the X and Y axes of every cartesian chart (`categoryAxis` / `valueAxis`,
+  siblings of the existing title colour / size); **Slicer** gains **font family /
+  italic / underline** on its header and items cards; **Table / Matrix** gain a
+  banded **alternate-row font colour** (`values.fontColorSecondary`) and the
+  matrix **expand / collapse (+/-) icons** (show / colour / size on `rowHeaders`,
+  matrix-only). All export-only, schema-valid and round-tripping. (The matrix
+  expand/collapse card placement is inferred — the schema flattens card names
+  away — so if Power BI Desktop reads those from a different card, only that card
+  name needs adjusting.)
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.
@@ -291,11 +303,11 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
 | Card | ✅ | — | — | ✅ | — | — | ☐ | — | ◐ | 65% |
 | Multi-row Card | ✅ | — | — | ✅ | — | — | ☐ | — | ◐ | 62% |
 | KPI | ✅ | — | — | — | — | — | ✅ | — | ◐ | 72% |
-| Table | ✅ | — | — | — | — | ✅ | — | — | ◐ | 71% |
-| Table (Extended) | ✅ | — | — | — | — | ✅ | — | — | ◐ | 71% |
-| Matrix | ✅ | — | — | — | — | ✅ | — | — | ◐ | 69% |
-| Pivot Table | ✅ | — | — | — | — | ✅ | — | — | ◐ | 69% |
-| Slicer | ✅ | — | — | — | — | — | — | ✅ | ◐ | 67% |
+| Table | ✅ | — | — | — | — | ✅ | — | — | ◐ | 73% |
+| Table (Extended) | ✅ | — | — | — | — | ✅ | — | — | ◐ | 73% |
+| Matrix | ✅ | — | — | — | — | ✅ | — | — | ◐ | 72% |
+| Pivot Table | ✅ | — | — | — | — | ✅ | — | — | ◐ | 72% |
+| Slicer | ✅ | — | — | — | — | — | — | ✅ | ◐ | 70% |
 | Map | ✅ | — | ✅ | ✅ | ◐ | — | — | — | ◐ | 64% |
 | Filled Map | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ◐ | 68% |
 | Shape Map | ✅ | — | ✅ | — | ◐ | — | — | — | ◐ | 58% |
