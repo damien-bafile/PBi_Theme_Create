@@ -1523,20 +1523,30 @@ def generate_image_svg(theme, formatting=None, generic=None, width=300, height=2
 
 
 def generate_key_influencers_svg(theme, formatting=None, generic=None, width=300, height=200):
-    """Key influencers/drivers: an influencer bubble beside contributing bars."""
+    """Key influencers/drivers: an influencer bubble beside contributing bars.
+
+    The Key Drivers structured section themes this: `primaryColor` drives the
+    influencer bubble and lead bar, `secondaryColor` the remaining bars, and
+    `canvasColor` the visual background (all fall back to theme defaults).
+    """
+    formatting = formatting or {}
     generic = generic or {}
     colors = _series_colors(theme, 3)
-    parts = _frame(width, height, generic, theme.background)
+    primary = formatting.get("primaryColor") or colors[0]
+    secondary = formatting.get("secondaryColor") or colors[1]
+    bg = formatting.get("canvasColor") or theme.background
+    parts = _frame(width, height, generic, bg)
     title_svg, top = _title(width, "Key Drivers", theme.foreground, generic)
     cx, cy = width * 0.26, top + (height - top) / 2
-    parts.append(f'<circle cx="{cx:.0f}" cy="{cy:.0f}" r="{min(38, (height - top) * 0.28):.0f}" fill="{colors[0]}" opacity="0.9"/>')
+    parts.append(f'<circle cx="{cx:.0f}" cy="{cy:.0f}" r="{min(38, (height - top) * 0.28):.0f}" fill="{primary}" opacity="0.9"/>')
     parts.append(f'<text x="{cx:.0f}" y="{cy - 2:.0f}" font-size="18" fill="#FFFFFF" text-anchor="middle" font-weight="bold">2.6x</text>')
     parts.append(f'<text x="{cx:.0f}" y="{cy + 16:.0f}" font-size="9" fill="#FFFFFF" text-anchor="middle">likely</text>')
     bx = width * 0.5
     bw = width * 0.42
+    bar_colors = (primary, secondary, secondary)
     for i, frac in enumerate((1.0, 0.72, 0.48)):
         by = top + 14 + i * ((height - top - 20) / 3)
-        parts.append(f'<rect x="{bx:.0f}" y="{by:.0f}" width="{bw * frac:.0f}" height="16" rx="3" fill="{colors[i % 3]}" opacity="0.85"/>')
+        parts.append(f'<rect x="{bx:.0f}" y="{by:.0f}" width="{bw * frac:.0f}" height="16" rx="3" fill="{bar_colors[i]}" opacity="0.85"/>')
     parts.append(title_svg)
     parts.append("</svg>")
     return "\n".join(parts)

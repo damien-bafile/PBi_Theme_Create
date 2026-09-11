@@ -74,6 +74,13 @@ _NAVIGATOR = {"pageNavigator", "bookmarkNavigator"}
 _SCORECARD = {"scorecard"}
 _FILTER_VIS = {"filter"}
 _CONTAINER = {"group", "rdlVisual"}  # only background/border are meaningful
+# Key influencers / drivers: analysis colours live on the visual's catch-all "*"
+# card as flat `fill` properties (per the schema), not under named sub-cards.
+_KEY_DRIVERS = {"keyDriversVisual"}
+_KEY_DRIVER_FILLS = (
+    "primaryColor", "secondaryColor", "defaultColor", "referenceLineColor",
+    "fontColor", "primaryFontColor", "secondaryFontColor", "canvasColor",
+)
 
 _GRIDLINE_STYLE = {"Solid": "solid", "Dashed": "dashed", "Dotted": "dotted"}
 
@@ -645,6 +652,14 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         _set(lh, "levelTitleFontColor", _fill(fmt.get("levelTitleColor", "")))
         _set(card("dataLabels"), "dataLabelFontColor", _fill(fmt.get("treeDataLabelColor", "")))
 
+    # ---- Key drivers: analysis colours as flat fills on the "*" card ---- #
+    elif app_key in _KEY_DRIVERS:
+        star: Dict[str, Any] = {}
+        for prop in _KEY_DRIVER_FILLS:
+            _set(star, prop, _fill(fmt.get(prop, "")))
+        if star:
+            cards["*"] = star
+
     # ---- Map / filled map: data point + category labels + style + controls ---- #
     elif app_key in _MAP:
         _set(card("dataPoint"), "defaultColor", _fill(fmt.get("mapDataColor", "")))
@@ -974,6 +989,8 @@ def _consumed_cards(app_key: str) -> set:
         return {"fill", "outline"}
     if app_key in _DECOMP:
         return {"levelHeader", "dataLabels"}
+    if app_key in _KEY_DRIVERS:
+        return {"*"}
     if app_key in _MAP:
         return {"dataPoint", "categoryLabels", "stroke", "mapStyles", "mapControls"}
     if app_key in _SHAPE_MAP:
@@ -1416,6 +1433,11 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         _put(fmt, "levelHeaderBg", _hex(lh, "levelHeaderBackgroundColor"))
         _put(fmt, "levelTitleColor", _hex(lh, "levelTitleFontColor"))
         _put(fmt, "treeDataLabelColor", _hex(c("dataLabels"), "dataLabelFontColor"))
+
+    elif app_key in _KEY_DRIVERS:
+        star = c("*")
+        for prop in _KEY_DRIVER_FILLS:
+            _put(fmt, prop, _hex(star, prop))
 
     elif app_key in _MAP:
         _put(fmt, "mapDataColor", _hex(c("dataPoint"), "defaultColor"))

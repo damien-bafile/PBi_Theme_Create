@@ -544,6 +544,34 @@ DECOMP_SECTIONS = [
     ),
 ]
 
+# Key drivers / key influencers -- analysis colours (all schema `fill` cards).
+# Primary / Secondary / Background drive the live preview; the rest export-only.
+KEY_DRIVERS_SECTIONS = [
+    FormatSection(
+        "Analysis Colors",
+        [
+            FormatField("primaryColor", "Primary Color", "color", default="#118DFF"),
+            FormatField("secondaryColor", "Secondary Color", "color", default="#12239E"),
+            FormatField("defaultColor", "Default Color", "color", default="#E0E0E0", preview=False),
+            FormatField("referenceLineColor", "Reference Line Color", "color", default="#A0A0A0", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Text",
+        [
+            FormatField("fontColor", "Font Color", "color", default="#252423", preview=False),
+            FormatField("primaryFontColor", "Primary Font Color", "color", default="#FFFFFF", preview=False),
+            FormatField("secondaryFontColor", "Secondary Font Color", "color", default="#252423", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Background",
+        [
+            FormatField("canvasColor", "Background Color", "color", default="#FFFFFF"),
+        ],
+    ),
+]
+
 _MAP_THEMES = [
     ("road", "Road"), ("aerial", "Aerial"), ("grayscale", "Grayscale"),
     ("canvasLight", "Light"), ("canvasDark", "Dark"),
@@ -941,6 +969,7 @@ VISUAL_FORMATTING = {
     "actionButton": ACTION_BUTTON_SECTIONS,
     "basicShape": SHAPE_SECTIONS,
     "decompositionTreeVisual": DECOMP_SECTIONS,
+    "keyDriversVisual": KEY_DRIVERS_SECTIONS,
     "map": MAP_SECTIONS,
     "filledMap": FILLED_MAP_SECTIONS,
     "shapeMap": SHAPE_MAP_SECTIONS,

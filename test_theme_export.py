@@ -176,6 +176,24 @@ def main() -> int:
     check(unpack_divider_object(imported) == (True, "#AABBCC", 2, "dashed"), "divider round-trip broken")
     check(unpack_visual_tooltip_object(imported)[0] == "#111111", "visualTooltip round-trip broken")
 
+    # 8b) Key drivers: analysis colours export as flat `fill` props on the "*"
+    #     card (schema shape), validate, and round-trip through all 8 colours.
+    from pbitheme.validate import validate_theme
+    kd_fmt = {
+        "primaryColor": "#118DFF", "secondaryColor": "#12239E", "defaultColor": "#E0E0E0",
+        "referenceLineColor": "#A0A0A0", "fontColor": "#252423", "primaryFontColor": "#FFFFFF",
+        "secondaryFontColor": "#654321", "canvasColor": "#FAFAFA",
+    }
+    kd = build_visual_styles({"keyDriversVisual": _style(dict(kd_fmt))})
+    star = kd["keyDriversVisual"]["*"]
+    check("*" in star and isinstance(star["*"], list), "keyDrivers fills not on the '*' card")
+    check("formatting" not in star, "keyDrivers still exports a `formatting` blob")
+    check(_is_solid(star["*"][0]["primaryColor"]), "keyDrivers primaryColor not a solid fill")
+    theme = PowerBITheme("KD"); theme.visual_styles = {"keyDriversVisual": _style(dict(kd_fmt))}
+    check(validate_theme(theme.to_dict()) == [], "keyDrivers theme failed schema validation")
+    kd_back = import_visual_styles(kd).get("keyDriversVisual", {}).get("*", {}).get("formatting", {})
+    check({k: kd_back.get(k) for k in kd_fmt} == kd_fmt, "keyDrivers colours did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({

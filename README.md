@@ -11,8 +11,8 @@ can also generate themes from scripts.
 
 - **Full visual coverage** — every one of the **52** visual types Power BI's
   theme schema defines is themeable (the editor lists **54** entries, exposing
-  both the schema and friendly names for Table and Matrix). **49** entries have
-  dedicated structured formatting; the other **5** use the generic overrides.
+  both the schema and friendly names for Table and Matrix). **50** entries have
+  dedicated structured formatting; the other **4** use the generic overrides.
 - **Live visual preview** — every visual is drawn as an SVG mockup that updates
   as you edit, plus a live JSON preview of the exported theme.
 - **Per-visual formatting** — axes, gridlines, legend, data labels, table
@@ -118,9 +118,9 @@ needed. The published assets are `PowerBI_Theme_Creator.exe`,
 **Every visual is covered.** The Power BI report theme schema (v2.157) defines
 **52** visual types, and the editor makes all of them selectable — listing
 **54** entries because it exposes both the schema and friendly names for Table
-(`tableEx` / `table`) and Matrix (`pivotTable` / `matrix`). **49** of the
+(`tableEx` / `table`) and Matrix (`pivotTable` / `matrix`). **50** of the
 editor's entries have dedicated, structured formatting sections; the remaining
-**5** — Azure Maps, Key Drivers, Python, R and Q&A — are themed through the
+**4** — Azure Maps, Python, R and Q&A — are themed through the
 generic overrides (title, background, border, drop shadow, padding, tooltips, …).
 Everything exports to real Power BI theme *cards*, is validated against the
 bundled schema, and round-trips (export → import → export is stable). Anything
@@ -128,11 +128,12 @@ not yet in a structured section can still be set through the **Advanced JSON**
 tab.
 
 Card-level depth within each visual (every property of every card) remains an
-ongoing sub-goal, tracked in the stages and matrix below. Of the five
+ongoing sub-goal, tracked in the stages and matrix below. Of the four
 generic-only visuals, R and Python genuinely expose nothing beyond frame styling
-(the schema gives them only `provider` / `source`), but **Azure Maps**, **Q&A**
-and **Key Drivers** do define deeper colour / font cards in the schema — set via
-Advanced JSON today, and candidates for future structured sections.
+(the schema gives them only `provider` / `source`), but **Azure Maps** and
+**Q&A** do define deeper colour / font cards in the schema — set via Advanced
+JSON today, and candidates for future structured sections. (**Key Drivers**
+graduated to a structured section in Stage 10 below.)
 
 **Legend:** ✅ done &nbsp;·&nbsp; ◐ partial &nbsp;·&nbsp; ☐ planned &nbsp;·&nbsp; — not applicable to this visual
 
@@ -222,6 +223,14 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   donut / treemap** legends & data labels and the **funnel** data labels.
   Centralised in the shared axis / legend / label renderers, so all these visuals
   gained it at once.
+- **Stage 10 — Key Drivers structured section — ✅ complete.** Promoted **Key
+  Drivers** from generic-only to a dedicated section covering all **8** of its
+  schema `fill` colours: **primary**, **secondary**, **default** and
+  **reference-line** (Analysis Colors); **font**, **primary-font** and
+  **secondary-font** (Text); and **background** (canvas). Primary / secondary /
+  background are **live-previewed** in the influencer mockup; the rest are valid
+  export-only cards. All emit onto the visual's catch-all `*` card as flat fills
+  (per the schema), validate, and round-trip.
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.
@@ -263,7 +272,7 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
 | Shape Map | ✅ | — | ✅ | — | ◐ | — | — | — | ◐ | 58% |
 | Azure Maps | ✅ | — | — | — | — | — | — | — | ◐ | 40% |
 | Decomposition Tree | ✅ | — | — | ◐ | — | — | — | — | ◐ | 53% |
-| Key Drivers | ✅ | — | — | — | — | — | — | — | ◐ | 63% |
+| Key Drivers | ✅ | — | — | ◐ | ✅ | — | — | — | ◐ | 72% |
 | Q&A | ✅ | — | — | — | — | — | — | — | ◐ | 63% |
 | Smart Narrative | ✅ | — | — | ◐ | — | — | — | — | ◐ | 58% |
 | Action Button | ✅ | — | — | — | ✅ | — | — | — | ✅ | 68% |
