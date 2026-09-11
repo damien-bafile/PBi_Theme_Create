@@ -581,17 +581,29 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             hdr["show"] = bool(fmt["headerShow"])
         _set(hdr, "fontColor", _fill(fmt.get("headerFontColor", "")))
         _set(hdr, "background", _fill(fmt.get("headerBackground", "")))
+        if fmt.get("headerFontFamily"):
+            hdr["fontFamily"] = fmt["headerFontFamily"]
         if "headerTextSize" in fmt:
             hdr["textSize"] = fmt["headerTextSize"]
         if "headerBold" in fmt:
             hdr["bold"] = bool(fmt["headerBold"])
+        if "headerItalic" in fmt:
+            hdr["italic"] = bool(fmt["headerItalic"])
+        if "headerUnderline" in fmt:
+            hdr["underline"] = bool(fmt["headerUnderline"])
         it = card("items")
         _set(it, "fontColor", _fill(fmt.get("itemsFontColor", "")))
         _set(it, "background", _fill(fmt.get("itemsBackground", "")))
+        if fmt.get("itemsFontFamily"):
+            it["fontFamily"] = fmt["itemsFontFamily"]
         if "itemsTextSize" in fmt:
             it["textSize"] = fmt["itemsTextSize"]
         if "itemsBold" in fmt:
             it["bold"] = bool(fmt["itemsBold"])
+        if "itemsItalic" in fmt:
+            it["italic"] = bool(fmt["itemsItalic"])
+        if "itemsUnderline" in fmt:
+            it["underline"] = bool(fmt["itemsUnderline"])
         _set(card("slider"), "color", _fill(fmt.get("sliderColor", "")))
         _set(card("selectionIcon"), "color", _fill(fmt.get("selectionColor", "")))
         sb = card("searchBox")
@@ -1394,17 +1406,29 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["headerShow"] = bool(hdr["show"])
         _put(fmt, "headerFontColor", _hex(hdr, "fontColor"))
         _put(fmt, "headerBackground", _hex(hdr, "background"))
+        if hdr.get("fontFamily"):
+            fmt["headerFontFamily"] = hdr["fontFamily"]
         if "textSize" in hdr:
             fmt["headerTextSize"] = hdr["textSize"]
         if "bold" in hdr:
             fmt["headerBold"] = bool(hdr["bold"])
+        if "italic" in hdr:
+            fmt["headerItalic"] = bool(hdr["italic"])
+        if "underline" in hdr:
+            fmt["headerUnderline"] = bool(hdr["underline"])
         it = c("items")
         _put(fmt, "itemsFontColor", _hex(it, "fontColor"))
         _put(fmt, "itemsBackground", _hex(it, "background"))
+        if it.get("fontFamily"):
+            fmt["itemsFontFamily"] = it["fontFamily"]
         if "textSize" in it:
             fmt["itemsTextSize"] = it["textSize"]
         if "bold" in it:
             fmt["itemsBold"] = bool(it["bold"])
+        if "italic" in it:
+            fmt["itemsItalic"] = bool(it["italic"])
+        if "underline" in it:
+            fmt["itemsUnderline"] = bool(it["underline"])
         _put(fmt, "sliderColor", _hex(c("slider"), "color"))
         _put(fmt, "selectionColor", _hex(c("selectionIcon"), "color"))
         sb = c("searchBox")
