@@ -194,6 +194,25 @@ def main() -> int:
     kd_back = import_visual_styles(kd).get("keyDriversVisual", {}).get("*", {}).get("formatting", {})
     check({k: kd_back.get(k) for k in kd_fmt} == kd_fmt, "keyDrivers colours did not round-trip")
 
+    # 8c) Q&A: fills / bools / font family / font size all land on the "*" card,
+    #     validate, and round-trip (a representative subset of each type).
+    qna_fmt = {
+        "questionFontColor": "#111111", "background": "#FEFEFE", "hoverColor": "#118DFF",
+        "cardFontColor": "#222222", "headerFontColor": "#333333",
+        "questionBold": True, "headerUnderline": True,
+        "questionFontFamily": "Arial", "cardFontSize": 12, "headerFontSize": 16,
+    }
+    qv = build_visual_styles({"qnaVisual": _style(dict(qna_fmt))})
+    qstar = qv["qnaVisual"]["*"]
+    check("*" in qstar and isinstance(qstar["*"], list), "Q&A props not on the '*' card")
+    check(_is_solid(qstar["*"][0]["background"]), "Q&A background not a solid fill")
+    check(qstar["*"][0].get("questionBold") is True, "Q&A questionBold not exported as bool")
+    check(qstar["*"][0].get("cardFontSize") == 12, "Q&A cardFontSize not exported as number")
+    qtheme = PowerBITheme("QNA"); qtheme.visual_styles = {"qnaVisual": _style(dict(qna_fmt))}
+    check(validate_theme(qtheme.to_dict()) == [], "Q&A theme failed schema validation")
+    qna_back = import_visual_styles(qv).get("qnaVisual", {}).get("*", {}).get("formatting", {})
+    check({k: qna_back.get(k) for k in qna_fmt} == qna_fmt, "Q&A settings did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({

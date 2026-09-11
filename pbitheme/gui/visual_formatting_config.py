@@ -572,6 +572,73 @@ KEY_DRIVERS_SECTIONS = [
     ),
 ]
 
+
+def _font_family_field(key: str, label: str = "Font Family"):
+    return FormatField(key, label, "dropdown", options=FONT_OPTIONS, preview=False)
+
+
+def _font_size_field(key: str, label: str = "Font Size (pt)"):
+    return FormatField(key, label, "number", min_val=8, max_val=60, suffix="pt", preview=False)
+
+
+# Q&A -- question box, suggestion states, restatement, result card and header.
+# `background`, `questionFontColor` and `hoverColor` drive the live preview.
+QNA_SECTIONS = [
+    FormatSection(
+        "Question",
+        [
+            FormatField("questionFontColor", "Font Color", "color", default="#252423"),
+            _font_family_field("questionFontFamily"),
+            _font_size_field("questionFontSize"),
+            FormatField("questionBold", "Bold", "boolean", default=False, preview=False),
+            FormatField("questionItalic", "Italic", "boolean", default=False, preview=False),
+            FormatField("questionUnderline", "Underline", "boolean", default=False, preview=False),
+        ],
+    ),
+    FormatSection(
+        "Input Box",
+        [
+            FormatField("background", "Background Color", "color", default="#FFFFFF"),
+            FormatField("hoverColor", "Suggestion / Hover Color", "color", default="#118DFF"),
+            FormatField("commitButtonBackgroundColor", "Submit Button Color", "color", default="#118DFF", preview=False),
+            FormatField("acceptedColor", "Accepted Underline", "color", default="#107C10", preview=False),
+            FormatField("warningColor", "Warning Underline", "color", default="#F2C811", preview=False),
+            FormatField("errorColor", "Error Underline", "color", default="#D64550", preview=False),
+        ],
+    ),
+    FormatSection(
+        "Restatement",
+        [
+            FormatField("restatementFontColor", "Font Color", "color", default="#605E5C", preview=False),
+            _font_family_field("restatementFontFamily"),
+            _font_size_field("restatementFontSize"),
+        ],
+    ),
+    FormatSection(
+        "Result Card",
+        [
+            FormatField("cardBackground", "Background Color", "color", default="#FFFFFF", preview=False),
+            FormatField("cardFontColor", "Font Color", "color", default="#252423", preview=False),
+            _font_family_field("cardFontFamily"),
+            _font_size_field("cardFontSize"),
+            FormatField("cardBold", "Bold", "boolean", default=False, preview=False),
+            FormatField("cardItalic", "Italic", "boolean", default=False, preview=False),
+            FormatField("cardUnderline", "Underline", "boolean", default=False, preview=False),
+        ],
+    ),
+    FormatSection(
+        "Header",
+        [
+            FormatField("headerFontColor", "Font Color", "color", default="#252423", preview=False),
+            _font_family_field("headerFontFamily"),
+            _font_size_field("headerFontSize"),
+            FormatField("headerBold", "Bold", "boolean", default=False, preview=False),
+            FormatField("headerItalic", "Italic", "boolean", default=False, preview=False),
+            FormatField("headerUnderline", "Underline", "boolean", default=False, preview=False),
+        ],
+    ),
+]
+
 _MAP_THEMES = [
     ("road", "Road"), ("aerial", "Aerial"), ("grayscale", "Grayscale"),
     ("canvasLight", "Light"), ("canvasDark", "Dark"),
@@ -970,6 +1037,7 @@ VISUAL_FORMATTING = {
     "basicShape": SHAPE_SECTIONS,
     "decompositionTreeVisual": DECOMP_SECTIONS,
     "keyDriversVisual": KEY_DRIVERS_SECTIONS,
+    "qnaVisual": QNA_SECTIONS,
     "map": MAP_SECTIONS,
     "filledMap": FILLED_MAP_SECTIONS,
     "shapeMap": SHAPE_MAP_SECTIONS,

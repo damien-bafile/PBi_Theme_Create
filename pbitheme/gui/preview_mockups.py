@@ -1575,19 +1575,28 @@ def generate_script_visual_svg(theme, formatting=None, generic=None, width=300, 
 
 
 def generate_qna_svg(theme, formatting=None, generic=None, width=300, height=200):
-    """Q&A: a question input box with a suggestion chip."""
+    """Q&A: a question input box with a suggestion chip.
+
+    The Q&A structured section themes this: `background` fills the visual,
+    `questionFontColor` colours the prompt text, and `hoverColor` tints the
+    suggestion chip (all fall back to the previous defaults).
+    """
+    formatting = formatting or {}
     generic = generic or {}
-    parts = _frame(width, height, generic, theme.background)
+    bg = formatting.get("background") or theme.background
+    accent = formatting.get("hoverColor") or theme.table_accent
+    prompt = formatting.get("questionFontColor") or "#8A8886"
+    parts = _frame(width, height, generic, bg)
     title_svg, top = _title(width, "Q&A", theme.foreground, generic)
     bx, bw = width * 0.1, width * 0.8
     by = top + (height - top) * 0.34
-    parts.append(f'<rect x="{bx:.0f}" y="{by:.0f}" width="{bw:.0f}" height="34" rx="17" fill="#FFFFFF" stroke="{theme.table_accent}" stroke-width="1.5"/>')
+    parts.append(f'<rect x="{bx:.0f}" y="{by:.0f}" width="{bw:.0f}" height="34" rx="17" fill="#FFFFFF" stroke="{accent}" stroke-width="1.5"/>')
     mx, my = bx + 22, by + 17
     parts.append(f'<circle cx="{mx:.0f}" cy="{my - 1:.0f}" r="6" fill="none" stroke="{theme.foreground}" stroke-width="2"/>')
     parts.append(f'<line x1="{mx + 4:.0f}" y1="{my + 3:.0f}" x2="{mx + 9:.0f}" y2="{my + 8:.0f}" stroke="{theme.foreground}" stroke-width="2"/>')
-    parts.append(f'<text x="{bx + 40:.0f}" y="{by + 22:.0f}" font-size="12" fill="#8A8886">Ask a question about your data</text>')
-    parts.append(f'<rect x="{bx:.0f}" y="{by + 46:.0f}" width="{bw * 0.5:.0f}" height="22" rx="11" fill="{theme.table_accent}" opacity="0.15"/>')
-    parts.append(f'<text x="{bx + 14:.0f}" y="{by + 61:.0f}" font-size="10" fill="{theme.table_accent}">total sales by region</text>')
+    parts.append(f'<text x="{bx + 40:.0f}" y="{by + 22:.0f}" font-size="12" fill="{prompt}">Ask a question about your data</text>')
+    parts.append(f'<rect x="{bx:.0f}" y="{by + 46:.0f}" width="{bw * 0.5:.0f}" height="22" rx="11" fill="{accent}" opacity="0.15"/>')
+    parts.append(f'<text x="{bx + 14:.0f}" y="{by + 61:.0f}" font-size="10" fill="{accent}">total sales by region</text>')
     parts.append(title_svg)
     parts.append("</svg>")
     return "\n".join(parts)

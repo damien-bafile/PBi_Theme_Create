@@ -81,6 +81,20 @@ _KEY_DRIVER_FILLS = (
     "primaryColor", "secondaryColor", "defaultColor", "referenceLineColor",
     "fontColor", "primaryFontColor", "secondaryFontColor", "canvasColor",
 )
+# Q&A also stores everything as flat properties on the visual's "*" card.
+_QNA = {"qnaVisual"}
+_QNA_FILLS = (
+    "questionFontColor", "background", "hoverColor", "commitButtonBackgroundColor",
+    "acceptedColor", "warningColor", "errorColor", "restatementFontColor",
+    "cardBackground", "cardFontColor", "headerFontColor",
+)
+_QNA_BOOLS = (
+    "questionBold", "questionItalic", "questionUnderline",
+    "cardBold", "cardItalic", "cardUnderline",
+    "headerBold", "headerItalic", "headerUnderline",
+)
+_QNA_FONTS = ("questionFontFamily", "restatementFontFamily", "cardFontFamily", "headerFontFamily")
+_QNA_SIZES = ("questionFontSize", "restatementFontSize", "cardFontSize", "headerFontSize")
 
 _GRIDLINE_STYLE = {"Solid": "solid", "Dashed": "dashed", "Dotted": "dotted"}
 
@@ -660,6 +674,23 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if star:
             cards["*"] = star
 
+    # ---- Q&A: fonts / colours / states as flat props on the "*" card ---- #
+    elif app_key in _QNA:
+        star = {}
+        for prop in _QNA_FILLS:
+            _set(star, prop, _fill(fmt.get(prop, "")))
+        for prop in _QNA_BOOLS:
+            if prop in fmt:
+                star[prop] = bool(fmt[prop])
+        for prop in _QNA_FONTS:
+            if fmt.get(prop):
+                star[prop] = fmt[prop]
+        for prop in _QNA_SIZES:
+            if prop in fmt:
+                star[prop] = int(fmt[prop])
+        if star:
+            cards["*"] = star
+
     # ---- Map / filled map: data point + category labels + style + controls ---- #
     elif app_key in _MAP:
         _set(card("dataPoint"), "defaultColor", _fill(fmt.get("mapDataColor", "")))
@@ -989,7 +1020,7 @@ def _consumed_cards(app_key: str) -> set:
         return {"fill", "outline"}
     if app_key in _DECOMP:
         return {"levelHeader", "dataLabels"}
-    if app_key in _KEY_DRIVERS:
+    if app_key in _KEY_DRIVERS | _QNA:
         return {"*"}
     if app_key in _MAP:
         return {"dataPoint", "categoryLabels", "stroke", "mapStyles", "mapControls"}
@@ -1438,6 +1469,20 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
         star = c("*")
         for prop in _KEY_DRIVER_FILLS:
             _put(fmt, prop, _hex(star, prop))
+
+    elif app_key in _QNA:
+        star = c("*")
+        for prop in _QNA_FILLS:
+            _put(fmt, prop, _hex(star, prop))
+        for prop in _QNA_BOOLS:
+            if prop in star:
+                fmt[prop] = bool(star[prop])
+        for prop in _QNA_FONTS:
+            if star.get(prop):
+                fmt[prop] = star[prop]
+        for prop in _QNA_SIZES:
+            if prop in star:
+                fmt[prop] = star[prop]
 
     elif app_key in _MAP:
         _put(fmt, "mapDataColor", _hex(c("dataPoint"), "defaultColor"))
