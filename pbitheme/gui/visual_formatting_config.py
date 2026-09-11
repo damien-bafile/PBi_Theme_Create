@@ -99,6 +99,7 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("cellPadding", "Cell Padding (px)", "number", min_val=2, max_val=20, suffix="px"),
             FormatField("bandedRows", "Banded Rows", "boolean", default=False),
             FormatField("alternateRowColor", "Alternate Row Color", "color", default="#F5F5F5"),
+            FormatField("alternateRowTextColor", "Alternate Row Text Color", "color", default="#252423", preview=False),
             FormatField("valuesFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
             FormatField("valuesWordWrap", "Word Wrap", "boolean", default=False, preview=False),
         ],
@@ -130,6 +131,14 @@ MATRIX_TABLE_SECTIONS = [
             FormatField("subtotalsUnderline", "Underline", "boolean", default=False),
             FormatField("columnSubtotals", "Show Column Subtotals", "boolean", default=True, preview=False),
             FormatField("subtotalsFontFamily", "Font Family", "dropdown", options=FONT_OPTIONS, preview=False),
+        ],
+    ),
+    FormatSection(
+        "Expand/Collapse Icons",  # matrix only on export (row-header +/- icons)
+        [
+            FormatField("showExpandCollapse", "Show +/- Icons", "boolean", default=True, preview=False),
+            FormatField("expandCollapseColor", "Icon Color", "color", default="#252423", preview=False),
+            FormatField("expandCollapseSize", "Icon Size (pt)", "number", min_val=8, max_val=28, default=12, suffix="pt", preview=False),
         ],
     ),
     FormatSection(

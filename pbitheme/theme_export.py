@@ -478,9 +478,12 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if "valuesWordWrap" in fmt:
             vals["wordWrap"] = bool(fmt["valuesWordWrap"])
         if fmt.get("bandedRows"):
-            # Alternating row colours use the primary/secondary value backgrounds.
+            # Alternating row colours use the primary/secondary value backgrounds
+            # and (optionally) alternating font colours.
             _set(vals, "backColorPrimary", _fill(fmt.get("valuesBackgroundColor", "")))
             _set(vals, "backColorSecondary", _fill(fmt.get("alternateRowColor", "")))
+            _set(vals, "fontColorPrimary", _fill(fmt.get("valuesTextColor", "")))
+            _set(vals, "fontColorSecondary", _fill(fmt.get("alternateRowTextColor", "")))
         else:
             _set(vals, "backColor", _fill(fmt.get("valuesBackgroundColor", "")))
 
@@ -518,6 +521,12 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
                 rh["stepped"] = bool(fmt["rowHeaderStepped"])
             if fmt.get("rowHeaderFontFamily"):
                 rh["fontFamily"] = fmt["rowHeaderFontFamily"]
+            # +/- expand-collapse icons (part of the matrix row-headers card).
+            if "showExpandCollapse" in fmt:
+                rh["showExpandCollapseButtons"] = bool(fmt["showExpandCollapse"])
+            _set(rh, "expandCollapseButtonsColor", _fill(fmt.get("expandCollapseColor", "")))
+            if "expandCollapseSize" in fmt:
+                rh["expandCollapseButtonsSize"] = fmt["expandCollapseSize"]
             st = card("subTotals")
             if "showSubtotals" in fmt:
                 st["rowSubtotals"] = bool(fmt["showSubtotals"])
@@ -1379,6 +1388,9 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["bandedRows"] = True
             _put(fmt, "alternateRowColor", _hex(vals, "backColorSecondary"))
             _put(fmt, "valuesBackgroundColor", _hex(vals, "backColorPrimary"))
+            _put(fmt, "alternateRowTextColor", _hex(vals, "fontColorSecondary"))
+            if "fontColorPrimary" in vals:
+                _put(fmt, "valuesTextColor", _hex(vals, "fontColorPrimary"))
         else:
             _put(fmt, "valuesBackgroundColor", _hex(vals, "backColor"))
         tot = c("total")
@@ -1414,6 +1426,11 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
                 fmt["rowHeaderStepped"] = bool(rh["stepped"])
             if "fontFamily" in rh:
                 fmt["rowHeaderFontFamily"] = rh["fontFamily"]
+            if "showExpandCollapseButtons" in rh:
+                fmt["showExpandCollapse"] = bool(rh["showExpandCollapseButtons"])
+            _put(fmt, "expandCollapseColor", _hex(rh, "expandCollapseButtonsColor"))
+            if "expandCollapseButtonsSize" in rh:
+                fmt["expandCollapseSize"] = rh["expandCollapseButtonsSize"]
             st = c("subTotals")
             if "rowSubtotals" in st:
                 fmt["showSubtotals"] = bool(st["rowSubtotals"])
