@@ -367,7 +367,7 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             if fmt.get("lineInterp"):
                 ls["lineChartType"] = fmt["lineInterp"]
             if "lineMarkerShow" in fmt:
-                ls["markerShow"] = bool(fmt["lineMarkerShow"])
+                ls["showMarker"] = bool(fmt["lineMarkerShow"])
             if fmt.get("lineMarkerShape"):
                 ls["markerShape"] = fmt["lineMarkerShape"]
             if "lineMarkerSize" in fmt:
@@ -1298,8 +1298,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
                 fmt["lineStyleType"] = ls["lineStyle"]
             if "lineChartType" in ls:
                 fmt["lineInterp"] = ls["lineChartType"]
-            if "markerShow" in ls:
-                fmt["lineMarkerShow"] = bool(ls["markerShow"])
+            if "showMarker" in ls:
+                fmt["lineMarkerShow"] = bool(ls["showMarker"])
             if "markerShape" in ls:
                 fmt["lineMarkerShape"] = ls["markerShape"]
             if "markerSize" in ls:

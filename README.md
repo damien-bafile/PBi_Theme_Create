@@ -259,7 +259,8 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   **interpolation** (linear / smooth / stepped), and **markers** (show / shape /
   size / colour). Export-only (the simplified mockup can't render stroke width or
   marker shape), schema-valid, round-tripping, and gated so bar / column charts
-  don't emit it.
+  don't emit it. Card / property names ground-truthed against Microsoft-endorsed
+  theme templates (the marker toggle is `showMarker`).
 - **Stage 14 — Axis-title, slicer & table/matrix depth — ✅ complete.** A batch
   of card-level additions onto cards the app already emits (so the mappings are
   proven, not inferred): **axis titles** gain **bold / italic / font family** on
