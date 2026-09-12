@@ -324,6 +324,24 @@ def main() -> int:
     gl_back = import_visual_styles(gv).get("barChart", {}).get("*", {}).get("formatting", {})
     check({k: gl_back.get(k) for k in gl_fmt} == gl_fmt, "gridline/label-bg settings did not round-trip")
 
+    # 8j) Ground-truth fixes: log scale uses axisScale ("Log"/"Linear"), and scatter
+    #     markers live on the `shapes` card (not bubbles/markers). Both round-trip.
+    lv = build_visual_styles({"barChart": _style({"yAxisLogScale": True})})
+    check(lv["barChart"]["*"]["valueAxis"][0].get("axisScale") == "Log", "log scale not exported as axisScale=Log")
+    check("logAxisScale" not in lv["barChart"]["*"]["valueAxis"][0], "stale logAxisScale still emitted")
+    lb = import_visual_styles(lv).get("barChart", {}).get("*", {}).get("formatting", {})
+    check(lb.get("yAxisLogScale") is True, "axisScale did not round-trip to yAxisLogScale")
+
+    sv2 = build_visual_styles({"scatterChart": _style({"bubbleSize": 30, "markerBorderColor": "#FF0000"})})
+    sstar2 = sv2["scatterChart"]["*"]
+    check("shapes" in sstar2 and "bubbles" not in sstar2 and "markers" not in sstar2,
+          "scatter markers not consolidated onto the shapes card")
+    check(sstar2["shapes"][0].get("bubbleSize") == 30, "shapes.bubbleSize missing")
+    check(_is_solid(sstar2["shapes"][0].get("borderColor", {})), "shapes.borderColor missing")
+    sb2 = import_visual_styles(sv2).get("scatterChart", {}).get("*", {}).get("formatting", {})
+    check(sb2.get("bubbleSize") == 30 and sb2.get("markerBorderColor") == "#FF0000",
+          "scatter shapes settings did not round-trip")
+
     # 9) Backlog: data bars (required props), blankRows matrix-only, stylePreset,
     #    plotArea, ratio line scatter-only, and their round-trip.
     vs = build_visual_styles({

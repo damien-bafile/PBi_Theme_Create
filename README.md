@@ -279,6 +279,12 @@ shown in a simplified mockup (e.g. font family, word wrap, page/report cards).
   **data-label background colour + transparency** (on the `labels` card, filling
   the gap where the app toggled *Show Background* but never set its colour). All
   export-only, schema-valid and round-tripping.
+- **Stage 16 — Ground-truth corrections — ✅ complete.** Verified card / property
+  names against Microsoft-endorsed theme templates and fixed two long-standing
+  mismatches: **log scale** now exports as `valueAxis.axisScale` (`"Log"` /
+  `"Linear"`) instead of a non-standard boolean, and **scatter markers**
+  (bubble size + border) now live on the real `shapes` card instead of separate
+  `bubbles` / `markers` cards. Both round-trip; regression-guarded.
 - **Not themeable — stays in Advanced JSON.** The per-visual navigation/link card
   (`visualLink`) is genuinely instance-specific — it targets a bookmark, report
   section or URL a theme can't know — so it has no structured field by design.

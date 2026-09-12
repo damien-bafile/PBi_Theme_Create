@@ -258,7 +258,8 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
         if fmt.get("yAxisTitleFontFamily"):
             val["titleFontFamily"] = fmt["yAxisTitleFontFamily"]
         if "yAxisLogScale" in fmt:
-            val["logAxisScale"] = bool(fmt["yAxisLogScale"])
+            # Power BI's real property is `axisScale` ("Linear" / "Log"), not a bool.
+            val["axisScale"] = "Log" if fmt["yAxisLogScale"] else "Linear"
         if fmt.get("yAxisSetRange"):
             if "yAxisStart" in fmt:
                 val["start"] = fmt["yAxisStart"]
@@ -333,13 +334,14 @@ def _translate_formatting(app_key: str, fmt: Dict[str, Any]) -> Dict[str, Dict[s
             tr = card("trend")
             tr["show"] = bool(fmt["trendShow"])
             _set(tr, "lineColor", _fill(fmt.get("trendColor", "")))
-        # Scatter markers / bubbles.
+        # Scatter markers live on the `shapes` card (bubbleSize / border), not
+        # separate `bubbles` / `markers` cards (ground-truthed vs PBI templates).
         if app_key in _SCATTER:
             if "bubbleSize" in fmt:
-                card("bubbles")["bubbleSize"] = fmt["bubbleSize"]
+                card("shapes")["bubbleSize"] = fmt["bubbleSize"]
             mb = _fill(fmt.get("markerBorderColor", ""))
             if mb is not None:
-                card("markers").update({"borderShow": True, "borderColor": mb})
+                card("shapes").update({"borderShow": True, "borderColor": mb})
         # Small multiples layout (cartesian, excluding waterfall / scatter).
         if app_key in _SMALL_MULTIPLES:
             sm = card("smallMultiplesLayout")
@@ -1099,7 +1101,7 @@ def _axis_gridlines_inv(fmt: Dict[str, Any], c: Dict[str, Any]) -> None:
 def _consumed_cards(app_key: str) -> set:
     if app_key in _CARTESIAN | _SCATTER:
         return {"categoryAxis", "valueAxis", "legend", "labels", "categoryLabels", "dataPoint",
-                "y1AxisReferenceLine", "trend", "sentimentColors", "bubbles", "markers",
+                "y1AxisReferenceLine", "trend", "sentimentColors", "shapes",
                 "smallMultiplesLayout", "plotArea", "ratioLine", "lineStyles"}
     if app_key in _PIE | _TREEMAP:
         return {"legend", "labels", "slices"}
@@ -1206,8 +1208,8 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["yAxisTitleItalic"] = bool(val["titleItalic"])
         if "titleFontFamily" in val:
             fmt["yAxisTitleFontFamily"] = val["titleFontFamily"]
-        if "logAxisScale" in val:
-            fmt["yAxisLogScale"] = bool(val["logAxisScale"])
+        if "axisScale" in val:
+            fmt["yAxisLogScale"] = val["axisScale"] == "Log"
         if "start" in val or "end" in val:
             fmt["yAxisSetRange"] = True
             if "start" in val:
@@ -1270,10 +1272,10 @@ def _cards_to_formatting(app_key: str, cards: Dict[str, Any]) -> Dict[str, Any]:
             fmt["trendShow"] = bool(tr["show"])
         _put(fmt, "trendColor", _hex(tr, "lineColor"))
         if app_key in _SCATTER:
-            bub = c("bubbles")
-            if "bubbleSize" in bub:
-                fmt["bubbleSize"] = bub["bubbleSize"]
-            _put(fmt, "markerBorderColor", _hex(c("markers"), "borderColor"))
+            shp = c("shapes")
+            if "bubbleSize" in shp:
+                fmt["bubbleSize"] = shp["bubbleSize"]
+            _put(fmt, "markerBorderColor", _hex(shp, "borderColor"))
         if app_key in _SMALL_MULTIPLES:
             sm = c("smallMultiplesLayout")
             if "columnCount" in sm:
